@@ -1,0 +1,92 @@
+/* --- 1. HIDE REMIX BUTTON --- */
+/* Find the Remix button by its label keywords or SVG icon path, and hide it to prevent layout stretching */
+reel-action-bar-view-model button-view-model:has(button[aria-label*="remix" i]),
+reel-action-bar-view-model button-view-model:has(button[aria-label*="remiks" i]),
+reel-action-bar-view-model button-view-model:has(path[d^="M10.564"]) {
+    display: none !important;
+}
+
+/* Alternative: If you also want to hide the audio/music box (Pivot button) at the bottom right, 
+   you can remove the "/*" signs at the beginning of the following line. */
+/* #pivot-button { display: none !important; } */
+
+
+/* --- 2. DESIGN OF YOUR BLOCK BUTTON --- */
+.my-block-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-top: 4px;
+    /* Reduced gap with the top button (was 16px) */
+    margin-bottom: 12px;
+    /* Added to balance the bottom area */
+    border: none;
+    background: transparent;
+    padding: 0;
+    width: 100%;
+    font-family: inherit;
+    /* Inherit whatever YouTube uses instead of Roboto (e.g. ytb fonts) */
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Circular Part of the Button */
+.my-btn-circle {
+    width: 48px;
+    height: 48px;
+    background-color: rgba(255, 255, 255, 0.1);
+    /* YouTube standard gray tone */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s cubic-bezier(0.05, 0, 0, 1);
+    margin-bottom: 4px;
+    /* Space between circle and text (YouTube generally uses 4-6px) */
+}
+
+/* Effects */
+.my-block-button:hover .my-btn-circle {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.my-block-button:active .my-btn-circle {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Icon */
+.my-btn-circle svg {
+    width: 24px;
+    height: 24px;
+    fill: white;
+    display: block;
+}
+
+/* Text */
+.my-btn-text {
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 400;
+    /* Thinned from 500 to 400 to match YouTube default text */
+    color: white;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    max-width: 60px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Blocked (Red) State */
+.my-block-button.blocked-state .my-btn-circle {
+    background-color: rgba(255, 68, 68, 0.2);
+}
+
+.my-block-button.blocked-state svg {
+    fill: #ff4444 !important;
+}
+
+.my-block-button.blocked-state .my-btn-text {
+    color: #ff4444;
+}
