@@ -1,0 +1,16 @@
+# Native Host / yt-dlp generated files
+yt-dlp.exe
+native-host.bat
+com.paracci.youtubedownloader.json
+cache/
+logs/
+
+# Build and OS files
+.DS_Store
+Thumbs.db
+node_modules/
+.env
+
+# Zip builds
+*.zip
+*.crx

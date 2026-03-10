@@ -1,13 +1,28 @@
 {
   "manifest_version": 3,
   "name": "YouTube Shorts Channel Blocker",
-  "version": "1.0.1",
-  "description": "Block unwanted YouTube Shorts channels with a single click and skip ads automatically.",
+  "version": "1.6.0",
+  "description": "Block unwanted YouTube Shorts channels, skip ads, and download videos in your preferred quality.",
   "icons": {
     "16": "icon16.png",
     "48": "icon48.png",
     "128": "icon128.png"
   },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "YouTube Shorts Channel Blocker",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "downloads",
+    "nativeMessaging",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.googlevideo.com/*"
+  ],
   "content_scripts": [
     {
       "matches": [

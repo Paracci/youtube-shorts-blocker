@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extension Popup</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- Sol Taraf: İçerik Sayfaları (Left Side Content Area) -->
+        <main class="content-area">
+            
+            <!-- Home Page -->
+            <div id="page-home" class="page active">
+                <header>
+                    <svg class="brand-icon" viewBox="0 0 24 24">
+                        <path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z"/>
+                    </svg>
+                    <h1>Shorts Blocker</h1>
+                </header>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h2 style="margin-bottom: 0;">Protection Status</h2>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="main-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <p>Extension is <span id="status-text" style="color: var(--yt-blue); font-weight: 500;">Active</span> and blocking Shorts.</p>
+                </div>
+                
+                <div class="card" style="text-align: center; padding: 20px 16px;">
+                    <p style="font-size: 12px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">Channels Blocked</p>
+                    <div id="stats-blocked" class="stat-val">0</div>
+                </div>
+
+                <div class="card">
+                    <h2>Native Downloader</h2>
+                    <p>To download high-quality videos, you need the companion app.</p>
+                    <button class="action-btn primary" id="btn-setup">Setup / Monitor Settings</button>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="page-settings" class="page">
+                <header>
+                    <h1>Settings</h1>
+                </header>
+                <div class="card">
+                    <h2>Preferences</h2>
+                    <p>Configure how the extension behaves globally.</p>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 16px;">
+                        <span style="font-size: 13px; font-weight: 500;">Hide Shorts from Homepage</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="hide-homepage-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About Page -->
+            <div id="page-about" class="page">
+                <header>
+                    <h1>About</h1>
+                </header>
+                <div class="card">
+                    <h2 id="about-version">Version ...</h2>
+                    <p>This extension prevents addiction by automatically hiding YouTube Shorts and provides high-quality video downloading.</p>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Sağ Taraf: Sidebar Menü (Right Side Sidebar) -->
+        <aside class="sidebar">
+            <nav class="nav-menu">
+                <button class="nav-item active" data-target="page-home">
+                    <svg viewBox="0 0 24 24"><path d="M4 21V10.08l8-6.96 8 6.96V21h-6v-6h-4v6H4z"/></svg>
+                    <span>Home</span>
+                </button>
+                <button class="nav-item" data-target="page-settings">
+                    <svg viewBox="0 0 24 24"><path d="M12 9.5c1.38 0 2.5 1.12 2.5 2.5s-1.12 2.5-2.5 2.5-2.5-1.12-2.5-2.5 1.12-2.5 2.5-2.5m0-1c-1.93 0-3.5 1.57-3.5 3.5s1.57 3.5 3.5 3.5 3.5-1.57 3.5-3.5-1.57-3.5-3.5-3.5zM13.22 3l.55 2.2.13.51.5.18c.61.23 1.19.56 1.72.98l.4.32.5-.14 2.17-.62 1.22 2.11-1.63 1.59-.37.36.08.51c.05.32.08.64.08.98s-.03.66-.08.98l-.08.51.37.36 1.63 1.59-1.22 2.11-2.17-.62-.5-.14-.4.32c-.53.43-1.11.76-1.72.98l-.5.18-.13.51-.55 2.2h-2.44l-.55-2.2-.13-.51-.5-.18c-.6-.23-1.18-.56-1.72-.99l-.4-.32-.5.14-2.17.62-1.21-2.12 1.63-1.59.37-.36-.08-.51c-.05-.32-.08-.65-.08-.98s.03-.66.08-.98l.08-.51-.37-.36-1.63-1.59 1.21-2.12 2.17.62.5.14.4-.32c.53-.44 1.11-.77 1.72-.99l.5-.18.13-.51.55-2.2h2.44M14 2h-4l-.74 2.96c-.73.27-1.4.66-2 1.14l-2.92-.83-2 3.46 2.19 2.13c-.06.37-.09.75-.09 1.14s.03.77.09 1.14l-2.19 2.13 2 3.46 2.92-.83c.6.48 1.27.87 2 1.14L10 22h4l.74-2.96c.73-.27 1.4-.66 2-1.14l2.92.83 2-3.46-2.19-2.13c.06-.37.09-.75.09-1.14s-.03-.77-.09-1.14l2.19-2.13-2-3.46-2.92.83c-.6-.48-1.27-.87-2-1.14L14 2z"/></svg>
+                    <span>Settings</span>
+                </button>
+                <button class="nav-item" data-target="page-about">
+                    <svg viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                    <span>About</span>
+                </button>
+            </nav>
+            
+            <!-- Paracci Credit (Alt Kısım) -->
+            <div class="sidebar-footer">
+                <span class="credit-text">Crafted by</span>
+                <span class="credit-brand">Paracci</span>
+            </div>
+        </aside>
+
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

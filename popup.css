@@ -1,0 +1,278 @@
+:root {
+    /* YouTube Core Dark Theme Colors */
+    --yt-bg-main: #0f0f0f;        
+    --yt-bg-secondary: #212121;
+    --yt-border: rgba(255,255,255,0.1);
+    
+    /* Accents */
+    --yt-red: #cc0000;
+    --yt-red-hover: #ff0000;
+    --yt-blue: #3ea6ff;
+    
+    /* Text */
+    --yt-text-primary: #f1f1f1;
+    --yt-text-secondary: #aaaaaa;
+}
+
+/* Base Reset */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', "Arial", sans-serif;
+}
+
+body {
+    width: 480px;
+    height: 380px;
+    background-color: var(--yt-bg-main);
+    color: var(--yt-text-primary);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* App Layout */
+.app-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* ────────────── LEFT: CONTENT ────────────── */
+.content-area {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.content-area::-webkit-scrollbar {
+    width: 8px;
+}
+.content-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+.content-area::-webkit-scrollbar-thumb {
+    background: #717171;
+    border-radius: 4px;
+}
+.content-area::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+}
+
+/* Page transitions */
+.page {
+    display: none;
+    animation: fadeIn 0.2s ease-out forwards;
+}
+.page.active {
+    display: block;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Top Header */
+header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.brand-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    fill: var(--yt-red);
+}
+
+header h1 {
+    font-size: 20px;
+    font-weight: 500;
+}
+
+h2 {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--yt-text-primary);
+}
+
+/* Flat Cards (Similar to YT Modal dialogs) */
+.card {
+    background: var(--yt-bg-secondary);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.card p {
+    font-size: 14px;
+    color: var(--yt-text-secondary);
+    line-height: 1.4;
+}
+
+/* YouTube Pill Buttons */
+.action-btn {
+    background: rgba(255,255,255,0.1);
+    color: var(--yt-text-primary);
+    border: none;
+    padding: 0 16px;
+    height: 36px;
+    border-radius: 18px; /* Classic Pill */
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    width: 100%;
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.action-btn:hover {
+    background: rgba(255,255,255,0.2);
+}
+.action-btn:active {
+    background: rgba(255,255,255,0.3);
+}
+
+.action-btn.primary {
+    background: var(--yt-red);
+    color: white;
+}
+.action-btn.primary:hover {
+    background: var(--yt-red-hover);
+}
+
+/* Material Toggle Switch */
+.toggle-switch {
+    display: inline-block;
+    width: 36px;
+    height: 14px;
+    position: relative;
+    flex-shrink: 0;
+    margin-right: 18px;
+}
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #717171;
+    transition: .3s;
+    border-radius: 14px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: -4px;
+    bottom: -3px;
+    background-color: #f1f1f1;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+input:checked + .slider {
+    background-color: var(--yt-blue);
+    opacity: 0.5; /* background track */
+}
+input:checked + .slider:before {
+    transform: translateX(24px);
+    background-color: var(--yt-blue);
+}
+
+/* Big Stat display */
+.stat-container {
+    text-align: center;
+    padding: 16px;
+}
+.stat-container p {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--yt-text-secondary);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+.stat-val {
+    font-size: 36px;
+    font-weight: 500;
+    color: var(--yt-text-primary);
+}
+
+/* ────────────── RIGHT: NAVIGATION (SIMILAR TO YT GUIDE DEPLOYED OUT) ────────────── */
+.sidebar {
+    width: 140px;
+    background-color: var(--yt-bg-main);
+    border-left: 1px solid var(--yt-border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 8px;
+    z-index: 10;
+}
+
+.nav-menu {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.nav-item {
+    background: transparent;
+    border: none;
+    color: var(--yt-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 12px;
+    height: 40px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-family: "Roboto", sans-serif;
+}
+
+.nav-item svg {
+    fill: var(--yt-text-primary);
+    width: 24px;
+    height: 24px;
+}
+
+.nav-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-item.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    font-weight: 500;
+}
+.nav-item.active svg {
+    fill: var(--yt-text-primary);
+}
+
+/* Minimal Credits */
+.sidebar-footer {
+    text-align: center;
+    padding-top: 16px;
+}
+.credit-text {
+    font-size: 12px;
+    color: var(--yt-text-secondary);
+}
+.credit-brand {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--yt-blue);
+}

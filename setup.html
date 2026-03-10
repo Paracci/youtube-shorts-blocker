@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Shorts Blocker - Setup</title>
+    <style>
+        :root {
+            --yt-spec-base-background: #0f0f0f;
+            --yt-spec-text-primary: #f1f1f1;
+            --yt-spec-text-secondary: #aaaaaa;
+            --yt-spec-call-to-action: #3ea6ff;
+            --yt-spec-button-chip-background-hover: rgba(255, 255, 255, 0.2);
+            --yt-spec-badge-chip-background: rgba(255, 255, 255, 0.1);
+            --success-color: #2ba640;
+            --error-color: #ff4e45;
+        }
+
+        body {
+            font-family: "Roboto", Arial, sans-serif;
+            background-color: var(--yt-spec-base-background);
+            color: var(--yt-spec-text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .container {
+            background-color: #212121;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        p {
+            color: var(--yt-spec-text-secondary);
+            font-size: 15px;
+            margin-bottom: 24px;
+        }
+
+        .status-card {
+            background-color: var(--yt-spec-badge-chip-background);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #aaaaaa;
+        }
+        .status-dot.checking { background-color: #fbbc04; animation: pulse 1.5s infinite; }
+        .status-dot.connected { background-color: var(--success-color); }
+        .status-dot.disconnected { background-color: var(--error-color); }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; box-shadow: 0 0 8px #fbbc04; }
+            100% { opacity: 0.6; }
+        }
+
+        .instructions {
+            text-align: left;
+            background-color: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: none; /* Hidden by default until we know it's disconnected */
+        }
+        
+        .instructions h3 {
+            margin-top: 0;
+            font-size: 16px;
+            color: var(--yt-spec-text-primary);
+        }
+
+        .instructions ol {
+            padding-left: 20px;
+            margin-bottom: 0;
+            color: var(--yt-spec-text-secondary);
+        }
+
+        .instructions li {
+            margin-bottom: 12px;
+        }
+
+        .code-block {
+            background-color: #000;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 8px 0;
+            border: 1px solid #333;
+        }
+
+        .code-block code {
+            color: var(--yt-spec-call-to-action);
+            font-size: 14px;
+        }
+
+        .copy-btn {
+            background: none;
+            border: none;
+            color: var(--yt-spec-text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .copy-btn:hover {
+            color: var(--yt-spec-text-primary);
+            background-color: var(--yt-spec-button-chip-background-hover);
+        }
+
+        .action-button {
+            background-color: var(--yt-spec-text-primary);
+            color: var(--yt-spec-base-background);
+            border: none;
+            border-radius: 18px;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .action-button:hover {
+            background-color: #d9d9d9;
+        }
+        
+        .action-button.secondary {
+            background-color: transparent;
+            color: var(--yt-spec-call-to-action);
+            border: 1px solid var(--yt-spec-badge-chip-background);
+        }
+        
+        .action-button.secondary:hover {
+            background-color: var(--yt-spec-button-chip-background-hover);
+            border-color: transparent;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .done-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .done-icon {
+            width: 48px;
+            height: 48px;
+            background-color: var(--success-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+        .done-icon svg {
+            fill: white;
+            width: 24px;
+            height: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="main-container">
+        <img src="icon128.png" alt="Extension Logo" class="logo">
+        <h1>Welcome to YouTube Shorts Blocker</h1>
+        <p>To enable Video Downloading, you need to install the Native Host companion app.</p>
+
+        <div class="status-card" id="status-card">
+            <div class="status-dot checking" id="status-indicator"></div>
+            <span id="status-text">Checking connection to Native Host...</span>
+        </div>
+
+        <div class="instructions" id="instructions-block">
+            <h3>Installation Instructions</h3>
+            <div style="background-color: rgba(255,165,0,0.1); border-left: 4px solid #fbbc04; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 14px;">
+                <strong>⚠️ Prerequisite:</strong> You must have <a href="https://nodejs.org/" target="_blank" style="color: var(--yt-spec-call-to-action); text-decoration: none;">Node.js</a> installed on your computer for the companion app to work.
+            </div>
+            <ol>
+                <li>Open the folder where you unpacked this extension.</li>
+                <li>Find and double-click the file named <strong><code>install_host.bat</code></strong>.</li>
+                <li>The script will prompt you for your Extension ID. Click "Copy" below to copy your unique ID, then paste it into the script window (Right-Click to paste in CMD).
+                    <div class="code-block">
+                        <code id="extension-id-display">locating...</code>
+                        <button class="copy-btn" id="copy-btn" title="Copy Extension ID">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                <path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8C6.9 4 6 4.9 6 6v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H8V6h11v14z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </li>
+                <li>Press Enter in the script window, and wait for the success message.</li>
+                <li>Click the "Check Again" button below.</li>
+            </ol>
+        </div>
+
+        <div class="done-container" id="done-container">
+            <div class="done-icon">
+                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+            </div>
+            <h2>You're all set!</h2>
+            <p style="margin-bottom: 30px;">The companion app is connected. You can now download high-quality YouTube videos directly from the player.</p>
+            
+            <div class="settings-card" id="downloader-settings" style="background-color: rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; width: 100%; text-align: left; margin-bottom: 24px;">
+                <h3 style="margin-top: 0; font-size: 16px; margin-bottom: 8px;">Downloader Settings</h3>
+                <p style="font-size: 13px; margin-bottom: 16px;">YouTube frequently updates their systems to block downloads. If your downloads suddenly fail, update the background downloader engine.</p>
+                
+                <button class="action-button secondary" id="update-ytdlp-btn" style="width: 100%;">Check for Updates</button>
+                
+                <div id="update-log-container" class="hidden" style="margin-top: 16px; background-color: #000; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 11px; color: #a5d6ff; max-height: 120px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;">
+                </div>
+            </div>
+
+            <button class="action-button" id="close-btn">Close Page</button>
+        </div>
+
+        <button class="action-button" id="check-btn" style="display: none;">Check Again</button>
+
+    </div>
+
+    <script src="setup.js"></script>
+</body>
+</html>

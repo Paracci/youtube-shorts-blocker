@@ -1,17 +1,21 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXISTING STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 /* --- 1. HIDE REMIX BUTTON --- */
-/* Find the Remix button by its label keywords or SVG icon path, and hide it to prevent layout stretching */
 reel-action-bar-view-model button-view-model:has(button[aria-label*="remix" i]),
 reel-action-bar-view-model button-view-model:has(button[aria-label*="remiks" i]),
 reel-action-bar-view-model button-view-model:has(path[d^="M10.564"]) {
     display: none !important;
 }
 
-/* Alternative: If you also want to hide the audio/music box (Pivot button) at the bottom right, 
-   you can remove the "/*" signs at the beginning of the following line. */
-/* #pivot-button { display: none !important; } */
+/* --- 1.5. HIDE HOMEPAGE SHORTS (TOGGLEABLE) --- */
+body.my-hide-shorts-home ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts]),
+body.my-hide-shorts-home ytd-rich-section-renderer:has(a[href^="/shorts/"]) {
+    display: none !important;
+}
 
-
-/* --- 2. DESIGN OF YOUR BLOCK BUTTON --- */
+/* --- 2. SHORTS ACTION BAR BUTTONS (Block + Download share this base) --- */
 .my-block-button {
     display: flex;
     flex-direction: column;
@@ -19,34 +23,28 @@ reel-action-bar-view-model button-view-model:has(path[d^="M10.564"]) {
     justify-content: center;
     cursor: pointer;
     margin-top: 4px;
-    /* Reduced gap with the top button (was 16px) */
     margin-bottom: 12px;
-    /* Added to balance the bottom area */
     border: none;
     background: transparent;
     padding: 0;
     width: 100%;
     font-family: inherit;
-    /* Inherit whatever YouTube uses instead of Roboto (e.g. ytb fonts) */
     -webkit-tap-highlight-color: transparent;
 }
 
-/* Circular Part of the Button */
+/* Circular icon container */
 .my-btn-circle {
     width: 48px;
     height: 48px;
     background-color: rgba(255, 255, 255, 0.1);
-    /* YouTube standard gray tone */
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s cubic-bezier(0.05, 0, 0, 1);
     margin-bottom: 4px;
-    /* Space between circle and text (YouTube generally uses 4-6px) */
 }
 
-/* Effects */
 .my-block-button:hover .my-btn-circle {
     background-color: rgba(255, 255, 255, 0.2);
 }
@@ -55,7 +53,6 @@ reel-action-bar-view-model button-view-model:has(path[d^="M10.564"]) {
     background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Icon */
 .my-btn-circle svg {
     width: 24px;
     height: 24px;
@@ -63,12 +60,10 @@ reel-action-bar-view-model button-view-model:has(path[d^="M10.564"]) {
     display: block;
 }
 
-/* Text */
 .my-btn-text {
     font-size: 12px;
     line-height: 1.2;
     font-weight: 400;
-    /* Thinned from 500 to 400 to match YouTube default text */
     color: white;
     text-align: center;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -89,4 +84,287 @@ reel-action-bar-view-model button-view-model:has(path[d^="M10.564"]) {
 
 .my-block-button.blocked-state .my-btn-text {
     color: #ff4444;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VIDEO PLAYER DOWNLOAD BUTTON  (ytp-button style – bottom control bar)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * .my-video-dl-btn inherits the YouTube .ytp-button base class.
+ * Native buttons in .ytp-right-controls use height="24" width="24" SVG
+ * inside a ~48px tall button — we match that exactly and let .ytp-button
+ * handle all sizing so it stays in sync with whatever YouTube renders.
+ */
+.my-video-dl-btn {
+    opacity: 0.9 !important;
+    transition: opacity 0.2s ease !important;
+    /* Do NOT override width/height — let .ytp-button control it */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+}
+
+.my-video-dl-btn svg {
+    /* Match native button icon size exactly */
+    width: 24px !important;
+    height: 24px !important;
+    display: block;
+}
+
+.my-video-dl-btn:hover {
+    opacity: 1 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   YOUTUBE-STYLE TOOLTIP FOR NATIVE BUTTONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+.my-video-dl-btn[data-title] {
+    position: relative;
+}
+
+.my-video-dl-btn[data-title]:hover::after {
+    content: attr(data-title);
+    position: absolute;
+    bottom: calc(100% + 15px); /* Position it nicely above the button */
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(28, 28, 28, 0.9);
+    color: #eee;
+    padding: 6px 9px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 1;
+    pointer-events: none;
+    z-index: 2500000;
+    font-family: inherit;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    /* Fade in securely */
+    animation: tooltippop 0.1s ease forwards;
+    animation-delay: 0.3s; /* small delay to replicate youtube perfectly */
+    opacity: 0;
+}
+
+@keyframes tooltippop {
+    to { opacity: 1; }
+}
+
+/* Loading spinner – subtle pulse while fetching formats */
+.my-video-dl-btn--loading {
+    opacity: 0.4 !important;
+    animation: yt-dl-pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes yt-dl-pulse {
+    from { opacity: 0.4; }
+    to   { opacity: 0.75; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DOWNLOAD QUALITY MODAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.yt-dl-modal {
+    position: fixed;
+    z-index: 2147483647;          /* always on top */
+    background: #1f1f1f;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 6px;
+    min-width: 190px;
+    max-width: 260px;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.55),
+        0 2px 8px  rgba(0, 0, 0, 0.4);
+    font-family: "YouTube Sans", "Roboto", sans-serif;
+
+    /* Entrance animation */
+    animation: yt-dl-appear 0.15s cubic-bezier(0.05, 0, 0, 1) both;
+}
+
+/* Special overrides for the native video popup */
+.yt-dl-video-popup {
+    /* Let YouTube's native .ytp-popup class provide the exact background and shadow */
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    position: absolute !important; /* Relative to player container */
+    z-index: 2500000 !important;   /* Above native elements */
+}
+
+.yt-dl-video-popup .ytp-panel-menu {
+    overflow-y: auto !important;
+    padding: 8px 0;
+}
+
+.yt-dl-video-popup .ytp-menuitem {
+    height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 15px !important;
+    cursor: pointer;
+}
+
+.yt-dl-video-popup .ytp-menuitem:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Specific styling to ensure header doesn't gain hover effect */
+.yt-dl-video-popup .ytp-panel-header {
+    height: 48px !important;
+    cursor: default !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    margin-bottom: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.yt-dl-video-popup .ytp-panel-header:hover {
+    background-color: transparent !important;
+}
+
+.yt-dl-video-popup .ytp-menuitem-label {
+    flex: 1 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    padding-right: 12px !important;
+}
+
+.yt-dl-video-popup .ytp-menuitem-content {
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Shorts modal slides in from the left */
+.yt-dl-modal--shorts {
+    transform-origin: left center;
+    animation-name: yt-dl-appear-left;
+}
+
+/* Video modal slides up from the bottom */
+.yt-dl-modal--video {
+    transform-origin: bottom center;
+    animation-name: yt-dl-appear-up;
+}
+
+@keyframes yt-dl-appear-left {
+    from { opacity: 0; transform: translateX(-12px) scale(0.96); }
+    to   { opacity: 1; transform: translateX(0)     scale(1); }
+}
+
+@keyframes yt-dl-appear-up {
+    from { opacity: 0; transform: translateY(10px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* ── Header ── */
+.yt-dl-header {
+    padding: 8px 12px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    user-select: none;
+}
+
+/* ── Quality row ── */
+.yt-dl-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background 0.14s ease;
+    color: #fff;
+    text-align: left;
+}
+
+.yt-dl-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.yt-dl-option:active {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+/* Quality label – left, prominent */
+.yt-dl-quality {
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    flex: 1;
+    white-space: nowrap;
+}
+
+/* Badge cluster */
+.yt-dl-badges {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.yt-dl-badge-mime,
+.yt-dl-badge-size {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.yt-dl-badge-mime {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.yt-dl-badge-size {
+    background: rgba(62, 166, 255, 0.15);
+    color: rgba(62, 166, 255, 0.85);
+}
+
+/* Download arrow icon */
+.yt-dl-arrow {
+    opacity: 0.45;
+    flex-shrink: 0;
+    transition: opacity 0.12s, transform 0.12s;
+    color: #fff;
+}
+
+.yt-dl-option:hover .yt-dl-arrow {
+    opacity: 0.9;
+    transform: translateY(2px);
+}
+
+/* ── Fallback / empty state ── */
+.yt-dl-empty {
+    padding: 10px 12px 8px;
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.55;
+}
+
+.yt-dl-fallback-link {
+    display: inline-block;
+    margin-top: 6px;
+    color: #3ea6ff;
+    text-decoration: none;
+    font-size: 12px;
+    transition: color 0.15s;
+}
+
+.yt-dl-fallback-link:hover {
+    color: #7bc4ff;
+    text-decoration: underline;
 }
