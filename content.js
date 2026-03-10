@@ -19,18 +19,74 @@ function safeMsg(msg) {
 // ─── Settings State ──────────────────────────────────────────────────────────
 let EXTENSION_ENABLED = true;
 let HIDE_SHORTS_HOMEPAGE = true;
+let BLOCKING_ENABLED = true;   // popup "Block channels automatically"
+let DOWNLOADER_ENABLED = true;   // popup "Show download button"
 
-chrome.storage.local.get(['extensionEnabled', 'hideHomepageShorts'], (res) => {
-    if (res.extensionEnabled !== undefined) EXTENSION_ENABLED = res.extensionEnabled;
-    if (res.hideHomepageShorts !== undefined) HIDE_SHORTS_HOMEPAGE = res.hideHomepageShorts;
-    applyHomepageVisibility();
-});
+chrome.storage.local.get(
+    ['extensionEnabled', 'hideHomepageShorts', 'blockingEnabled', 'downloaderEnabled'],
+    (res) => {
+        if (res.extensionEnabled !== undefined) EXTENSION_ENABLED = res.extensionEnabled;
+        if (res.hideHomepageShorts !== undefined) HIDE_SHORTS_HOMEPAGE = res.hideHomepageShorts;
+        if (res.blockingEnabled !== undefined) BLOCKING_ENABLED = res.blockingEnabled;
+        if (res.downloaderEnabled !== undefined) DOWNLOADER_ENABLED = res.downloaderEnabled;
+        applyHomepageVisibility();
+    }
+);
 
 chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.action === 'toggle_extension') EXTENSION_ENABLED = msg.enabled;
+    if (msg.action === 'toggle_extension') {
+        EXTENSION_ENABLED = msg.enabled;
+        if (!msg.enabled) {
+            // Hide all injected buttons immediately
+            document.querySelectorAll('.my-block-button, .my-video-dl-btn').forEach(b => {
+                b.style.display = 'none';
+            });
+        } else {
+            // Restore visible buttons
+            if (BLOCKING_ENABLED) {
+                document.querySelectorAll('.my-block-button').forEach(b => {
+                    b.style.display = '';
+                });
+            }
+            if (DOWNLOADER_ENABLED) {
+                document.querySelectorAll('.my-dl-btn-shorts, .my-video-dl-btn').forEach(b => {
+                    b.style.display = '';
+                });
+            }
+        }
+    }
+
     if (msg.action === 'toggle_hide_shorts') {
         HIDE_SHORTS_HOMEPAGE = msg.enabled;
         applyHomepageVisibility();
+    }
+
+    if (msg.action === 'toggle_blocking') {
+        BLOCKING_ENABLED = msg.enabled;
+        document.querySelectorAll('.my-block-button').forEach(b => {
+            // dl-btn-shorts shares the class — skip download-only buttons
+            if (!b.classList.contains('my-dl-btn-shorts')) {
+                b.style.display = msg.enabled && EXTENSION_ENABLED ? '' : 'none';
+            }
+        });
+    }
+
+    if (msg.action === 'toggle_downloader') {
+        DOWNLOADER_ENABLED = msg.enabled;
+        // Toggle Shorts download buttons
+        document.querySelectorAll('.my-dl-btn-shorts').forEach(b => {
+            b.style.display = msg.enabled && EXTENSION_ENABLED ? '' : 'none';
+        });
+        // Toggle video player download button
+        const videoDlBtn = document.querySelector('.my-video-dl-btn');
+        if (videoDlBtn) {
+            videoDlBtn.style.display = msg.enabled && EXTENSION_ENABLED ? '' : 'none';
+        }
+        // If re-enabled, trigger injection in case buttons were never created
+        if (msg.enabled && EXTENSION_ENABLED) {
+            runOptimizationCheck();
+            initVideoDownloadButton();
+        }
     }
 });
 
@@ -38,6 +94,16 @@ function applyHomepageVisibility() {
     if (window.location.pathname === '/' || window.location.pathname === '') {
         if (HIDE_SHORTS_HOMEPAGE) {
             document.body.classList.add('my-hide-shorts-home');
+            // Count and persist how many Shorts shelf items are being hidden
+            const hiddenCount = document.querySelectorAll(
+                'ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts]), ' +
+                'ytd-rich-section-renderer:has(a[href^="/shorts/"])'
+            ).length;
+            if (hiddenCount > 0) {
+                chrome.storage.local.get('hiddenCount', (res) => {
+                    chrome.storage.local.set({ hiddenCount: (res.hiddenCount || 0) + hiddenCount });
+                });
+            }
         } else {
             document.body.classList.remove('my-hide-shorts-home');
         }
@@ -111,17 +177,22 @@ function runOptimizationCheck() {
         if (!bar) return;
 
         // Block button
-        let btn = bar.querySelector('.my-block-button');
-        if (!btn) {
+        let btn = bar.querySelector('.my-block-button:not(.my-dl-btn-shorts)');
+        if (!btn && BLOCKING_ENABLED && EXTENSION_ENABLED) {
             btn = createBlockButton(bar, renderer);
             scrollObserver.observe(renderer);
         }
-        if (btn) checkAndResetButton(btn, renderer);
+        if (btn) {
+            btn.style.display = BLOCKING_ENABLED && EXTENSION_ENABLED ? '' : 'none';
+            checkAndResetButton(btn, renderer);
+        }
 
         // Download button
-        if (!bar.querySelector('.my-dl-btn-shorts')) {
+        if (!bar.querySelector('.my-dl-btn-shorts') && DOWNLOADER_ENABLED && EXTENSION_ENABLED) {
             createShortsDownloadButton(bar);
         }
+        const dlBtn = bar.querySelector('.my-dl-btn-shorts');
+        if (dlBtn) dlBtn.style.display = DOWNLOADER_ENABLED && EXTENSION_ENABLED ? '' : 'none';
     });
 }
 
@@ -686,7 +757,7 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
 // ── Custom YouTube-style notification ─────────────────────────────────────────
 function showYouTubeNotification(title, message, videoId, state = 'success') {
     // state can be: 'preparing', 'success', 'error'
-    
+
     // Determine background and icon color based on state
     let bgColor = '#212121'; // Default dark
     let iconHTML = '';
@@ -773,7 +844,7 @@ function showYouTubeNotification(title, message, videoId, state = 'success') {
             // Update the existing toast to show success state
             container.querySelector('span').textContent = msg;
             container.style.backgroundColor = '#2e7d32'; // Change to green on success
-            
+
             // If it had a pure SVG icon (no thumbnail), change it to white checkmark
             const svgContainer = container.querySelector('svg');
             if (svgContainer) {
@@ -1140,7 +1211,7 @@ function addVideoDownloadButton() {
 let videoPlayerInterval = null;
 
 function initVideoDownloadButton() {
-    if (!EXTENSION_ENABLED || isShortPage()) return;
+    if (!EXTENSION_ENABLED || !DOWNLOADER_ENABLED || isShortPage()) return;
     clearInterval(videoPlayerInterval);
     let attempts = 0;
     videoPlayerInterval = setInterval(() => {

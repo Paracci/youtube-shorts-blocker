@@ -6,8 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const doneContainer = document.getElementById('done-container');
     const extIdDisplay = document.getElementById('extension-id-display');
     const copyBtn = document.getElementById('copy-btn');
-    const logoParagraphs = document.querySelectorAll('#main-container > p');
-    const statusCard = document.getElementById('status-card');
+    const setupView = document.getElementById('setup-view');
 
     const extensionId = chrome.runtime.id;
     extIdDisplay.textContent = extensionId;
@@ -34,17 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (state === 'connected') {
             statusIndicator.classList.add('connected');
             statusText.textContent = 'Connected successfully!';
-            
-            // Hide everything except done container after a short delay
+
             setTimeout(() => {
-                logoParagraphs.forEach(p => p.style.display = 'none');
-                statusCard.style.display = 'none';
-                instructionsBlock.style.display = 'none';
-                checkBtn.style.display = 'none';
-                
+                setupView.style.display = 'none';
                 doneContainer.style.display = 'flex';
             }, 600);
-            
+
         } else if (state === 'disconnected') {
             statusIndicator.classList.add('disconnected');
             statusText.textContent = 'Native Host not detected.';
@@ -55,11 +49,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkConnection() {
         setStatus('checking');
-        
+
         chrome.runtime.sendMessage({ action: 'check_native_host_status' }, (response) => {
             if (chrome.runtime.lastError) {
-                 setStatus('disconnected');
-                 return;
+                setStatus('disconnected');
+                return;
             }
 
             if (response && response.status === 'connected') {
@@ -84,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateBtn.disabled = true;
             updateBtn.textContent = 'Updating... Please wait';
             updateBtn.style.opacity = '0.5';
-            
+
             updateLogContainer.classList.remove('hidden');
             updateLogContainer.textContent = 'Starting updater...\n';
 
@@ -100,11 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.runtime.onMessage.addListener((message) => {
         if (message.action === 'ytdlp_update_progress' && message.data) {
             const data = message.data;
-            
+
             if (data.status === 'info' || data.status === 'progress' || data.status === 'error_log') {
                 updateLogContainer.textContent += (data.data || data.message || '') + '\n';
                 updateLogContainer.scrollTop = updateLogContainer.scrollHeight;
-            } 
+            }
             else if (data.status === 'update_success') {
                 updateLogContainer.textContent += '\nUpdate process completed successfully!\n';
                 updateLogContainer.scrollTop = updateLogContainer.scrollHeight;

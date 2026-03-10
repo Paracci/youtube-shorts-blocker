@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Shorts Channel Blocker",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Block unwanted YouTube Shorts channels, skip ads, and download videos in your preferred quality.",
   "icons": {
     "16": "icon16.png",
@@ -18,7 +18,8 @@
   "permissions": [
     "downloads",
     "nativeMessaging",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "*://*.googlevideo.com/*"

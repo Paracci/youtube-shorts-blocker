@@ -1,258 +1,656 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Shorts Blocker - Setup</title>
+    <title>Shorts Blocker — Setup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --yt-spec-base-background: #0f0f0f;
-            --yt-spec-text-primary: #f1f1f1;
-            --yt-spec-text-secondary: #aaaaaa;
-            --yt-spec-call-to-action: #3ea6ff;
-            --yt-spec-button-chip-background-hover: rgba(255, 255, 255, 0.2);
-            --yt-spec-badge-chip-background: rgba(255, 255, 255, 0.1);
-            --success-color: #2ba640;
-            --error-color: #ff4e45;
+            --bg: #0f0f0f;
+            --bg-card: #161616;
+            --bg-card-2: #1e1e1e;
+            --border: rgba(255, 255, 255, 0.07);
+            --border-2: rgba(255, 255, 255, 0.12);
+
+            --red: #ff0000;
+            --red-dim: #cc0000;
+            --red-glow: rgba(255, 0, 0, 0.10);
+            --red-border: rgba(255, 0, 0, 0.20);
+
+            --blue: #3ea6ff;
+            --blue-glow: rgba(62, 166, 255, 0.10);
+            --green: #2ba640;
+            --green-glow: rgba(43, 166, 64, 0.15);
+            --yellow: #fbbc04;
+            --error: #ff4e45;
+
+            --t1: #f1f1f1;
+            --t2: #aaaaaa;
+            --t3: #555555;
+            --t4: #2a2a2a;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            font-family: "Roboto", Arial, sans-serif;
-            background-color: var(--yt-spec-base-background);
-            color: var(--yt-spec-text-primary);
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            font-family: 'Outfit', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--t1);
             min-height: 100vh;
-            margin: 0;
-            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            -webkit-font-smoothing: antialiased;
         }
 
-        .container {
-            background-color: #212121;
-            border-radius: 12px;
-            padding: 40px;
-            max-width: 600px;
-            width: 90%;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        /* ── Subtle grid bg ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Red top accent line ── */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--red), transparent);
+            z-index: 10;
+        }
+
+        .wrap {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 560px;
+        }
+
+        /* ── Brand header ── */
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 36px;
+            justify-content: center;
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            fill: var(--red);
+            filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.5));
+            flex-shrink: 0;
+        }
+
+        .brand-name {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        /* ── Main card ── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px;
             text-align: center;
         }
 
-        .logo {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 20px;
+        .card-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            margin-bottom: 8px;
         }
 
-        h1 {
-            margin-top: 0;
-            font-size: 24px;
-            font-weight: 500;
+        .card-subtitle {
+            font-size: 14px;
+            color: var(--t2);
+            line-height: 1.6;
+            margin-bottom: 28px;
         }
 
-        p {
-            color: var(--yt-spec-text-secondary);
-            font-size: 15px;
-            margin-bottom: 24px;
-        }
-
-        .status-card {
-            background-color: var(--yt-spec-badge-chip-background);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 24px;
-            display: flex;
+        /* ── Status pill ── */
+        .status-pill {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            gap: 12px;
+            gap: 10px;
+            background: var(--bg-card-2);
+            border: 1px solid var(--border-2);
+            border-radius: 999px;
+            padding: 10px 20px;
+            font-size: 14px;
             font-weight: 500;
+            margin-bottom: 28px;
+            transition: border-color 0.3s, background 0.3s;
         }
 
         .status-dot {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background-color: #aaaaaa;
-        }
-        .status-dot.checking { background-color: #fbbc04; animation: pulse 1.5s infinite; }
-        .status-dot.connected { background-color: var(--success-color); }
-        .status-dot.disconnected { background-color: var(--error-color); }
-
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; box-shadow: 0 0 8px #fbbc04; }
-            100% { opacity: 0.6; }
+            background: var(--t3);
+            flex-shrink: 0;
+            transition: background 0.3s, box-shadow 0.3s;
         }
 
+        .status-dot.checking {
+            background: var(--yellow);
+            animation: pulse-dot 1.4s ease-in-out infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green);
+        }
+
+        .status-dot.disconnected {
+            background: var(--error);
+            box-shadow: 0 0 8px rgba(255, 78, 69, 0.5);
+        }
+
+        @keyframes pulse-dot {
+
+            0%,
+            100% {
+                opacity: 0.5;
+                box-shadow: none;
+            }
+
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 8px var(--yellow);
+            }
+        }
+
+        /* ── Instructions block ── */
         .instructions {
+            display: none;
             text-align: left;
-            background-color: rgba(0,0,0,0.2);
-            padding: 20px;
-            border-radius: 8px;
             margin-bottom: 24px;
-            display: none; /* Hidden by default until we know it's disconnected */
-        }
-        
-        .instructions h3 {
-            margin-top: 0;
-            font-size: 16px;
-            color: var(--yt-spec-text-primary);
         }
 
-        .instructions ol {
-            padding-left: 20px;
-            margin-bottom: 0;
-            color: var(--yt-spec-text-secondary);
+        .instr-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            color: var(--t3);
+            margin-bottom: 14px;
         }
 
-        .instructions li {
-            margin-bottom: 12px;
+        .warning-banner {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: rgba(251, 188, 4, 0.07);
+            border: 1px solid rgba(251, 188, 4, 0.20);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: var(--t2);
+            line-height: 1.55;
         }
 
-        .code-block {
-            background-color: #000;
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-family: monospace;
+        .warning-banner svg {
+            fill: var(--yellow);
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .warning-banner a {
+            color: var(--blue);
+            text-decoration: none;
+        }
+
+        .warning-banner a:hover {
+            text-decoration: underline;
+        }
+
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .step {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+
+        .step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--bg-card-2);
+            border: 1px solid var(--border-2);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--t2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .step-body {
+            flex: 1;
+            font-size: 13.5px;
+            color: var(--t2);
+            line-height: 1.55;
+        }
+
+        .step-body strong {
+            color: var(--t1);
+            font-weight: 600;
+        }
+
+        .step-body code {
+            background: var(--bg-card-2);
+            border: 1px solid var(--border-2);
+            border-radius: 5px;
+            padding: 1px 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--blue);
+        }
+
+        /* ── ID block ── */
+        .id-block {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin: 8px 0;
-            border: 1px solid #333;
+            background: #000;
+            border: 1px solid var(--t4);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+            gap: 8px;
         }
 
-        .code-block code {
-            color: var(--yt-spec-call-to-action);
-            font-size: 14px;
+        .id-block code {
+            color: var(--blue);
+            font-size: 13px;
+            background: none;
+            border: none;
+            padding: 0;
+            word-break: break-all;
         }
 
         .copy-btn {
-            background: none;
-            border: none;
-            color: var(--yt-spec-text-secondary);
+            background: var(--bg-card-2);
+            border: 1px solid var(--border-2);
+            border-radius: 6px;
+            color: var(--t2);
             cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
-        }
-        .copy-btn:hover {
-            color: var(--yt-spec-text-primary);
-            background-color: var(--yt-spec-button-chip-background-hover);
+            padding: 5px 7px;
+            display: flex;
+            align-items: center;
+            transition: background 0.15s, color 0.15s;
+            flex-shrink: 0;
         }
 
-        .action-button {
-            background-color: var(--yt-spec-text-primary);
-            color: var(--yt-spec-base-background);
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--t1);
+        }
+
+        /* ── Action buttons ── */
+        .btn-primary {
+            background: var(--red);
+            color: #fff;
             border: none;
-            border-radius: 18px;
-            padding: 10px 24px;
+            border-radius: 999px;
+            padding: 0 28px;
+            height: 42px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: var(--red-dim);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.97);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--t1);
+            border: 1px solid var(--border-2);
+            border-radius: 999px;
+            padding: 0 24px;
+            height: 40px;
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s;
+            font-family: 'Outfit', sans-serif;
+            transition: background 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .action-button:hover {
-            background-color: #d9d9d9;
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.06);
         }
-        
-        .action-button.secondary {
-            background-color: transparent;
-            color: var(--yt-spec-call-to-action);
-            border: 1px solid var(--yt-spec-badge-chip-background);
+
+        .btn-outline-blue {
+            background: transparent;
+            color: var(--blue);
+            border: 1px solid rgba(62, 166, 255, 0.25);
+            border-radius: 999px;
+            padding: 0 24px;
+            height: 38px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            transition: background 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            justify-content: center;
         }
-        
-        .action-button.secondary:hover {
-            background-color: var(--yt-spec-button-chip-background-hover);
-            border-color: transparent;
+
+        .btn-outline-blue:hover {
+            background: var(--blue-glow);
+        }
+
+        .btn-outline-blue:disabled {
+            opacity: 0.45;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        /* ── Done state ── */
+        .done-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .done-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--green-glow);
+            border: 1px solid rgba(43, 166, 64, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            animation: pop-in 0.4s cubic-bezier(.34, 1.56, .64, 1) forwards;
+        }
+
+        .done-icon svg {
+            fill: var(--green);
+            width: 26px;
+            height: 26px;
+        }
+
+        @keyframes pop-in {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .done-title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            margin-bottom: 8px;
+        }
+
+        .done-sub {
+            font-size: 14px;
+            color: var(--t2);
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        /* ── Updater card ── */
+        .updater-card {
+            width: 100%;
+            background: var(--bg-card-2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .updater-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .updater-card-sub {
+            font-size: 12.5px;
+            color: var(--t2);
+            line-height: 1.55;
+            margin-bottom: 16px;
+        }
+
+        .update-log {
+            display: none;
+            margin-top: 14px;
+            background: #000;
+            border: 1px solid var(--t4);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #a5d6ff;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+
+        .update-log::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .update-log::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .update-log::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: var(--border);
+            margin: 4px 0 20px;
         }
 
         .hidden {
             display: none !important;
         }
 
-        .done-container {
+        /* ── Check again btn ── */
+        #check-btn {
             display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .done-icon {
-            width: 48px;
-            height: 48px;
-            background-color: var(--success-color);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 8px;
-        }
-        .done-icon svg {
-            fill: white;
-            width: 24px;
-            height: 24px;
+            margin-top: 4px;
         }
     </style>
 </head>
+
 <body>
 
-    <div class="container" id="main-container">
-        <img src="icon128.png" alt="Extension Logo" class="logo">
-        <h1>Welcome to YouTube Shorts Blocker</h1>
-        <p>To enable Video Downloading, you need to install the Native Host companion app.</p>
+    <div class="wrap">
 
-        <div class="status-card" id="status-card">
-            <div class="status-dot checking" id="status-indicator"></div>
-            <span id="status-text">Checking connection to Native Host...</span>
+        <!-- Brand -->
+        <div class="brand">
+            <svg class="brand-icon" viewBox="0 0 24 24">
+                <path
+                    d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" />
+            </svg>
+            <span class="brand-name">Shorts Blocker</span>
         </div>
 
-        <div class="instructions" id="instructions-block">
-            <h3>Installation Instructions</h3>
-            <div style="background-color: rgba(255,165,0,0.1); border-left: 4px solid #fbbc04; padding: 12px; margin-bottom: 16px; border-radius: 4px; font-size: 14px;">
-                <strong>⚠️ Prerequisite:</strong> You must have <a href="https://nodejs.org/" target="_blank" style="color: var(--yt-spec-call-to-action); text-decoration: none;">Node.js</a> installed on your computer for the companion app to work.
-            </div>
-            <ol>
-                <li>Open the folder where you unpacked this extension.</li>
-                <li>Find and double-click the file named <strong><code>install_host.bat</code></strong>.</li>
-                <li>The script will prompt you for your Extension ID. Click "Copy" below to copy your unique ID, then paste it into the script window (Right-Click to paste in CMD).
-                    <div class="code-block">
-                        <code id="extension-id-display">locating...</code>
-                        <button class="copy-btn" id="copy-btn" title="Copy Extension ID">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-                                <path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8C6.9 4 6 4.9 6 6v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H8V6h11v14z"/>
-                            </svg>
-                        </button>
-                    </div>
-                </li>
-                <li>Press Enter in the script window, and wait for the success message.</li>
-                <li>Click the "Check Again" button below.</li>
-            </ol>
-        </div>
+        <!-- Main card -->
+        <div class="card" id="main-container">
 
-        <div class="done-container" id="done-container">
-            <div class="done-icon">
-                <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-            </div>
-            <h2>You're all set!</h2>
-            <p style="margin-bottom: 30px;">The companion app is connected. You can now download high-quality YouTube videos directly from the player.</p>
-            
-            <div class="settings-card" id="downloader-settings" style="background-color: rgba(255,255,255,0.05); border-radius: 8px; padding: 20px; width: 100%; text-align: left; margin-bottom: 24px;">
-                <h3 style="margin-top: 0; font-size: 16px; margin-bottom: 8px;">Downloader Settings</h3>
-                <p style="font-size: 13px; margin-bottom: 16px;">YouTube frequently updates their systems to block downloads. If your downloads suddenly fail, update the background downloader engine.</p>
-                
-                <button class="action-button secondary" id="update-ytdlp-btn" style="width: 100%;">Check for Updates</button>
-                
-                <div id="update-log-container" class="hidden" style="margin-top: 16px; background-color: #000; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 11px; color: #a5d6ff; max-height: 120px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;">
+            <div id="setup-view">
+                <div class="card-title">Native Downloader Setup</div>
+                <div class="card-subtitle">To download high-quality videos, install the companion app.<br>It connects
+                    Chrome to yt-dlp running on your machine.</div>
+
+                <!-- Status pill -->
+                <div class="status-pill" id="status-card">
+                    <div class="status-dot checking" id="status-indicator"></div>
+                    <span id="status-text">Checking connection…</span>
                 </div>
+
+                <!-- Instructions -->
+                <div class="instructions" id="instructions-block">
+                    <div class="instr-label">Installation Steps</div>
+
+                    <div class="warning-banner">
+                        <svg width="16" height="16" viewBox="0 0 24 24">
+                            <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+                        </svg>
+                        <div><strong style="color:#f1f1f1;">Prerequisite:</strong> <a href="https://nodejs.org/"
+                                target="_blank">Node.js</a> must be installed on your computer.</div>
+                    </div>
+
+                    <div class="steps">
+                        <div class="step">
+                            <div class="step-num">1</div>
+                            <div class="step-body">Open the folder where you unpacked this extension.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-num">2</div>
+                            <div class="step-body">Double-click <strong><code>install_host.bat</code></strong> to run
+                                the installer.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-num">3</div>
+                            <div class="step-body">
+                                The script will ask for your Extension ID. Copy it below, then paste it into the CMD
+                                window (Right-Click → Paste).
+                                <div class="id-block">
+                                    <code id="extension-id-display">locating…</code>
+                                    <button class="copy-btn" id="copy-btn" title="Copy ID">
+                                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                            <path
+                                                d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8C6.9 4 6 4.9 6 6v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H8V6h11v14z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="step-num">4</div>
+                            <div class="step-body">Press <strong>Enter</strong> in the CMD window and wait for the
+                                success message.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-num">5</div>
+                            <div class="step-body">Click <strong>Check Again</strong> below.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="check-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                        <path
+                            d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                    Check Again
+                </button>
             </div>
 
-            <button class="action-button" id="close-btn">Close Page</button>
-        </div>
+            <!-- Done state -->
+            <div class="done-container" id="done-container">
+                <div class="done-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+                    </svg>
+                </div>
+                <div class="done-title">You're all set!</div>
+                <div class="done-sub">The companion app is connected. Download high-quality<br>YouTube videos directly
+                    from the player.</div>
 
-        <button class="action-button" id="check-btn" style="display: none;">Check Again</button>
+                <div class="divider"></div>
+
+                <!-- Updater -->
+                <div class="updater-card">
+                    <div class="updater-card-title">yt-dlp Engine</div>
+                    <div class="updater-card-sub">YouTube sometimes blocks older yt-dlp versions. If downloads start
+                        failing, update the engine here.</div>
+                    <button class="btn-outline-blue" id="update-ytdlp-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 16.59l-5.7-5.7 1.41-1.42L11 12.76V3h2v9.76l3.3-3.3 1.41 1.42L12 16.59zM3 21v-3.5h2V19h14v-1.5h2V21H3z" />
+                        </svg>
+                        Check for Updates
+                    </button>
+                    <div class="update-log" id="update-log-container"></div>
+                </div>
+
+                <button class="btn-secondary" id="close-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                    Close Page
+                </button>
+            </div>
+
+        </div>
 
     </div>
 
     <script src="setup.js"></script>
 </body>
+
 </html>
