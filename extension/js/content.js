@@ -16,13 +16,33 @@ function safeMsg(msg) {
     });
 }
 
+function safeStorageGet(keys, callback) {
+    try {
+        if (!chrome?.storage?.local) { callback({}); return; }
+        chrome.storage.local.get(keys, (res) => {
+            if (chrome.runtime?.lastError) { callback({}); return; }
+            callback(res || {});
+        });
+    } catch (_) { callback({}); }
+}
+
+function safeStorageSet(data) {
+    try {
+        if (!chrome?.storage?.local) return;
+        chrome.storage.local.set(data);
+    } catch (_) { /* extension context invalidated */ }
+}
+
 // ─── Settings State ──────────────────────────────────────────────────────────
 let EXTENSION_ENABLED = true;
 let HIDE_SHORTS_HOMEPAGE = true;
 let BLOCKING_ENABLED = true;   // popup "Block channels automatically"
 let DOWNLOADER_ENABLED = true;   // popup "Show download button"
 
-chrome.storage.local.get(
+// Initialise i18n engine (translations.js is loaded before this file)
+i18n.init();
+
+safeStorageGet(
     ['extensionEnabled', 'hideHomepageShorts', 'blockingEnabled', 'downloaderEnabled'],
     (res) => {
         if (res.extensionEnabled !== undefined) EXTENSION_ENABLED = res.extensionEnabled;
@@ -100,8 +120,8 @@ function applyHomepageVisibility() {
                 'ytd-rich-section-renderer:has(a[href^="/shorts/"])'
             ).length;
             if (hiddenCount > 0) {
-                chrome.storage.local.get('hiddenCount', (res) => {
-                    chrome.storage.local.set({ hiddenCount: (res.hiddenCount || 0) + hiddenCount });
+                safeStorageGet('hiddenCount', (res) => {
+                    safeStorageSet({ hiddenCount: (res.hiddenCount || 0) + hiddenCount });
                 });
             }
         } else {
@@ -210,61 +230,151 @@ function resetButtonToDefault(btn) {
     btn.style.opacity = '1';
     btn.style.pointerEvents = 'auto';
     const t = btn.querySelector('.my-btn-text');
-    if (t) t.textContent = 'Block';
+    if (t) t.textContent = i18n.t('btnBlock');
     const s = btn.querySelector('svg');
     if (s) s.style.fill = 'white';
+}
+
+// ─── Channel name + ID extractors ────────────────────────────────────────────
+function extractChannelName(videoContext) {
+    const SELECTORS = [
+        'ytd-reel-player-header-renderer ytd-channel-name yt-formatted-string',
+        'ytd-reel-player-header-renderer #channel-name yt-formatted-string',
+        'ytd-reel-player-header-renderer #channel-name',
+        'ytd-channel-name yt-formatted-string',
+        '#channel-name yt-formatted-string',
+        '#channel-name',
+        'ytd-channel-name',
+        'yt-dynamic-text-view-model',
+    ];
+    const contexts = [videoContext];
+    const active = document.querySelector('ytd-reel-video-renderer[is-active]');
+    if (active && active !== videoContext) contexts.push(active);
+
+    for (const ctx of contexts) {
+        for (const sel of SELECTORS) {
+            const el = ctx.querySelector(sel);
+            const txt = el && el.textContent.trim();
+            if (txt) return txt;
+        }
+    }
+    return null;
+}
+
+// Extract a stable channel identifier.
+// Prefers /channel/UCxxxxxx; falls back to @handle.
+function extractChannelId(videoContext) {
+    const contexts = [videoContext];
+    const active = document.querySelector('ytd-reel-video-renderer[is-active]');
+    if (active && active !== videoContext) contexts.push(active);
+
+    for (const ctx of contexts) {
+        const idLink = ctx.querySelector('a[href*="/channel/"]');
+        if (idLink) {
+            const m = idLink.getAttribute('href').match(/\/channel\/(UC[^/?#]+)/);
+            if (m) return m[1];
+        }
+        const handleLink = ctx.querySelector('a[href*="/@"]');
+        if (handleLink) {
+            const m = handleLink.getAttribute('href').match(/\/@([^/?#]+)/);
+            if (m) return '@' + m[1];
+        }
+    }
+    return null;
 }
 
 // ─── Block button ─────────────────────────────────────────────────────────────
 function createBlockButton(container, videoContext) {
     const btn = document.createElement('button');
     btn.className = 'my-block-button';
-    btn.title = "Don't recommend channel";
+    btn.title = i18n.t('btnDontRecommend');
     btn.innerHTML = `
         <div class="my-btn-circle">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.41 0 8 3.59 8 8 0 1.85-.63 3.55-1.69 4.9z"></path>
             </svg>
         </div>
-        <span class="my-btn-text">Block</span>`;
+        <span class="my-btn-text">${i18n.t('btnBlock')}</span>`;
 
     btn.addEventListener('click', async (e) => {
         e.stopPropagation(); e.preventDefault();
         btn.style.opacity = '0.5';
-        btn.querySelector('.my-btn-text').textContent = 'Searching...';
+        btn.querySelector('.my-btn-text').textContent = i18n.t('btnBlocking');
 
-        let menuBtn = videoContext.querySelector('ytd-menu-renderer button') ||
+        const channelName = extractChannelName(videoContext);
+        const channelId = extractChannelId(videoContext);
+
+        const menuBtn = videoContext.querySelector('ytd-menu-renderer button') ||
             Array.from(videoContext.querySelectorAll('button')).find(b => {
                 const l = b.getAttribute('aria-label');
                 return l && (l.includes('More actions') || l.includes('Diğer') || l.includes('işlemler'));
             });
 
-        if (menuBtn) {
-            menuBtn.click();
-            setTimeout(() => {
-                let found = false;
-                for (const item of document.querySelectorAll('ytd-menu-service-item-renderer')) {
-                    const txt = item.textContent;
-                    if (txt.includes('Bu kanalı önerme') || txt.includes('recommend this channel') ||
-                        txt.includes('Kanalı önerme') || txt.includes("Don't recommend channel")) {
-                        item.click(); found = true;
-                        btn.querySelector('.my-btn-text').textContent = 'Blocked';
-                        btn.querySelector('svg').style.fill = '#ff4444';
-                        btn.style.opacity = '1';
-                        btn.style.pointerEvents = 'none';
-                        btn.classList.add('blocked-state');
+        if (!menuBtn) { resetButtonToDefault(btn); return; }
 
-                        // Track stats for the popup UI
-                        chrome.storage.local.get(['blockedCount'], (res) => {
-                            const newCount = (res.blockedCount || 0) + 1;
-                            chrome.storage.local.set({ blockedCount: newCount });
-                        });
-                        break;
-                    }
+        // Hide the menu popup while we click through it
+        const hideStyle = document.createElement('style');
+        hideStyle.textContent = `
+            ytd-menu-popup-renderer, tp-yt-paper-dialog, ytd-popup-container > * {
+                visibility: hidden !important; pointer-events: none !important;
+            }`;
+        document.head.appendChild(hideStyle);
+        menuBtn.click();
+        await new Promise(r => setTimeout(r, 80));
+
+        let found = false;
+        for (const item of document.querySelectorAll('ytd-menu-service-item-renderer')) {
+            const txt = item.textContent;
+            if (txt.includes('Bu kanalı önerme') || txt.includes('Kanalı önerme') ||
+                txt.includes("Don't recommend channel") || txt.includes('recommend this channel')) {
+                item.click();
+                found = true;
+                break;
+            }
+        }
+        hideStyle.remove();
+
+        if (found) {
+            btn.querySelector('.my-btn-text').textContent = i18n.t('btnBlocked');
+            btn.querySelector('svg').style.fill = '#ff4444';
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'none';
+            btn.classList.add('blocked-state');
+
+            // ── Persistent blocklist + dedup stats ────────────────────────
+            // Read current blocklist (array of {id, name, blockedAt} objects)
+            safeStorageGet(['blockedChannels', 'blockedCount'], (res) => {
+                const list = res.blockedChannels || [];
+                const alreadyInList = channelId
+                    ? list.some(c => c.id === channelId)
+                    : false;
+
+                // Add to permanent list if we have an ID and it's not there yet
+                if (channelId && !alreadyInList) {
+                    list.push({
+                        id: channelId,
+                        name: channelName || channelId,
+                        blockedAt: Date.now()
+                    });
                 }
-                if (!found) { document.body.click(); resetButtonToDefault(btn); }
-            }, 50);
+
+                // Only increment the counter for truly new channels
+                const newCount = alreadyInList
+                    ? (res.blockedCount || 0)          // already counted — don't double
+                    : (res.blockedCount || 0) + 1;
+
+                safeStorageSet({ blockedChannels: list, blockedCount: newCount });
+            });
+
+            const label = channelName ? `"${channelName}"` : 'Channel';
+            showYouTubeNotification(
+                `${label} ${i18n.t('notifWillNotRecommend')}`,
+                i18n.t('notifChannelBlocked'),
+                null,
+                'success'
+            );
         } else {
+            document.body.click();
             resetButtonToDefault(btn);
         }
     });
@@ -445,9 +555,12 @@ async function fetchViaInnerTubeClient(videoId, clientName, clientVersion, osNam
             },
             body: JSON.stringify(payload)
         });
-        if (!res.ok) return [];
-        return parseStreamingData(await res.json());
-    } catch (_) { return []; }
+        if (!res.ok) return { formats: [], title: null };
+        const json = await res.json();
+        // videoDetails.title is the authoritative title for this videoId
+        const clientTitle = json?.videoDetails?.title || null;
+        return { formats: parseStreamingData(json), title: clientTitle };
+    } catch (_) { return { formats: [], title: null }; }
 }
 
 // ── TVHTML5_SIMPLY_EMBEDDED_PLAYER ───────────────────────────────────────────
@@ -478,35 +591,41 @@ async function fetchViaIOS(videoId) {
 }
 
 
-// ── Main: fallback chain ─────────
+// ── Main: waterfall fetch ──────────────────────────────────────────────────────
+// Old approach: 4 clients in parallel every time — wastes bandwidth and is more
+// likely to trigger YouTube's rate limiting.
+//
+// New approach: try WEB (page-embedded data, zero extra requests) first.
+// Only fall back to InnerTube clients if WEB returns no usable formats.
+// Client priority: IOS > ANDROID > TVHTML5 (IOS tends to return the most
+// reliable direct URLs without bot detection).
 async function fetchVideoFormats() {
     const videoId = getCurrentVideoId();
     if (!videoId) return { formats: [], title: 'video' };
 
     let title = 'video';
-    let webFormats = [];
+    // titleVerified = true means title came from a source that is tied to this specific
+    // videoId (ytInitialPlayerResponse with matching id, or an InnerTube API call).
+    // Unverified titles (DOM text, meta tags, document.title) are used as best-effort
+    // fallbacks but must not block a later verified source from overwriting them.
+    let titleVerified = false;
 
-    // Helper to get web formats
-    const getWebFormats = async () => {
-        // For Shorts, the most accurate title is in the active renderer
+    // ── Step 1: try WEB (ytInitialPlayerResponse already on the page) ─────────
+    const webResult = await (async () => {
         if (isShortPage()) {
             const activeShort = document.querySelector('ytd-reel-video-renderer[is-active]');
             if (activeShort) {
-                const shortTitleEl = activeShort.querySelector('.title, h2.title');
-                if (shortTitleEl && shortTitleEl.textContent) {
-                    title = shortTitleEl.textContent.trim();
-                }
+                const el = activeShort.querySelector('.title, h2.title, yt-formatted-string.title');
+                if (el?.textContent) title = el.textContent.trim();
             }
         }
 
-        // Try getting title from document if not found yet
         if (title === 'video') {
-            const metaTitle = document.querySelector('meta[name="title"]') || document.querySelector('meta[property="og:title"]');
-            if (metaTitle && metaTitle.content) {
-                title = metaTitle.content;
-            } else if (document.title) {
-                title = document.title.replace(' - YouTube', '');
-            }
+            const meta = document.querySelector('meta[name="title"]') ||
+                document.querySelector('meta[property="og:title"]');
+            if (meta?.content) title = meta.content;
+            else if (document.title && document.title !== 'YouTube')
+                title = document.title.replace(/ - YouTube$/, '').trim();
         }
 
         for (const s of document.querySelectorAll('script:not([src])')) {
@@ -515,69 +634,100 @@ async function fetchVideoFormats() {
             if (!m) continue;
             try {
                 const data = JSON.parse(m[1]);
-                if (data.videoDetails && data.videoDetails.title) {
+
+                // ── SPA-navigation guard ───────────────────────────────────────
+                // On Shorts, YouTube navigates via SPA without reloading the page,
+                // so the inline ytInitialPlayerResponse script keeps the PREVIOUS
+                // video's data. If the embedded videoId doesn't match the current
+                // URL, skip this block entirely — both the title AND the stream
+                // URLs would be for the wrong video.
+                const embeddedId = data.videoDetails?.videoId;
+                if (embeddedId && embeddedId !== videoId) continue;
+
+                if (data.videoDetails?.title) {
                     title = data.videoDetails.title;
+                    titleVerified = true;
                 }
                 const parsed = parseStreamingData(data);
                 if (parsed.length > 0) {
-                    // Descramble the n parameter
-                    return await Promise.all(
+                    const formats = await Promise.all(
                         parsed.map(async f => ({ ...f, url: await descrambleUrl(f.url), source: 'WEB' }))
                     );
+                    return { formats, title };
                 }
             } catch (_) { }
         }
-        return [];
-    };
+        return { formats: [], title };
+    })();
 
-    // Helper to parse other clients and track source
-    const getClientFormats = async (fetcher, sourceName) => {
-        const data = await fetcher(videoId);
-        return data.map(f => ({ ...f, source: sourceName }));
-    };
+    // WEB had usable muxed (video+audio) formats — use them directly, no extra requests
+    const webMuxed = webResult.formats.filter(f => f.type === 'video_audio');
+    if (webMuxed.length > 0) {
+        // Only adopt the webResult title if it hasn't already been verified above;
+        // otherwise we'd risk overwriting a good title with a stale one.
+        if (!titleVerified && webResult.title) title = webResult.title;
+        return _deduplicateAndSort(webResult.formats, title);
+    }
 
-    // Parallel fetching
-    const results = await Promise.allSettled([
-        getWebFormats(),
-        getClientFormats(fetchViaIOS, 'IOS'),
-        getClientFormats(fetchViaAndroid, 'ANDROID'),
-        getClientFormats(fetchViaEmbeddedPlayer, 'TVHTML5')
-    ]);
+    // ── Step 2: waterfall through InnerTube clients until we get formats ───────
+    // IOS is first because its streams are the most reliable (no n-param issues).
+    const clients = [
+        { fetcher: fetchViaIOS, name: 'IOS' },
+        { fetcher: fetchViaAndroid, name: 'ANDROID' },
+        { fetcher: fetchViaEmbeddedPlayer, name: 'TVHTML5' },
+    ];
 
-    let allFormats = [];
-    for (const res of results) {
-        if (res.status === 'fulfilled' && res.value && res.value.length > 0) {
-            allFormats.push(...res.value);
-        }
+    let allFormats = [...webResult.formats]; // carry over any web adaptive streams
+    // Carry over any title the WEB step already set (unverified best-effort)
+    if (webResult.title && title === 'video') title = webResult.title;
+
+    for (const { fetcher, name } of clients) {
+        try {
+            const result = await fetcher(videoId);
+            const formats = (result.formats || []).map(f => ({ ...f, source: name }));
+
+            // InnerTube titles are fetched for the explicit videoId → always reliable.
+            // Override any unverified title we may have picked up from DOM / meta.
+            if (result.title && !titleVerified) {
+                title = result.title;
+                titleVerified = true;
+            }
+
+            allFormats.push(...formats);
+
+            // Stop as soon as we have muxed formats from this client
+            const hasMuxed = formats.some(f => f.type === 'video_audio');
+            if (hasMuxed) break;
+        } catch (_) { }
     }
 
     if (allFormats.length === 0) return { formats: [], title };
+    return _deduplicateAndSort(allFormats, title);
+}
 
-    // ── Codec priority: AV1 > VP9 > H.264 > others
-    // Output is always mp4 (yt-dlp merges), so we deduplicate by height+type,
-    // keeping the best-codec entry at each resolution.
-    const CODEC_PRIORITY = { 'av01': 4, 'vp9': 3, 'vp09': 3, 'avc1': 2, 'mp4v': 1 };
-    const SOURCE_PRIORITY = { 'IOS': 4, 'ANDROID': 3, 'TVHTML5': 2, 'WEB': 1 };
+// ── Shared dedup + sort logic (extracted so waterfall stays readable) ─────────
+const CODEC_PRIORITY = { 'av01': 4, 'vp9': 3, 'vp09': 3, 'avc1': 2, 'mp4v': 1 };
+const SOURCE_PRIORITY = { 'IOS': 4, 'ANDROID': 3, 'TVHTML5': 2, 'WEB': 1 };
 
-    function getCodecPriority(mime) {
-        if (!mime) return 0;
-        const m = mime.match(/codecs="?([^",]+)/);
-        if (!m) return 0;
-        const codec = m[1].trim().toLowerCase().slice(0, 4);
-        return CODEC_PRIORITY[codec] || 0;
-    }
+function _getCodecPriority(mime) {
+    if (!mime) return 0;
+    const m = mime.match(/codecs="?([^",]+)/);
+    if (!m) return 0;
+    return CODEC_PRIORITY[m[1].trim().toLowerCase().slice(0, 4)] || 0;
+}
 
-    function getCodecLabel(mime) {
-        if (!mime) return 'MP4';
-        const m = mime.match(/codecs="?([^",]+)/);
-        if (!m) return mime.includes('webm') ? 'VP9' : 'H.264';
-        const c = m[1].trim().toLowerCase();
-        if (c.startsWith('av01')) return 'AV1';
-        if (c.startsWith('vp9') || c.startsWith('vp09')) return 'VP9';
-        if (c.startsWith('avc')) return 'H.264';
-        return 'MP4';
-    }
+function getCodecLabel(mime) {
+    if (!mime) return 'MP4';
+    const m = mime.match(/codecs="?([^",]+)/);
+    if (!m) return mime.includes('webm') ? 'VP9' : 'H.264';
+    const c = m[1].trim().toLowerCase();
+    if (c.startsWith('av01')) return 'AV1';
+    if (c.startsWith('vp9') || c.startsWith('vp09')) return 'VP9';
+    if (c.startsWith('avc')) return 'H.264';
+    return 'MP4';
+}
 
+function _deduplicateAndSort(allFormats, title) {
     // Key: height+type only — one entry per resolution per type
     const uniqueFormatsMap = new Map();
 
@@ -588,8 +738,8 @@ async function fetchVideoFormats() {
 
         if (uniqueFormatsMap.has(key)) {
             const existing = uniqueFormatsMap.get(key);
-            const existingCodec = getCodecPriority(existing.mime);
-            const newCodec = getCodecPriority(f.mime);
+            const existingCodec = _getCodecPriority(existing.mime);
+            const newCodec = _getCodecPriority(f.mime);
             const existingSource = SOURCE_PRIORITY[existing.source] || 0;
             const newSource = SOURCE_PRIORITY[f.source] || 0;
             // Prefer higher codec first, then higher source priority
@@ -656,7 +806,7 @@ async function fetchVideoFormats() {
         return (QUALITY_ORDER[cleanA] ?? 99) - (QUALITY_ORDER[cleanB] ?? 99);
     });
 
-    console.log(`[YT-DL] Concurrency fetched ${finalList.length} unique streams.`);
+    console.log(`[YT-DL] Fetched ${finalList.length} unique streams.`);
     return { formats: finalList, title };
 }
 
@@ -680,20 +830,54 @@ function formatSize(bytes) {
 // → anchor click.  Service worker fetch fails with 403 because the streaming URL
 // is session-bound and rejects requests that don't carry YouTube's cookies.
 async function triggerDownload(fmt, rawFilename, allFormats = []) {
+    const videoId = getCurrentVideoId();
+
+    // ── iOS / codec compatibility: for browser-side blob downloads ────────────
+    // YouTube's muxed streams can be WebM (VP9) even at ≤720p. Saving WebM data
+    // with a .mp4 extension causes Apple devices (and some Android players) to
+    // open the file successfully but play only the audio track because the VP9
+    // video codec is unsupported in that context.
+    //
+    // Strategy:
+    //   1. If the chosen format is a muxed WebM and an H.264 mp4 alternative
+    //      exists at the same resolution → silently prefer the mp4 version.
+    //   2. Otherwise, use the correct extension (.webm vs .mp4) so the OS and
+    //      media players can identify the container without guessing.
+    //
+    // This block runs only for direct browser downloads (blob path).
+    // Native yt-dlp downloads are not affected here.
+    let actualFmt = fmt;
+    const isMuxedWebm = fmt.type === 'video_audio' && fmt.mime && fmt.mime.includes('webm');
+    if (isMuxedWebm && allFormats.length > 0) {
+        const heightMatch = fmt.quality.match(/(\d+)p/);
+        if (heightMatch) {
+            const h = heightMatch[1];
+            const h264 = allFormats.find(f =>
+                f.type === 'video_audio' &&
+                f.url &&
+                f.mime && !f.mime.includes('webm') &&     // must be mp4 container
+                f.quality.startsWith(h + 'p')             // same resolution
+            );
+            if (h264) actualFmt = h264;
+        }
+    }
+
+    // Derive the correct container extension from the (possibly swapped) format
+    const isWebmContainer = actualFmt.mime && actualFmt.mime.includes('webm');
+    const containerExt = isWebmContainer ? '.webm' : '.mp4';
+
     const safeFilename = rawFilename
         .replace(/[/\\<>:"|?*\x00-\x1f]/g, '_')
-        .replace(/\.mp4$/i, '')
+        .replace(/\.(mp4|webm|mkv|m4v|3gp)$/i, '')   // strip any existing extension
         .trim()
-        .substring(0, 180) + '.mp4';
-
-    const videoId = getCurrentVideoId();
+        .substring(0, 180) + containerExt;
 
     // Route adaptive/heavy formats through the native messaging app.
     // We send the YouTube video ID + quality height so yt-dlp can do its own
     // format selection and audio+video merge — much more reliable than passing
     // raw stream URLs which may lack audio or expire mid-download.
     if (fmt.type === 'video' || fmt.type === 'audio' || fmt.quality.includes('Quality') || fmt.quality.includes('Audio') || parseInt(fmt.quality) >= 1080 || fmt.quality.includes('1080p') || fmt.quality.includes('1440p')) {
-        const toast = showYouTubeNotification(rawFilename, 'Preparing download...', videoId, 'preparing');
+        const toast = showYouTubeNotification(rawFilename, i18n.t('notifPreparing'), videoId, 'preparing');
         console.log('[YT-DL] Sending to native messaging host', fmt);
 
         // Extract numeric height from quality label (e.g. "1080p (High Quality)" → 1080)
@@ -710,19 +894,19 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
             isVideoAudio: fmt.type === 'video_audio'
         }, (response) => {
             if (response && response.status === 'sent_to_native') {
-                toast.success('Downloading in background...');
+                toast.success(i18n.t('notifDownloadingBg'));
             } else {
                 console.error('[YT-DL] Native messaging failed:', response);
                 toast.remove();
-                alert('Could not connect to the companion app. Please make sure you have installed the "native-host" companion app.');
+                alert(i18n.t('alertNativeNotFound'));
             }
         });
         return;
     }
 
-    const url = fmt.url;
+    const url = actualFmt.url;
     // Show progress indicator
-    const toast = showYouTubeNotification(rawFilename, 'Downloading… please wait', videoId, 'preparing');
+    const toast = showYouTubeNotification(rawFilename, i18n.t('notifDownloading'), videoId, 'preparing');
 
     try {
         // Fetch from content-script context – same session as the YouTube page,
@@ -742,13 +926,12 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
         a.click();
         setTimeout(() => { a.remove(); URL.revokeObjectURL(blobUrl); }, 5000);
 
-        toast.success('Download Complete');
+        toast.success(i18n.t('notifDownloadComplete'));
         console.log('[YT-DL] Blob download triggered:', safeFilename);
     } catch (err) {
         console.error('[YT-DL] Blob fetch failed:', err);
         toast.remove();
-        // Last resort: open in new tab
-        if (confirm('Could not start download (' + err.message + ').\nWould you like to open the video in a new tab?\n(Right click → Save video as)')) {
+        if (confirm(i18n.t('confirmOpenInTab').replace('%s', err.message))) {
             window.open(url, '_blank');
         }
     }
@@ -859,9 +1042,9 @@ function showYouTubeNotification(title, message, videoId, state = 'success') {
 chrome.runtime.onMessage.addListener((msg) => {
     if (msg && msg.action === 'download_video_result') {
         if (msg.status === 'success') {
-            showYouTubeNotification(msg.title, 'Download Complete', msg.videoId, 'success');
+            showYouTubeNotification(msg.title, i18n.t('notifDownloadComplete'), msg.videoId, 'success');
         } else {
-            showYouTubeNotification(msg.title, 'Download Failed', msg.videoId, 'error');
+            showYouTubeNotification(msg.title, i18n.t('notifDownloadFailed'), msg.videoId, 'error');
         }
     }
 });
@@ -912,16 +1095,16 @@ function showDownloadModal(anchor, data, isShorts) {
 
         const header = document.createElement('div');
         header.className = 'yt-dl-header';
-        header.textContent = 'Select Quality';
+        header.textContent = i18n.t('dlModalSelectQuality');
         modal.appendChild(header);
 
         if (formats.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'yt-dl-empty';
             const vid = getCurrentVideoId();
-            empty.innerHTML = 'Could not fetch video streams.' +
+            empty.innerHTML = i18n.t('dlModalNoStreams') +
                 (vid
-                    ? `<a class="yt-dl-fallback-link" href="https://y2mate.com/youtube/${vid}" target="_blank" rel="noopener">Download via web service ↗</a>`
+                    ? `<a class="yt-dl-fallback-link" href="https://y2mate.com/youtube/${vid}" target="_blank" rel="noopener">${i18n.t('dlModalWebService')}</a>`
                     : '');
             modal.appendChild(empty);
         } else {
@@ -989,7 +1172,7 @@ function showDownloadModal(anchor, data, isShorts) {
         const headerOption = document.createElement('div');
         headerOption.className = 'ytp-menuitem ytp-panel-header';
         headerOption.innerHTML = `
-            <div class="ytp-menuitem-label" style="font-weight: 500; font-size: 14px; color: #fff; padding-left: 2px;">Select Quality</div>
+            <div class="ytp-menuitem-label" style="font-weight: 500; font-size: 14px; color: #fff; padding-left: 2px;">${i18n.t('dlModalSelectQuality')}</div>
         `;
         menu.appendChild(headerOption);
 
@@ -999,8 +1182,8 @@ function showDownloadModal(anchor, data, isShorts) {
             const vid = getCurrentVideoId();
             empty.innerHTML = `
                 <div class="ytp-menuitem-label" style="white-space: normal; line-height: 1.5;">
-                    Could not fetch video streams.
-                    ${vid ? `<a href="https://y2mate.com/youtube/${vid}" target="_blank" style="color: #3ea6ff; display: block; margin-top: 4px;">Download via web service ↗</a>` : ''}
+                    ${i18n.t('dlModalNoStreams')}
+                    ${vid ? `<a href="https://y2mate.com/youtube/${vid}" target="_blank" style="color: #3ea6ff; display: block; margin-top: 4px;">${i18n.t('dlModalWebService')}</a>` : ''}
                 </div>
             `;
             menu.appendChild(empty);
@@ -1125,14 +1308,14 @@ function showDownloadModal(anchor, data, isShorts) {
 function createShortsDownloadButton(container) {
     const btn = document.createElement('button');
     btn.className = 'my-block-button my-dl-btn-shorts';
-    btn.title = 'Download Video';
+    btn.title = i18n.t('dlBtnTitle');
     btn.innerHTML = `
         <div class="my-btn-circle">
             <svg viewBox="0 0 24 24" width="24" height="24" fill="white">
                 <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
             </svg>
         </div>
-        <span class="my-btn-text">Download</span>`;
+        <span class="my-btn-text">${i18n.t('btnDownload')}</span>`;
 
     btn.addEventListener('click', async (e) => {
         e.stopPropagation(); e.preventDefault();
@@ -1143,12 +1326,12 @@ function createShortsDownloadButton(container) {
         }
 
         btn.style.opacity = '0.55';
-        btn.querySelector('.my-btn-text').textContent = 'Loading…';
+        btn.querySelector('.my-btn-text').textContent = i18n.t('btnDownloadLoading');
 
         const data = await fetchVideoFormats();
 
         btn.style.opacity = '1';
-        btn.querySelector('.my-btn-text').textContent = 'Download';
+        btn.querySelector('.my-btn-text').textContent = i18n.t('btnDownload');
         showDownloadModal(btn, data, true);
     });
 
@@ -1170,8 +1353,8 @@ function addVideoDownloadButton() {
 
     const btn = document.createElement('button');
     btn.className = 'ytp-button my-video-dl-btn';
-    btn.setAttribute('data-title', 'Download Video');
-    btn.setAttribute('aria-label', 'Download Video');
+    btn.setAttribute('data-title', i18n.t('dlBtnTitle'));
+    btn.setAttribute('aria-label', i18n.t('dlBtnAriaLabel'));
     btn.innerHTML = `
         <svg height="24" viewBox="0 0 24 24" width="24">
             <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="white"/>

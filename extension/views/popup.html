@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shorts Blocker</title>
+    <link rel="stylesheet" href="../css/popup.css">
+</head>
+
+<body>
+    <div class="app-container">
+
+        <main class="content-area">
+
+            <!-- ── Home ── -->
+            <div id="page-home" class="page active">
+                <header>
+                    <svg class="brand-icon" viewBox="0 0 24 24">
+                        <path
+                            d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" />
+                    </svg>
+                    <h1 data-i18n="appName">Shorts Blocker</h1>
+                </header>
+
+                <div class="card">
+                    <div class="card-row">
+                        <div>
+                            <div class="row-label" data-i18n="protection">Protection</div>
+                            <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                                <div class="status-dot" id="status-dot"></div>
+                                <span class="status-text" id="status-text" data-i18n="statusActive">Active</span>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="main-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div style="display:flex;align-items:center;">
+                        <div class="stat-block">
+                            <div class="stat-val" id="stat-blocked">0</div>
+                            <div class="stat-label" data-i18n="statBlocked">Blocked</div>
+                        </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-block">
+                            <div class="stat-val" id="stat-hidden">0</div>
+                            <div class="stat-label" data-i18n="statHidden">Hidden</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-row" style="margin-bottom:10px;">
+                        <div>
+                            <div class="row-label" data-i18n="nativeDownloader">Native Downloader</div>
+                            <div class="row-sublabel" data-i18n="nativeSubLabel">yt-dlp · high-quality videos</div>
+                        </div>
+                        <span class="badge" id="native-badge" data-i18n="badgeChecking">Checking</span>
+                    </div>
+                    <button class="action-btn" id="btn-setup" style="width:100%;justify-content:center;"
+                        data-i18n="btnSetupMonitor">
+                        Setup / Monitor
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Settings ── -->
+            <div id="page-settings" class="page">
+                <header>
+                    <h1 data-i18n="settingsTitle">Settings</h1>
+                </header>
+
+                <div class="card">
+                    <h2 data-i18n="sectionShorts">Shorts Blocking</h2>
+                    <div class="card-row">
+                        <div>
+                            <div class="row-label" data-i18n="settingBlockAuto">Block channels automatically</div>
+                            <div class="row-sublabel" data-i18n="settingBlockAutoSub">Adds channel to blocklist on click
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-blocking" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="card-row">
+                        <div>
+                            <div class="row-label" data-i18n="settingHideHome">Hide Shorts from homepage</div>
+                            <div class="row-sublabel" data-i18n="settingHideHomeSub">Removes Shorts shelf from feed
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="hide-homepage-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 data-i18n="sectionDownloader">Downloader</h2>
+                    <div class="card-row">
+                        <div>
+                            <div class="row-label" data-i18n="settingShowDlBtn">Show download button</div>
+                            <div class="row-sublabel" data-i18n="settingShowDlBtnSub">In video player controls</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-downloader" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div style="border-top:1px solid var(--yt-border);margin:12px 0;"></div>
+
+                    <div class="path-picker-wrap">
+                        <div class="row-label" data-i18n="settingDownloadPath">Download Location</div>
+                        <div class="row-sublabel" style="margin-top:2px;margin-bottom:8px;"
+                            data-i18n="settingDownloadPathSub">Choose where to save downloaded files</div>
+
+                        <div class="path-picker-row">
+                            <!-- Path display (read-only, shows current path or placeholder) -->
+                            <div class="path-display" id="path-display">
+                                <svg class="path-folder-icon" viewBox="0 0 24 24">
+                                    <path
+                                        d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                                </svg>
+                                <span class="path-display-text" id="path-display-text" data-i18n="pathDefault">Default
+                                    Downloads folder</span>
+                            </div>
+
+                            <!-- Browse button -->
+                            <button class="btn-path-browse" id="btn-browse" data-i18n-title="btnBrowse">
+                                <svg viewBox="0 0 24 24">
+                                    <path
+                                        d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
+                                </svg>
+                                <span data-i18n="btnBrowse">Browse</span>
+                            </button>
+
+                            <!-- Clear button (only visible when path is set) -->
+                            <button class="btn-path-clear" id="btn-clear-path" title="Clear path">✕</button>
+                        </div>
+
+                        <div class="path-status-line" id="download-path-status"></div>
+                    </div>
+                </div>
+
+                <!-- Language selector -->
+                <div class="card">
+                    <h2 data-i18n="sectionLanguage">Language</h2>
+                    <div class="card-row">
+                        <div>
+                            <div class="row-label" data-i18n="settingLanguage">Interface Language</div>
+                            <div class="row-sublabel" data-i18n="settingLanguageSub">Override browser default</div>
+                        </div>
+                        <select id="lang-select" style="
+                            background: var(--yt-bg-card-hover);
+                            color: var(--yt-text-primary);
+                            border: 1px solid var(--yt-border);
+                            border-radius: 8px;
+                            padding: 5px 8px;
+                            font-size: 13px;
+                            font-family: 'Outfit', sans-serif;
+                            cursor: pointer;
+                            outline: none;
+                        ">
+                            <option value="auto" data-i18n="langAuto">Auto (Browser)</option>
+                            <option value="en" data-i18n="langEn">English</option>
+                            <option value="tr" data-i18n="langTr">Türkçe</option>
+                            <option value="de" data-i18n="langDe">Deutsch</option>
+                            <option value="fr" data-i18n="langFr">Français</option>
+                            <option value="es" data-i18n="langEs">Español</option>
+                            <option value="pt" data-i18n="langPt">Português</option>
+                            <option value="it" data-i18n="langIt">Italiano</option>
+                            <option value="ru" data-i18n="langRu">Русский</option>
+                            <option value="ja" data-i18n="langJa">日本語</option>
+                            <option value="ko" data-i18n="langKo">한국어</option>
+                            <option value="zh" data-i18n="langZh">中文</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <button class="action-btn danger" id="btn-reset" style="width:100%;justify-content:center;"
+                        data-i18n="btnReset">
+                        Reset Statistics
+                    </button>
+                </div>
+            </div>
+
+            <!-- ── Blocklist ── -->
+            <div id="page-blocklist" class="page">
+                <header>
+                    <h1 data-i18n="blocklistTitle">Blocked Channels</h1>
+                </header>
+                <div class="card" style="border-left:3px solid #f0a500;">
+                    <p style="font-size:12px;color:var(--yt-text-secondary);margin:0;line-height:1.6;">
+                        <b style="color:#f0a500;">ℹ Note:</b>
+                        <span data-i18n="blocklistNote">Blocking sends YouTube's own "Don't recommend channel" signal —
+                            this list just tracks it.</span>
+                        <b style="color:var(--yt-text-primary);" data-i18n="blocklistNoteRemove">"Remove from list"</b>
+                        <span data-i18n="blocklistNoteRemoveSub">only removes the entry here; YouTube's recommendation
+                            filter stays active. To fully unblock a channel, visit your</span>
+                        <a href="https://myactivity.google.com/page?page=youtube_user_feedback" target="_blank"
+                            style="color:#f0a500;text-decoration:underline;" data-i18n="blocklistNoteLink">Google My
+                            Activity → YouTube feedback</a>
+                        page and delete the "Don't recommend" entries there.
+                    </p>
+                </div>
+                <div class="card">
+                    <p id="blocklist-empty" style="color:var(--yt-text-secondary);font-size:13px;margin:0;"
+                        data-i18n="blocklistEmpty">
+                        No channels blocked yet. Use the Block button on any Short.
+                    </p>
+                    <div id="blocklist-container"></div>
+                </div>
+            </div>
+
+            <!-- ── About ── -->
+            <div id="page-about" class="page">
+                <header>
+                    <h1 data-i18n="aboutTitle">About</h1>
+                </header>
+                <div class="card">
+                    <div class="row-label" id="about-version">Version ...</div>
+                    <p style="margin-top:8px;" data-i18n="aboutDesc">Blocks Shorts channels, hides Shorts from your
+                        feed, and downloads high-quality videos via yt-dlp — entirely on your device.</p>
+                </div>
+                <div class="card">
+                    <h2 data-i18n="howItWorks">How it works</h2>
+                    <p style="margin-bottom:7px;">• <span data-i18n="howItWorksItem1">Injects a Block button into every
+                            Shorts action bar</span></p>
+                    <p style="margin-bottom:7px;">• <span data-i18n="howItWorksItem2">Hides the Shorts shelf via CSS
+                            injection on the homepage</span></p>
+                    <p>• <span data-i18n="howItWorksItem3">Routes download requests through a native Node.js host
+                            running <b style="color:var(--yt-text-primary)">yt-dlp</b></span></p>
+                </div>
+                <div class="card">
+                    <h2 data-i18n="privacyTitle">Privacy</h2>
+                    <p data-i18n="privacyDesc">No data is collected or transmitted. All channel blocking and settings
+                        are stored locally in your browser via chrome.storage.local.</p>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <nav class="nav-menu">
+                <button class="nav-item active" data-target="page-home">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+                    </svg>
+                    <span data-i18n="navHome">Home</span>
+                </button>
+                <button class="nav-item" data-target="page-settings">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a6.97 6.97 0 0 0-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58a.47.47 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.37 1.04.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+                    </svg>
+                    <span data-i18n="navSettings">Settings</span>
+                </button>
+                <button class="nav-item" data-target="page-blocklist">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.41 0 8 3.59 8 8 0 1.85-.63 3.55-1.69 4.9z" />
+                    </svg>
+                    <span data-i18n="navBlocked">Blocked</span>
+                </button>
+                <button class="nav-item" data-target="page-about">
+                    <svg viewBox="0 0 24 24">
+                        <path
+                            d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                    </svg>
+                    <span data-i18n="navAbout">About</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <span class="credit-text" data-i18n="craftedBy">Crafted by</span>
+                <span class="credit-brand">Paracci</span>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- i18n engine önce yüklenmeli -->
+    <script src="../js/i18n/translations.js"></script>
+    <script src="../js/popup.js"></script>
+</body>
+
+</html>

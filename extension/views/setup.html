@@ -14,19 +14,16 @@
             --bg-card-2: #1e1e1e;
             --border: rgba(255, 255, 255, 0.07);
             --border-2: rgba(255, 255, 255, 0.12);
-
             --red: #ff0000;
             --red-dim: #cc0000;
             --red-glow: rgba(255, 0, 0, 0.10);
             --red-border: rgba(255, 0, 0, 0.20);
-
             --blue: #3ea6ff;
             --blue-glow: rgba(62, 166, 255, 0.10);
             --green: #2ba640;
             --green-glow: rgba(43, 166, 64, 0.15);
             --yellow: #fbbc04;
             --error: #ff4e45;
-
             --t1: #f1f1f1;
             --t2: #aaaaaa;
             --t3: #555555;
@@ -54,7 +51,6 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Subtle grid bg ── */
         body::before {
             content: '';
             position: fixed;
@@ -67,7 +63,6 @@
             z-index: 0;
         }
 
-        /* ── Red top accent line ── */
         body::after {
             content: '';
             position: fixed;
@@ -86,7 +81,6 @@
             max-width: 560px;
         }
 
-        /* ── Brand header ── */
         .brand {
             display: flex;
             align-items: center;
@@ -109,7 +103,6 @@
             letter-spacing: -0.3px;
         }
 
-        /* ── Main card ── */
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border);
@@ -132,7 +125,6 @@
             margin-bottom: 28px;
         }
 
-        /* ── Status pill ── */
         .status-pill {
             display: inline-flex;
             align-items: center;
@@ -185,7 +177,6 @@
             }
         }
 
-        /* ── Instructions block ── */
         .instructions {
             display: none;
             text-align: left;
@@ -280,7 +271,6 @@
             color: var(--blue);
         }
 
-        /* ── ID block ── */
         .id-block {
             display: flex;
             align-items: center;
@@ -321,7 +311,6 @@
             color: var(--t1);
         }
 
-        /* ── Action buttons ── */
         .btn-primary {
             background: var(--red);
             color: #fff;
@@ -398,7 +387,6 @@
             pointer-events: none;
         }
 
-        /* ── Done state ── */
         .done-container {
             display: none;
             flex-direction: column;
@@ -450,7 +438,6 @@
             margin-bottom: 28px;
         }
 
-        /* ── Updater card ── */
         .updater-card {
             width: 100%;
             background: var(--bg-card-2);
@@ -515,7 +502,6 @@
             display: none !important;
         }
 
-        /* ── Check again btn ── */
         #check-btn {
             display: none;
             margin-top: 4px;
@@ -533,50 +519,58 @@
                 <path
                     d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" />
             </svg>
-            <span class="brand-name">Shorts Blocker</span>
+            <span class="brand-name" data-i18n="setupPageTitle">YouTube Shorts Blocker</span>
         </div>
 
         <!-- Main card -->
         <div class="card" id="main-container">
 
             <div id="setup-view">
-                <div class="card-title">Native Downloader Setup</div>
-                <div class="card-subtitle">To download high-quality videos, install the companion app.<br>It connects
-                    Chrome to yt-dlp running on your machine.</div>
+                <div class="card-title" data-i18n="setupTitle">Native Downloader Setup</div>
+                <div class="card-subtitle" data-i18n="setupSubtitle">
+                    To download high-quality videos, install the companion app. It connects Chrome to yt-dlp running on
+                    your machine.
+                </div>
 
                 <!-- Status pill -->
                 <div class="status-pill" id="status-card">
                     <div class="status-dot checking" id="status-indicator"></div>
-                    <span id="status-text">Checking connection…</span>
+                    <span id="status-text" data-i18n="setupStatusChecking">Checking connection…</span>
                 </div>
 
                 <!-- Instructions -->
                 <div class="instructions" id="instructions-block">
-                    <div class="instr-label">Installation Steps</div>
+                    <div class="instr-label" data-i18n="setupInstrLabel">Installation Steps</div>
 
                     <div class="warning-banner">
                         <svg width="16" height="16" viewBox="0 0 24 24">
                             <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
                         </svg>
-                        <div><strong style="color:#f1f1f1;">Prerequisite:</strong> <a href="https://nodejs.org/"
-                                target="_blank">Node.js</a> must be installed on your computer.</div>
+                        <div>
+                            <strong style="color:#f1f1f1;" data-i18n="setupPrereqLabel">Prerequisite:</strong>
+                            <a href="https://nodejs.org/" target="_blank">Node.js</a>
+                            <span data-i18n="setupPrereqDesc">must be installed on your computer.</span>
+                        </div>
                     </div>
 
                     <div class="steps">
                         <div class="step">
                             <div class="step-num">1</div>
-                            <div class="step-body">Open the folder where you unpacked this extension.</div>
+                            <div class="step-body" data-i18n="setupStep1Body">
+                                Open the <strong>native-host</strong> folder inside this extension.
+                            </div>
                         </div>
                         <div class="step">
                             <div class="step-num">2</div>
-                            <div class="step-body">Double-click <strong><code>install_host.bat</code></strong> to run
-                                the installer.</div>
+                            <div class="step-body" data-i18n="setupStep2Body">
+                                Double-click <strong><code>install_host.bat</code></strong> to run the installer.
+                            </div>
                         </div>
                         <div class="step">
                             <div class="step-num">3</div>
                             <div class="step-body">
-                                The script will ask for your Extension ID. Copy it below, then paste it into the CMD
-                                window (Right-Click → Paste).
+                                <span data-i18n="setupStep3Body">The script will ask for your Extension ID. Copy it
+                                    below, then paste it into the CMD window (Right-Click → Paste).</span>
                                 <div class="id-block">
                                     <code id="extension-id-display">locating…</code>
                                     <button class="copy-btn" id="copy-btn" title="Copy ID">
@@ -590,12 +584,15 @@
                         </div>
                         <div class="step">
                             <div class="step-num">4</div>
-                            <div class="step-body">Press <strong>Enter</strong> in the CMD window and wait for the
-                                success message.</div>
+                            <div class="step-body" data-i18n="setupStep4Body">
+                                Press <strong>Enter</strong> in the CMD window and wait for the success message.
+                            </div>
                         </div>
                         <div class="step">
                             <div class="step-num">5</div>
-                            <div class="step-body">Click <strong>Check Again</strong> below.</div>
+                            <div class="step-body">
+                                Click <strong data-i18n="setupCheckBtn">Check Again</strong> below.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -605,7 +602,7 @@
                         <path
                             d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
                     </svg>
-                    Check Again
+                    <span data-i18n="setupCheckBtn">Check Again</span>
                 </button>
             </div>
 
@@ -616,25 +613,26 @@
                         <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
                     </svg>
                 </div>
-                <div class="done-title">You're all set!</div>
-                <div class="done-sub">The companion app is connected. Download high-quality<br>YouTube videos directly
-                    from the player.</div>
+                <div class="done-title" data-i18n="setupDoneTitle">You're all set!</div>
+                <div class="done-sub" data-i18n="setupDoneDesc">The companion app is connected. Download high-quality
+                    YouTube videos directly from the player.</div>
 
                 <div class="divider"></div>
 
                 <!-- Updater -->
                 <div class="updater-card">
-                    <div class="updater-card-title">yt-dlp Engine</div>
-                    <div class="updater-card-sub">YouTube sometimes blocks older yt-dlp versions. If downloads start
+                    <div class="updater-card-title" data-i18n="setupUpdaterTitle">yt-dlp Engine</div>
+                    <div class="updater-card-sub" data-i18n="setupUpdaterDesc">YouTube sometimes blocks older yt-dlp
+                        versions. If downloads start
                         failing, update the engine here.</div>
                     <button class="btn-outline-blue" id="update-ytdlp-btn">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                             <path
                                 d="M12 16.59l-5.7-5.7 1.41-1.42L11 12.76V3h2v9.76l3.3-3.3 1.41 1.42L12 16.59zM3 21v-3.5h2V19h14v-1.5h2V21H3z" />
                         </svg>
-                        Check for Updates
+                        <span data-i18n="setupUpdateBtn">Check for Updates</span>
                     </button>
-                    <div class="update-log" id="update-log-container"></div>
+                    <div class="update-log hidden" id="update-log-container"></div>
                 </div>
 
                 <button class="btn-secondary" id="close-btn">
@@ -642,7 +640,7 @@
                         <path
                             d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
                     </svg>
-                    Close Page
+                    <span data-i18n="setupCloseBtn">Close Page</span>
                 </button>
             </div>
 
@@ -650,7 +648,9 @@
 
     </div>
 
-    <script src="setup.js"></script>
+    <!-- i18n engine önce yüklenmeli -->
+    <script src="../js/i18n/translations.js"></script>
+    <script src="../js/setup.js"></script>
 </body>
 
 </html>

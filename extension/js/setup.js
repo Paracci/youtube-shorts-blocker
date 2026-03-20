@@ -1,4 +1,10 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+
+    // ── i18n — initialise FIRST ───────────────────────────────────────────────
+    await i18n.init();
+    i18n.applyToDOM();
+
+    // ── Element refs ──────────────────────────────────────────────────────────
     const statusIndicator = document.getElementById('status-indicator');
     const statusText = document.getElementById('status-text');
     const instructionsBlock = document.getElementById('instructions-block');
@@ -11,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const extensionId = chrome.runtime.id;
     extIdDisplay.textContent = extensionId;
 
+    // ── Copy button ───────────────────────────────────────────────────────────
     copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(extensionId).then(() => {
             const originalIcon = copyBtn.innerHTML;
@@ -23,16 +30,18 @@ document.addEventListener('DOMContentLoaded', () => {
         window.close();
     });
 
+    // ── Status helper ─────────────────────────────────────────────────────────
     function setStatus(state) {
         statusIndicator.className = 'status-dot';
         if (state === 'checking') {
             statusIndicator.classList.add('checking');
-            statusText.textContent = 'Checking connection to Native Host...';
+            statusText.textContent = i18n.t('setupStatusChecking');
             instructionsBlock.style.display = 'none';
             checkBtn.style.display = 'none';
+
         } else if (state === 'connected') {
             statusIndicator.classList.add('connected');
-            statusText.textContent = 'Connected successfully!';
+            statusText.textContent = i18n.t('setupStatusConnected');
 
             setTimeout(() => {
                 setupView.style.display = 'none';
@@ -41,12 +50,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } else if (state === 'disconnected') {
             statusIndicator.classList.add('disconnected');
-            statusText.textContent = 'Native Host not detected.';
+            statusText.textContent = i18n.t('setupStatusDisconnected');
             instructionsBlock.style.display = 'block';
             checkBtn.style.display = 'inline-block';
         }
     }
 
+    // ── Connection check ──────────────────────────────────────────────────────
     function checkConnection() {
         setStatus('checking');
 
@@ -55,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 setStatus('disconnected');
                 return;
             }
-
             if (response && response.status === 'connected') {
                 setStatus('connected');
             } else {
@@ -66,25 +75,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     checkBtn.addEventListener('click', checkConnection);
 
-    // Initial check
-    setTimeout(checkConnection, 800); // small delay for visual effect
+    // Small delay for visual effect on initial load
+    setTimeout(checkConnection, 800);
 
-    // --- Updater Logic ---
+    // ── Updater logic ─────────────────────────────────────────────────────────
     const updateBtn = document.getElementById('update-ytdlp-btn');
     const updateLogContainer = document.getElementById('update-log-container');
 
     if (updateBtn) {
         updateBtn.addEventListener('click', () => {
             updateBtn.disabled = true;
-            updateBtn.textContent = 'Updating... Please wait';
+
+            // Update the <span> inside the button, not the whole button
+            const btnSpan = updateBtn.querySelector('[data-i18n]');
+            if (btnSpan) btnSpan.textContent = i18n.t('setupUpdating');
+            else updateBtn.childNodes.forEach(n => { if (n.nodeType === 3 && n.textContent.trim()) n.textContent = ' ' + i18n.t('setupUpdating'); });
+
             updateBtn.style.opacity = '0.5';
 
             updateLogContainer.classList.remove('hidden');
-            updateLogContainer.textContent = 'Starting updater...\n';
+            updateLogContainer.textContent = i18n.t('setupUpdateStart') + '\n';
 
             chrome.runtime.sendMessage({ action: 'update_downloader_native' }, (res) => {
                 if (chrome.runtime.lastError || res?.status === 'failed_native_connect') {
-                    updateLogContainer.textContent += '\nError: Could not connect to the native app.';
+                    updateLogContainer.textContent += '\n' + i18n.t('setupUpdateError');
                     resetUpdateBtn();
                 }
             });
@@ -98,13 +112,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.status === 'info' || data.status === 'progress' || data.status === 'error_log') {
                 updateLogContainer.textContent += (data.data || data.message || '') + '\n';
                 updateLogContainer.scrollTop = updateLogContainer.scrollHeight;
-            }
-            else if (data.status === 'update_success') {
-                updateLogContainer.textContent += '\nUpdate process completed successfully!\n';
+            } else if (data.status === 'update_success') {
+                updateLogContainer.textContent += '\n' + i18n.t('setupUpdateDone') + '\n';
                 updateLogContainer.scrollTop = updateLogContainer.scrollHeight;
-                updateBtn.textContent = 'Up to Date!';
-                updateBtn.style.borderColor = 'var(--success-color)';
-                updateBtn.style.color = 'var(--success-color)';
+
+                const btnSpan = updateBtn.querySelector('[data-i18n]');
+                if (btnSpan) btnSpan.textContent = i18n.t('setupUpdateUpToDate');
+
+                updateBtn.style.borderColor = 'var(--green)';
+                updateBtn.style.color = 'var(--green)';
                 setTimeout(resetUpdateBtn, 4000);
             }
         }
@@ -113,10 +129,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetUpdateBtn() {
         if (updateBtn) {
             updateBtn.disabled = false;
-            updateBtn.textContent = 'Check for Updates';
             updateBtn.style.opacity = '1';
             updateBtn.style.borderColor = '';
             updateBtn.style.color = '';
+
+            // Restore translated label
+            const btnSpan = updateBtn.querySelector('[data-i18n]');
+            if (btnSpan) btnSpan.textContent = i18n.t('setupUpdateBtn');
         }
     }
 });

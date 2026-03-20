@@ -44,8 +44,10 @@ body {
 /* ── Content ── */
 .content-area {
     flex: 1;
+    min-width: 0;
     padding: 20px;
     overflow-y: auto;
+    height: 100%;
 }
 
 .content-area::-webkit-scrollbar {
@@ -112,6 +114,9 @@ h2 {
     text-transform: uppercase;
     color: var(--yt-text-muted);
     margin-bottom: 10px;
+    /* Long h2 labels (DE/FR) wrap instead of overflow */
+    white-space: normal;
+    word-break: break-word;
 }
 
 /* ── Cards ── */
@@ -129,10 +134,13 @@ h2 {
     line-height: 1.5;
 }
 
+/* ── Card rows ── */
 .card-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
+    /* prevents left text from touching right control */
 }
 
 .card-row+.card-row {
@@ -141,16 +149,29 @@ h2 {
     border-top: 1px solid var(--yt-border);
 }
 
+/*
+ * i18n FIX — left content inside every card-row.
+ * Without min-width: 0 the flex child can grow wider than its parent
+ * and push the toggle / badge / button out of view.
+ */
+.card-row>div {
+    flex: 1;
+    min-width: 0;
+}
+
 .row-label {
     font-size: 13.5px;
     font-weight: 500;
     color: var(--yt-text-primary);
+    /* Let long labels (DE/FR) wrap to a second line */
+    word-break: break-word;
 }
 
 .row-sublabel {
     font-size: 11.5px;
     color: var(--yt-text-secondary);
     margin-top: 2px;
+    word-break: break-word;
 }
 
 /* ── Stats ── */
@@ -183,6 +204,7 @@ h2 {
     width: 1px;
     height: 36px;
     background: var(--yt-border);
+    flex-shrink: 0;
 }
 
 /* ── Status Dot ── */
@@ -218,16 +240,21 @@ h2 {
     color: #fff;
     border: none;
     height: 33px;
-    padding: 0 16px;
+    padding: 0 14px;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
     font-family: 'Outfit', sans-serif;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     transition: background .2s, transform .1s, box-shadow .2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
 }
 
 .action-btn:hover {
@@ -319,6 +346,9 @@ input:checked+.slider::before {
     color: var(--yt-red);
     border: 1px solid var(--yt-red-border);
     transition: all .2s;
+    /* i18n FIX — prevent badge from stretching and squishing left content */
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .badge.inactive {
@@ -348,7 +378,10 @@ input:checked+.slider::before {
 
 /* ── Sidebar ── */
 .sidebar {
-    width: 124px;
+    /* i18n FIX — increased from 124px to 140px to fit translated nav labels
+       (e.g. "Einstellungen" DE, "Engellenenler" TR) */
+    width: 140px;
+    flex-shrink: 0;
     background: var(--yt-bg-main);
     border-left: 1px solid var(--yt-border);
     display: flex;
@@ -370,10 +403,14 @@ input:checked+.slider::before {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 10px;
-    height: 40px;
+    padding: 8px 10px;
+    /* i18n FIX — min-height instead of fixed height; allows text to wrap on
+       very long labels without clipping */
+    min-height: 40px;
+    height: auto;
     border-radius: 10px;
-    font-size: 13px;
+    /* i18n FIX — reduced from 13px; gives translated labels more room */
+    font-size: 11.5px;
     font-weight: 400;
     cursor: pointer;
     font-family: 'Outfit', sans-serif;
@@ -387,6 +424,19 @@ input:checked+.slider::before {
     height: 18px;
     flex-shrink: 0;
     transition: fill .15s;
+}
+
+/*
+ * i18n FIX — nav label truncation.
+ * Keeps single-line layout for all languages; overflows get "…" instead
+ * of breaking the sidebar. Works together with the wider sidebar (140px).
+ */
+.nav-item span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .nav-item:hover {
@@ -427,4 +477,153 @@ input:checked+.slider::before {
     color: var(--yt-red);
     display: block;
     margin-top: 2px;
+}
+
+/* ── Download Path Picker ── */
+.path-picker-wrap {
+    margin-top: 10px;
+}
+
+.path-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.path-display {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--yt-border);
+    border-radius: 10px;
+    padding: 7px 11px;
+    transition: border-color .2s, background .2s;
+    overflow: hidden;
+}
+
+.path-display.has-path {
+    border-color: rgba(255, 255, 255, 0.13);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.path-folder-icon {
+    width: 15px;
+    height: 15px;
+    fill: var(--yt-text-muted);
+    flex-shrink: 0;
+    transition: fill .2s;
+}
+
+.path-display.has-path .path-folder-icon {
+    fill: var(--yt-green);
+}
+
+.path-display-text {
+    font-size: 11.5px;
+    color: var(--yt-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* RTL trick: long paths truncate from the left, keeping the folder name visible */
+    direction: rtl;
+    text-align: left;
+    flex: 1;
+    min-width: 0;
+    transition: color .2s;
+}
+
+.path-display.has-path .path-display-text {
+    color: var(--yt-text-primary);
+}
+
+.btn-path-browse {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--yt-bg-card-hover);
+    border: 1px solid var(--yt-border);
+    border-radius: 8px;
+    color: var(--yt-text-secondary);
+    font-family: 'Outfit', sans-serif;
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0 10px;
+    height: 30px;
+    flex-shrink: 0;
+    transition: color .15s, border-color .15s, background .15s;
+    white-space: nowrap;
+}
+
+.btn-path-browse svg {
+    width: 13px;
+    height: 13px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
+.btn-path-browse:hover {
+    color: var(--yt-text-primary);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.btn-path-browse:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.btn-path-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: var(--yt-text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    transition: color .15s, border-color .15s, background .15s;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.btn-path-clear.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.btn-path-clear:hover {
+    color: #ff5555;
+    border-color: rgba(255, 85, 85, .3);
+    background: rgba(255, 85, 85, .08);
+}
+
+.path-status-line {
+    margin-top: 5px;
+    font-size: 11px;
+    min-height: 14px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color .2s;
+    color: var(--yt-text-muted);
+}
+
+.path-status-line.ok {
+    color: var(--yt-green);
+}
+
+.path-status-line.warn {
+    color: #f0a500;
+}
+
+.path-status-line.info {
+    color: var(--yt-blue);
 }
