@@ -4,6 +4,10 @@ A privacy-focused, premium Chrome extension designed to drastically improve your
 
 > Part of the **Paracci Browser Tools** collection — privacy-first, zero telemetry, built for power users.
 
+
+### 🌐 [Live Demo & Showcase](https://paracci.github.io/youtube-shorts-blocker/)
+Explore the interactive landing page to see the premium UI and features in action: **[paracci.github.io/youtube-shorts-blocker](https://paracci.github.io/youtube-shorts-blocker/)**
+
 ---
 
 ## ✨ Key Features
@@ -149,4 +153,4 @@ This project is licensed under the MIT License — see the `LICENSE` file for de
 
 Crafted with ❤️ by **Paracci**.
 
-Part of the **Paracci Browser Tools** collection — also check out [X Auto Ad Blocker](https://github.com/paracci/x-auto-ad-blocker).
+Part of the **Paracci Browser Tools** collection — check out the [Live Demo](https://paracci.github.io/youtube-shorts-blocker/) or visit [X Auto Ad Blocker](https://github.com/paracci/x-auto-ad-blocker).
