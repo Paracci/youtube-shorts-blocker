@@ -1,4 +1,4 @@
-# YouTube Shorts Blocker & Ultimate Downloader (v1.11.0)
+# YouTube Shorts Blocker & Ultimate Downloader (v1.11.5)
 
 A privacy-focused, premium Chrome extension designed to drastically improve your YouTube experience. Intelligently blocks unwanted Shorts channels, skips ads, hides distracting content, and provides a powerful native-feeling video and audio downloader — now with **YouTube Premium compliance** and enhanced safety controls.
 
@@ -15,7 +15,7 @@ Explore the interactive landing page to see the premium UI and features in actio
 ### 🛡️ Smart Blocking & Distraction-Free
 - **One-Click Channel Blocking:** Instantly adds unwanted channels to YouTube's "Do not recommend" list via a custom button that blends natively into the Shorts action bar. The menu interaction is invisible — no popup flashes.
 - **Persistent Blocked Channel List:** Every blocked channel is stored locally with its channel ID, display name, and timestamp. The popup's **Blocked** tab lists them all, newest first — with a "Remove from list" button for local tracking management.
-- **Auto Ad Skipper & Premium Compliance:** A robust ad-blocking system that automatically detects, mutes, and skips video ads. **New in v1.11.0:** Automatically detects YouTube Premium and disables ad-blocking to respect TOS and support creators. It hides in-feed ad slots, masthead banners, and in-player overlays across all of YouTube.
+- **Auto Ad Skipper & Premium Compliance:** A robust ad-blocking system that automatically detects, mutes, and skips video ads. **New in v1.11.5:** Automatically detects YouTube Premium and disables ad-blocking to respect TOS and support creators. It hides in-feed ad slots, masthead banners, and in-player overlays across all of YouTube.
 - **Hide Shorts from Homepage:** Completely removes the Shorts shelf from your main YouTube feed via CSS injection — toggleable live from the popup.
 
 ### 📥 High-Quality Media Downloader
@@ -120,7 +120,7 @@ youtube-shorts-blocker/
 │   ├── views/
 │   │   ├── popup.html            # Popup markup — four-page layout
 │   │   └── setup.html            # Setup page markup — fully translated
-│   └── manifest.json             # Extension configuration (v1.11.0)
+│   └── manifest.json             # Extension configuration (v1.11.5)
 │
 ├── native-host/                  # Companion app for high-quality downloads
 │   ├── install_host.bat          # Windows installer & registry config
@@ -135,7 +135,7 @@ youtube-shorts-blocker/
 
 ## ⚙️ Technical Notes
 
-- **Centralized Orchestration (v1.11.0):** All DOM-based features (Shorts hiding, blocking buttons, download buttons) are triggered by a single debounced `MutationObserver` in `content.js` for maximum performance and zero resource leaks.
+- **Centralized Orchestration (v1.11.5):** All DOM-based features (Shorts hiding, blocking buttons, download buttons) are triggered by a single debounced `MutationObserver` in `content.js` for maximum performance and zero resource leaks.
 - **Premium Detection:** Uses a combination of `window.postMessage` and `ytcfg` inspection in the page context to determine subscription status reliably and inform the UI.
 - **Popup ↔ Content Script Communication:** All popup toggles broadcast via `chrome.tabs.sendMessage` to every open YouTube tab. The content script listens via `chrome.runtime.onMessage` and responds instantly — no page refresh required.
 - **Settings & Data Persistence:** All settings, statistics, language preference, the blocked channel list, and the custom download path are stored locally via `chrome.storage.local`. Nothing is sent externally.

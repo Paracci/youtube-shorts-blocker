@@ -390,6 +390,12 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
         .trim()
         .substring(0, 180) + containerExt;
 
+    // Context guard: Prevent 'Extension context invalidated' if script from old version is still running
+    if (!chrome.runtime?.id) {
+        alert(i18n.t('alertContextInvalidated') || 'Extension updated. Please refresh the page to continue.');
+        return;
+    }
+
     // High-quality / adaptive streams → route through native host for proper mux
     if (fmt.type === 'video' || fmt.type === 'audio' || fmt.quality.includes('Quality') ||
         fmt.quality.includes('Audio') || parseInt(fmt.quality) >= 1080 ||
@@ -399,11 +405,11 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
         const heightMatch = fmt.quality.match(/(\d+)p/);
         const qualityHeight = heightMatch ? parseInt(heightMatch[1]) : null;
 
-        chrome.runtime.sendMessage({
+        safeMsg({
             action: 'download_video_native',
             videoId, title: rawFilename, videoQuality: fmt.quality,
             qualityHeight, isAudioOnly: fmt.type === 'audio', isVideoAudio: fmt.type === 'video_audio'
-        }, (response) => {
+        }).then((response) => {
             if (response && response.status === 'sent_to_native') {
                 toast.success(i18n.t('notifDownloadingBg'));
             } else {
@@ -749,3 +755,15 @@ function initVideoDownloadButton() {
         }
     }, 500);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  NAVIGATION & CLEANUP: Close modal on scroll or navigation
+// ─────────────────────────────────────────────────────────────────────────────
+
+window.addEventListener('yt-navigate-finish', () => {
+    if (activeModal) closeModal();
+});
+
+window.addEventListener('popstate', () => {
+    if (activeModal) closeModal();
+});
