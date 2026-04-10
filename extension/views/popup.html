@@ -6,6 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shorts Blocker</title>
     <link rel="stylesheet" href="../css/popup.css">
+    <style>
+        /* ── Risk Warning Banner ── */
+        .risk-warning {
+            margin-top: 10px;
+            padding: 8px 11px;
+            background: rgba(251, 188, 4, 0.07);
+            border: 1px solid rgba(251, 188, 4, 0.25);
+            border-radius: 8px;
+            font-size: 11px;
+            color: #c8960a;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+        .risk-warning::before {
+            content: '⚠  ';
+        }
+    </style>
 </head>
 
 <body>
@@ -74,6 +92,7 @@
                     <h1 data-i18n="settingsTitle">Settings</h1>
                 </header>
 
+                <!-- Shorts Blocking -->
                 <div class="card">
                     <h2 data-i18n="sectionShorts">Shorts Blocking</h2>
                     <div class="card-row">
@@ -100,6 +119,40 @@
                     </div>
                 </div>
 
+                <!-- Ad Blocker ← NEW -->
+                <div class="card">
+                    <h2 data-i18n="sectionAdBlock">Ad Blocker</h2>
+                    <div class="card-row">
+                        <div>
+                            <div class="row-label" data-i18n="settingAdBlock">Block video ads</div>
+                            <div class="row-sublabel" data-i18n="settingAdBlockSub">Auto-skip &amp; hide ads</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-adblocker" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="risk-warning" data-i18n="warnAdBlock"></div>
+                </div>
+
+                <!-- Quality Lock -->
+                <div class="card">
+                    <h2 data-i18n="sectionQualityLock">Quality Lock</h2>
+                    <div class="card-row">
+                        <div>
+                            <div class="row-label" data-i18n="settingQualityLock">Force highest quality</div>
+                            <div class="row-sublabel" data-i18n="settingQualityLockSub">Always play at max resolution
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-quality-lock" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="risk-warning" data-i18n="warnQualityLock"></div>
+                </div>
+
+                <!-- Downloader -->
                 <div class="card">
                     <h2 data-i18n="sectionDownloader">Downloader</h2>
                     <div class="card-row">
@@ -121,7 +174,6 @@
                             data-i18n="settingDownloadPathSub">Choose where to save downloaded files</div>
 
                         <div class="path-picker-row">
-                            <!-- Path display (read-only, shows current path or placeholder) -->
                             <div class="path-display" id="path-display">
                                 <svg class="path-folder-icon" viewBox="0 0 24 24">
                                     <path
@@ -130,8 +182,6 @@
                                 <span class="path-display-text" id="path-display-text" data-i18n="pathDefault">Default
                                     Downloads folder</span>
                             </div>
-
-                            <!-- Browse button -->
                             <button class="btn-path-browse" id="btn-browse" data-i18n-title="btnBrowse">
                                 <svg viewBox="0 0 24 24">
                                     <path
@@ -139,8 +189,6 @@
                                 </svg>
                                 <span data-i18n="btnBrowse">Browse</span>
                             </button>
-
-                            <!-- Clear button (only visible when path is set) -->
                             <button class="btn-path-clear" id="btn-clear-path" title="Clear path">✕</button>
                         </div>
 
@@ -148,7 +196,7 @@
                     </div>
                 </div>
 
-                <!-- Language selector -->
+                <!-- Language -->
                 <div class="card">
                     <h2 data-i18n="sectionLanguage">Language</h2>
                     <div class="card-row">
@@ -287,7 +335,6 @@
 
     </div>
 
-    <!-- i18n engine önce yüklenmeli -->
     <script src="../js/i18n/translations.js"></script>
     <script src="../js/popup.js"></script>
 </body>

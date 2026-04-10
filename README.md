@@ -15,7 +15,7 @@ Explore the interactive landing page to see the premium UI and features in actio
 ### 🛡️ Smart Blocking & Distraction-Free
 - **One-Click Channel Blocking:** Instantly adds unwanted channels to YouTube's "Do not recommend" list via a custom button that blends natively into the Shorts action bar. The menu interaction is invisible — no popup flashes.
 - **Persistent Blocked Channel List:** Every blocked channel is stored locally with its channel ID, display name, and timestamp. The popup's **Blocked** tab lists them all, newest first — with a "Remove from list" button for local tracking management.
-- **Auto Ad Skipper:** Automatically detects, mutes, and skips sponsored/ad videos in your Shorts feed.
+- **Auto Ad Skipper:** A robust, toggleable ad-blocking system that automatically detects, mutes, and skips video ads. It hides in-feed ad slots, masthead banners, and in-player overlays (banners/buttons) across all of YouTube, not just Shorts.
 - **Hide Shorts from Homepage:** Completely removes the Shorts shelf from your main YouTube feed via CSS injection — toggleable live from the popup.
 
 ### 📥 High-Quality Media Downloader
@@ -28,6 +28,10 @@ Explore the interactive landing page to see the premium UI and features in actio
 - **Stacked Toast Notifications:** Multiple downloads can run simultaneously with individual YouTube-themed toasts — each with its own progress, success/error state, and dismiss button. New toasts stack without overlapping.
 - **Download Deduplication:** Starting the same download twice (same video + quality) is silently rejected — both in the extension and the native host.
 
+### 🔒 Quality Lock (Force Highest Detail)
+- **Always 4K/8K:** Automatically forces the YouTube player to its highest available resolution (2160p, 1440p) on every page load. No more manual quality switching — the extension handles it instantly via native player APIs.
+- **Risk-Aware:** Includes a clear warning about the use of non-public APIs to ensure users are informed of potential "unusual behavior" detection by YouTube.
+
 ### 🌍 Multi-Language Support
 - **11 Languages:** English, Türkçe, Deutsch, Français, Español, Português, Italiano, Русский, 日本語, 한국어, 中文 — every UI element, button label, toast notification, modal text, and setup page string is fully translated.
 - **Automatic Detection:** On first run the extension reads the browser's UI language (`chrome.i18n.getUILanguage()`) and selects the closest supported language automatically.
@@ -38,11 +42,14 @@ Explore the interactive landing page to see the premium UI and features in actio
 ### 🎛️ Fully Integrated Popup
 - **YouTube-Native Design:** Dark-mode popup matching YouTube's exact color palette (`#0f0f0f`), typography (**Outfit**), red accent (`#ff0000`), and pill-shaped components — with a fixed sidebar navigation.
 - **Real-Time Statistics:** Live-updating counters show how many unique channels have been blocked and how many Shorts shelves have been hidden, with smooth number animations.
-- **Granular Controls — All Four Toggles Wired to Content Script:**
-  - **Master toggle** — pauses/resumes all extension activity instantly, hiding all injected buttons on the page.
+- **Granular Controls — All Six Toggles Wired to Content Script:**
+  - **Master toggle** — pauses/resumes all extension activity instantly.
   - **Block channels** — shows/hides the Block button in the Shorts action bar.
-  - **Hide Shorts from homepage** — toggles the CSS injection on `youtube.com/` in real time.
-  - **Show download button** — shows/hides the download button in both the Shorts bar and the video player controls.
+  - **Hide Shorts from homepage** — toggles the CSS injection on `youtube.com/`.
+  - **Show download button** — shows/hides the download buttons.
+  - **Block video ads** — enables/disables the advanced ad-skipping and hiding logic.
+  - **Force highest quality** — toggles the automated resolution lock.
+- **Risk Transparency:** Features that use advanced or experimental methods (Ad Blocker, Quality Lock) include dedicated **Risk Warning Banners** directly in the UI to keep you informed.
 - **Native Downloader Status Badge:** Shows live connection state (`Connected` / `Not installed`) to the yt-dlp companion app.
 - **Custom Download Location:** A **Browse** button in Settings opens the native Windows folder picker. The selected path is saved to `chrome.storage.local` and forwarded to the native host on every download. Leaving it empty uses the system `Downloads` folder. If a custom path is set but the native host is not connected, browser downloads fall back to `Downloads\YouTube\`.
 - **Blocked Channels Tab:** Browse, review, and remove entries from your local blocked channel history. Includes a clear note explaining that "Remove from list" is local-only — to fully unblock a channel on YouTube's side, visit [Google My Activity → YouTube feedback](https://myactivity.google.com/page?page=youtube_user_feedback).
@@ -124,11 +131,11 @@ youtube-shorts-blocker/
 - **Multi-Language Architecture:** `translations.js` is listed as the **first entry** in both `content_scripts.js` and every HTML page's `<script>` order — guaranteeing the `i18n` global exists before any other script runs. Language resolution order: `storage.userLang` (manual) → `chrome.i18n.getUILanguage()` (browser) → `'en'` (fallback). `applyToDOM()` walks `data-i18n` / `data-i18n-html` / `data-i18n-title` / `data-i18n-placeholder` attributes in a single pass. Chrome's `_locales/` system localises the extension's name and description in `chrome://extensions/` independently.
 - **Blocked Channel Tracking:** Each blocked channel is stored as `{ id, name, blockedAt }`. The counter reflects unique channels only — blocking the same channel twice does not inflate the count. Channel IDs are extracted from `/channel/UCxxx` links; `@handle` is used as a fallback.
 - **"Don't recommend" vs. local list:** Clicking Block sends YouTube's own feedback signal. The local list is for your reference only. To remove the YouTube-side filter, visit [Google My Activity → YouTube feedback](https://myactivity.google.com/page?page=youtube_user_feedback) and delete the relevant entries.
-- **API Format Fetching — Waterfall Strategy:** The extension first tries to extract stream URLs from the page's embedded `ytInitialPlayerResponse` (zero extra requests). Only if that yields no muxed formats does it fall back through InnerTube clients in priority order: IOS → Android → TVHTML5. This significantly reduces request volume compared to fetching all four clients in parallel.
-- **Quality Lock:** On Shorts pages, playback quality is locked to the highest available level. The lock binds directly to the player's `onPlaybackQualityChange` and `onVideoDataChange` events for immediate reaction, with a 10-second fallback interval for edge cases.
+- **Ad Blocker Strategy:** Uses a hybrid approach combining aggressive CSS injection (to prevent layout shifts from ad slots) and a high-frequency (700ms) polling interval that handles skip buttons, auto-muting, and fast-forwarding of unskippable ads.
+- **Quality Lock Logic:** Binds to the YouTube player's `setPlaybackQualityRange` API to lock resolution to `hd2160`. It runs on both initial page load and via `IntersectionObserver` to ensure Shorts are also locked to the highest detail as you scroll.
+- **API Format Fetching — Waterfall Strategy:** The extension first tries to extract stream URLs from the page's embedded `ytInitialPlayerResponse` (zero extra requests). Only if that yields no web-muxed formats does it fall back through InnerTube clients in priority order: IOS → Android → TVHTML5.
 - **Memory Management:** `IntersectionObserver` entries are unobserved as soon as their target element is detached from the DOM, preventing unbounded growth as YouTube recycles `ytd-reel-video-renderer` nodes during scrolling.
-- **SPA Navigation:** A single `MutationObserver` on `document` handles all URL-change side effects — homepage visibility, quality lock transitions, and download button injection — without spawning redundant observers.
-- **Native Host Stability:** The native Node.js host uses a single persistent stdin listener with a message queue, eliminating listener accumulation across multiple messages. Downloads are deduplicated by `videoId|quality` key in both the service worker and the native host.
+- **SPA Navigation:** A single `MutationObserver` on `document` handles all URL-change side effects — homepage visibility, quality lock transitions, and download button injection.
 - **n-Parameter Descrambling:** Browser-side downloads descramble YouTube's `n` query parameter from the player JS to prevent 403 errors on direct stream URLs.
 - **Codec Priority:** AV1 → VP9 → H.264 at each resolution, always merging to `.mp4` output.
 

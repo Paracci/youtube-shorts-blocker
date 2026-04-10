@@ -1,25 +1,11 @@
 // =============================================================================
 // js/i18n/translations.js  –  YouTube Shorts Channel Blocker
 // Shared translation engine — loaded before popup.js, setup.js, and content.js
-//
-// USAGE
-//   Popup / Setup : await i18n.init(); then i18n.t('key') or i18n.applyToDOM()
-//   Content       : i18n.init(); then i18n.t('key')
-//
-// LANGUAGE RESOLUTION ORDER
-//   1. chrome.storage.local → 'userLang'  (manual override, 'auto' = no override)
-//   2. chrome.i18n.getUILanguage()         (browser locale)
-//   3. 'en'                                (final fallback)
 // =============================================================================
 
 const SUPPORTED_LANGS = ['en', 'tr', 'de', 'fr', 'es', 'pt', 'it', 'ru', 'ja', 'ko', 'zh'];
 const DEFAULT_LANG = 'en';
 
-// -----------------------------------------------------------------------------
-// Translation table — keys must stay identical across all language objects.
-// Language names (langXxx) always use the native script so users can
-// recognise their own language regardless of the current UI language.
-// -----------------------------------------------------------------------------
 const TRANSLATIONS = {
 
     // ── English ───────────────────────────────────────────────────────────────
@@ -53,6 +39,16 @@ const TRANSLATIONS = {
         settingShowDlBtn: 'Show download button',
         settingShowDlBtnSub: 'In video player controls',
         btnReset: 'Reset Statistics',
+
+        sectionAdBlock: 'Ad Blocker',
+        settingAdBlock: 'Block video ads',
+        settingAdBlockSub: 'Auto-skip & hide ads',
+        warnAdBlock: 'This feature bypasses YouTube\'s ad system, which may violate their Terms of Service. On monetized channels it can trigger restrictions or demonetization. Use at your own risk — the extension developer is not responsible.',
+
+        sectionQualityLock: 'Quality Lock',
+        settingQualityLock: 'Force highest quality',
+        settingQualityLockSub: 'Always play at max resolution',
+        warnQualityLock: 'This feature uses an undocumented YouTube player API and runs automatically on every video. It may appear as abnormal activity. Use at your own risk — the extension developer is not responsible.',
 
         sectionLanguage: 'Language',
         settingLanguage: 'Interface Language',
@@ -115,7 +111,6 @@ const TRANSLATIONS = {
         setupUpdateDone: 'Update process completed successfully!',
         setupUpdateUpToDate: 'Up to Date!',
         setupUpdateError: 'Error: Could not connect to the native app.',
-        // ── Setup page — additional UI strings ───────────────────────────────
         setupSubtitle: 'To download high-quality videos, install the companion app. It connects Chrome to yt-dlp running on your machine.',
         setupInstrLabel: 'Installation Steps',
         setupPrereqLabel: 'Prerequisite:',
@@ -194,6 +189,16 @@ const TRANSLATIONS = {
         settingShowDlBtnSub: 'Video oynatıcı kontrollerinde',
         btnReset: 'İstatistikleri Sıfırla',
 
+        sectionAdBlock: 'Reklam Engelleyici',
+        settingAdBlock: 'Video reklamlarını engelle',
+        settingAdBlockSub: 'Reklamları otomatik atla & gizle',
+        warnAdBlock: 'Bu özellik YouTube\'un reklam sistemini atlatır ve Hizmet Şartları\'nı ihlal edebilir. Para kazanan kanallarda kısıtlamaya veya demonetizasyona yol açabilir. Kullanım sorumluluğu size aittir — eklenti geliştiricisi bu durumdan sorumlu değildir.',
+
+        sectionQualityLock: 'Kalite Kilidi',
+        settingQualityLock: 'En yüksek kaliteyi zorla',
+        settingQualityLockSub: 'Her zaman maksimum çözünürlükte oynat',
+        warnQualityLock: 'Bu özellik, belgelenmemiş bir YouTube oynatıcı API\'si kullanır ve her videoda otomatik çalışır. Anormal aktivite olarak algılanabilir. Kullanım sorumluluğu size aittir — eklenti geliştiricisi bu durumdan sorumlu değildir.',
+
         sectionLanguage: 'Dil',
         settingLanguage: 'Arayüz Dili',
         settingLanguageSub: 'Tarayıcı varsayılanını geçersiz kıl',
@@ -255,8 +260,7 @@ const TRANSLATIONS = {
         setupUpdateDone: 'Güncelleme işlemi başarıyla tamamlandı!',
         setupUpdateUpToDate: 'Güncel!',
         setupUpdateError: 'Hata: Yardımcı uygulamaya bağlanılamadı.',
-        // ── Setup page — additional UI strings ───────────────────────────────
-        setupSubtitle: 'Yüksek kaliteli video indirmek için yardımcı uygulamayı yükleyin. Chrome\'u makinenizdeki yt- dlp ile bağlar.',
+        setupSubtitle: 'Yüksek kaliteli video indirmek için yardımcı uygulamayı yükleyin. Chrome\'u makinenizdeki yt-dlp ile bağlar.',
         setupInstrLabel: 'Kurulum Adımları',
         setupPrereqLabel: 'Ön Koşul:',
         setupPrereqDesc: 'Node.js bilgisayarınızda kurulu olmalıdır.',
@@ -334,6 +338,16 @@ const TRANSLATIONS = {
         settingShowDlBtnSub: 'In den Videoplayer-Steuerelementen',
         btnReset: 'Statistiken zurücksetzen',
 
+        sectionAdBlock: 'Werbeblocker',
+        settingAdBlock: 'Videowerbung blockieren',
+        settingAdBlockSub: 'Werbung automatisch überspringen & ausblenden',
+        warnAdBlock: 'Diese Funktion umgeht YouTubes Werbsystem und kann gegen die Nutzungsbedingungen verstoßen. Bei monetarisierten Kanälen kann es zu Einschränkungen oder Demonetisierung kommen. Nutzung auf eigene Gefahr — der Entwickler übernimmt keine Verantwortung.',
+
+        sectionQualityLock: 'Qualitätssperre',
+        settingQualityLock: 'Höchste Qualität erzwingen',
+        settingQualityLockSub: 'Immer in maximaler Auflösung abspielen',
+        warnQualityLock: 'Diese Funktion nutzt eine undokumentierte YouTube-Player-API und wird bei jedem Video automatisch ausgeführt. Dies kann als ungewöhnliche Aktivität erkannt werden. Nutzung auf eigene Gefahr — der Entwickler übernimmt keine Verantwortung.',
+
         sectionLanguage: 'Sprache',
         settingLanguage: 'Oberflächensprache',
         settingLanguageSub: 'Browserstandard überschreiben',
@@ -395,7 +409,6 @@ const TRANSLATIONS = {
         setupUpdateDone: 'Update-Prozess erfolgreich abgeschlossen!',
         setupUpdateUpToDate: 'Aktuell!',
         setupUpdateError: 'Fehler: Verbindung zur Begleit-App nicht möglich.',
-        // ── Setup page — additional UI strings ───────────────────────────────
         setupSubtitle: 'Um hochwertige Videos herunterzuladen, installieren Sie die Begleit-App. Sie verbindet Chrome mit yt-dlp auf Ihrem Computer.',
         setupInstrLabel: 'Installationsschritte',
         setupPrereqLabel: 'Voraussetzung:',
@@ -474,6 +487,16 @@ const TRANSLATIONS = {
         settingShowDlBtnSub: 'Dans les contrôles du lecteur vidéo',
         btnReset: 'Réinitialiser les statistiques',
 
+        sectionAdBlock: 'Bloqueur de publicités',
+        settingAdBlock: 'Bloquer les publicités vidéo',
+        settingAdBlockSub: 'Ignorer & masquer les publicités auto.',
+        warnAdBlock: 'Cette fonctionnalité contourne le système publicitaire de YouTube et peut enfreindre leurs Conditions d\'utilisation. Sur les chaînes monétisées, elle peut entraîner des restrictions ou une démonétisation. Utilisation à vos risques — le développeur décline toute responsabilité.',
+
+        sectionQualityLock: 'Verrouillage qualité',
+        settingQualityLock: 'Forcer la qualité maximale',
+        settingQualityLockSub: 'Toujours lire en résolution maximale',
+        warnQualityLock: 'Cette fonctionnalité utilise une API de lecteur YouTube non documentée et s\'exécute automatiquement sur chaque vidéo. Elle peut être détectée comme une activité anormale. Utilisation à vos risques — le développeur décline toute responsabilité.',
+
         sectionLanguage: 'Langue',
         settingLanguage: "Langue de l'interface",
         settingLanguageSub: 'Remplacer la langue du navigateur',
@@ -535,7 +558,6 @@ const TRANSLATIONS = {
         setupUpdateDone: 'Processus de mise à jour terminé avec succès !',
         setupUpdateUpToDate: 'À jour !',
         setupUpdateError: "Erreur : impossible de se connecter à l'application compagnon.",
-        // ── Setup page — additional UI strings ───────────────────────────────
         setupSubtitle: "Pour télécharger des vidéos haute qualité, installez l'application compagnon. Elle connecte Chrome à yt-dlp sur votre machine.",
         setupInstrLabel: "Étapes d'installation",
         setupPrereqLabel: 'Prérequis :',
@@ -614,6 +636,16 @@ const TRANSLATIONS = {
         settingShowDlBtnSub: 'En los controles del reproductor de vídeo',
         btnReset: 'Restablecer estadísticas',
 
+        sectionAdBlock: 'Bloqueador de anuncios',
+        settingAdBlock: 'Bloquear anuncios de vídeo',
+        settingAdBlockSub: 'Omitir y ocultar anuncios automáticamente',
+        warnAdBlock: 'Esta función elude el sistema de anuncios de YouTube y puede infringir sus Condiciones de servicio. En canales monetizados puede provocar restricciones o desmonetización. Úsala bajo tu propia responsabilidad — el desarrollador no se hace responsable.',
+
+        sectionQualityLock: 'Bloqueo de calidad',
+        settingQualityLock: 'Forzar la máxima calidad',
+        settingQualityLockSub: 'Reproducir siempre en resolución máxima',
+        warnQualityLock: 'Esta función utiliza una API de reproductor de YouTube no documentada y se ejecuta automáticamente en cada vídeo. Puede detectarse como actividad inusual. Úsala bajo tu propia responsabilidad — el desarrollador no se hace responsable.',
+
         sectionLanguage: 'Idioma',
         settingLanguage: 'Idioma de la interfaz',
         settingLanguageSub: 'Anular el idioma del navegador',
@@ -675,7 +707,6 @@ const TRANSLATIONS = {
         setupUpdateDone: '¡Proceso de actualización completado con éxito!',
         setupUpdateUpToDate: '¡Actualizado!',
         setupUpdateError: 'Error: No se pudo conectar con la aplicación complementaria.',
-        // ── Setup page — additional UI strings ───────────────────────────────
         setupSubtitle: 'Para descargar vídeos de alta calidad, instala la aplicación complementaria. Conecta Chrome con yt-dlp en tu equipo.',
         setupInstrLabel: 'Pasos de instalación',
         setupPrereqLabel: 'Requisito previo:',
@@ -754,6 +785,16 @@ const TRANSLATIONS = {
         settingShowDlBtnSub: 'Nos controles do reprodutor de vídeo',
         btnReset: 'Redefinir estatísticas',
 
+        sectionAdBlock: 'Bloqueador de anúncios',
+        settingAdBlock: 'Bloquear anúncios de vídeo',
+        settingAdBlockSub: 'Pular e ocultar anúncios automaticamente',
+        warnAdBlock: 'Esta funcionalidade contorna o sistema de anúncios do YouTube e pode violar os Termos de Serviço. Em canais monetizados pode causar restrições ou desmonetização. Use por sua conta e risco — o desenvolvedor não se responsabiliza.',
+
+        sectionQualityLock: 'Bloqueio de qualidade',
+        settingQualityLock: 'Forçar qualidade máxima',
+        settingQualityLockSub: 'Sempre reproduzir na resolução máxima',
+        warnQualityLock: 'Esta funcionalidade usa uma API de player do YouTube não documentada e é executada automaticamente em cada vídeo. Pode ser detectada como atividade anormal. Use por sua conta e risco — o desenvolvedor não se responsabiliza.',
+
         sectionLanguage: 'Idioma',
         settingLanguage: 'Idioma da interface',
         settingLanguageSub: 'Substituir idioma do navegador',
@@ -815,7 +856,6 @@ const TRANSLATIONS = {
         setupUpdateDone: 'Processo de atualização concluído com sucesso!',
         setupUpdateUpToDate: 'Atualizado!',
         setupUpdateError: 'Erro: Não foi possível conectar ao aplicativo companheiro.',
-        // ── Setup page — additional UI strings ───────────────────────────────
         setupSubtitle: 'Para baixar vídeos de alta qualidade, instale o aplicativo companheiro. Ele conecta o Chrome ao yt-dlp no seu computador.',
         setupInstrLabel: 'Passos de instalação',
         setupPrereqLabel: 'Pré-requisito:',
@@ -894,6 +934,16 @@ const TRANSLATIONS = {
         settingShowDlBtnSub: 'Nei controlli del player video',
         btnReset: 'Azzera statistiche',
 
+        sectionAdBlock: 'Blocco pubblicità',
+        settingAdBlock: 'Blocca annunci video',
+        settingAdBlockSub: 'Salta e nascondi gli annunci automaticamente',
+        warnAdBlock: 'Questa funzione aggira il sistema pubblicitario di YouTube e può violare i Termini di servizio. Sui canali monetizzati può causare restrizioni o demonetizzazione. Usala a tuo rischio — lo sviluppatore non si assume alcuna responsabilità.',
+
+        sectionQualityLock: 'Blocco qualità',
+        settingQualityLock: 'Forza qualità massima',
+        settingQualityLockSub: 'Riproduci sempre alla risoluzione massima',
+        warnQualityLock: 'Questa funzione utilizza un\'API del player YouTube non documentata e viene eseguita automaticamente su ogni video. Può essere rilevata come attività anomala. Usala a tuo rischio — lo sviluppatore non si assume alcuna responsabilità.',
+
         sectionLanguage: 'Lingua',
         settingLanguage: "Lingua dell'interfaccia",
         settingLanguageSub: 'Sostituisci la lingua del browser',
@@ -955,7 +1005,6 @@ const TRANSLATIONS = {
         setupUpdateDone: 'Processo di aggiornamento completato con successo!',
         setupUpdateUpToDate: 'Aggiornato!',
         setupUpdateError: "Errore: impossibile connettersi all'app companion.",
-        // ── Setup page — additional UI strings ───────────────────────────────
         setupSubtitle: "Per scaricare video di alta qualità, installa l'app companion. Collega Chrome a yt-dlp sul tuo computer.",
         setupInstrLabel: 'Passaggi di installazione',
         setupPrereqLabel: 'Prerequisito:',
@@ -1034,6 +1083,16 @@ const TRANSLATIONS = {
         settingShowDlBtnSub: 'В элементах управления плеером',
         btnReset: 'Сбросить статистику',
 
+        sectionAdBlock: 'Блокировщик рекламы',
+        settingAdBlock: 'Блокировать видеорекламу',
+        settingAdBlockSub: 'Авто-пропуск и скрытие рекламы',
+        warnAdBlock: 'Эта функция обходит рекламную систему YouTube и может нарушать Условия использования. На монетизированных каналах это может привести к ограничениям или лишению монетизации. Используется на ваш страх и риск — разработчик не несёт ответственности.',
+
+        sectionQualityLock: 'Блокировка качества',
+        settingQualityLock: 'Принудительное максимальное качество',
+        settingQualityLockSub: 'Всегда воспроизводить в макс. разрешении',
+        warnQualityLock: 'Эта функция использует недокументированный API плеера YouTube и запускается автоматически для каждого видео. Это может быть расценено как подозрительная активность. Используется на ваш страх и риск — разработчик не несёт ответственности.',
+
         sectionLanguage: 'Язык',
         settingLanguage: 'Язык интерфейса',
         settingLanguageSub: 'Переопределить язык браузера',
@@ -1095,7 +1154,6 @@ const TRANSLATIONS = {
         setupUpdateDone: 'Процесс обновления успешно завершён!',
         setupUpdateUpToDate: 'Актуально!',
         setupUpdateError: 'Ошибка: не удалось подключиться к приложению-компаньону.',
-        // ── Setup page — additional UI strings ───────────────────────────────
         setupSubtitle: 'Для загрузки высококачественных видео установите приложение-компаньон. Оно связывает Chrome с yt-dlp на вашем компьютере.',
         setupInstrLabel: 'Шаги установки',
         setupPrereqLabel: 'Требование:',
@@ -1174,6 +1232,16 @@ const TRANSLATIONS = {
         settingShowDlBtnSub: 'ビデオプレーヤーのコントロールに表示',
         btnReset: '統計をリセット',
 
+        sectionAdBlock: '広告ブロッカー',
+        settingAdBlock: 'ビデオ広告をブロック',
+        settingAdBlockSub: '広告を自動スキップ・非表示',
+        warnAdBlock: 'この機能はYouTubeの広告システムを回避するため、利用規約に違反する可能性があります。収益化チャンネルでは制限や収益剥奪につながる恐れがあります。自己責任でご使用ください — 開発者は一切の責任を負いません。',
+
+        sectionQualityLock: '画質ロック',
+        settingQualityLock: '最高画質を強制',
+        settingQualityLockSub: '常に最大解像度で再生',
+        warnQualityLock: 'この機能はYouTubeの非公開プレーヤーAPIを使用し、すべての動画で自動的に実行されます。不審なアクティビティとして検出される可能性があります。自己責任でご使用ください — 開発者は一切の責任を負いません。',
+
         sectionLanguage: '言語',
         settingLanguage: 'インターフェース言語',
         settingLanguageSub: 'ブラウザのデフォルトを上書き',
@@ -1235,7 +1303,6 @@ const TRANSLATIONS = {
         setupUpdateDone: '更新プロセスが正常に完了しました！',
         setupUpdateUpToDate: '最新です！',
         setupUpdateError: 'エラー: コンパニオンアプリに接続できませんでした。',
-        // ── Setup page — additional UI strings ───────────────────────────────
         setupSubtitle: '高品質の動画をダウンロードするには、コンパニオンアプリをインストールしてください。ChromeとマシンのYt-dlpを接続します。',
         setupInstrLabel: 'インストール手順',
         setupPrereqLabel: '前提条件：',
@@ -1314,6 +1381,16 @@ const TRANSLATIONS = {
         settingShowDlBtnSub: '동영상 플레이어 컨트롤에 표시',
         btnReset: '통계 초기화',
 
+        sectionAdBlock: '광고 차단기',
+        settingAdBlock: '동영상 광고 차단',
+        settingAdBlockSub: '광고 자동 건너뛰기 및 숨기기',
+        warnAdBlock: '이 기능은 YouTube의 광고 시스템을 우회하므로 서비스 약관을 위반할 수 있습니다. 수익 창출 채널에서는 제한 또는 수익 박탈로 이어질 수 있습니다. 사용에 따른 책임은 전적으로 사용자에게 있으며 개발자는 책임을 지지 않습니다.',
+
+        sectionQualityLock: '화질 잠금',
+        settingQualityLock: '최고 화질 강제 적용',
+        settingQualityLockSub: '항상 최대 해상도로 재생',
+        warnQualityLock: '이 기능은 YouTube의 비공개 플레이어 API를 사용하며 모든 동영상에서 자동으로 실행됩니다. 비정상적인 활동으로 감지될 수 있습니다. 사용에 따른 책임은 전적으로 사용자에게 있으며 개발자는 책임을 지지 않습니다.',
+
         sectionLanguage: '언어',
         settingLanguage: '인터페이스 언어',
         settingLanguageSub: '브라우저 기본값 재정의',
@@ -1375,7 +1452,6 @@ const TRANSLATIONS = {
         setupUpdateDone: '업데이트 프로세스가 성공적으로 완료되었습니다!',
         setupUpdateUpToDate: '최신 버전입니다!',
         setupUpdateError: '오류: 컴패니언 앱에 연결할 수 없습니다.',
-        // ── Setup page — additional UI strings ───────────────────────────────
         setupSubtitle: '고화질 동영상을 다운로드하려면 컴패니언 앱을 설치하세요. Chrome과 컴퓨터의 yt-dlp를 연결합니다.',
         setupInstrLabel: '설치 단계',
         setupPrereqLabel: '전제 조건:',
@@ -1454,6 +1530,16 @@ const TRANSLATIONS = {
         settingShowDlBtnSub: '在视频播放器控件中显示',
         btnReset: '重置统计',
 
+        sectionAdBlock: '广告拦截器',
+        settingAdBlock: '屏蔽视频广告',
+        settingAdBlockSub: '自动跳过并隐藏广告',
+        warnAdBlock: '此功能会绕过 YouTube 的广告系统，可能违反其服务条款。在已开启收益的频道上可能导致限制或取消收益资格。使用风险由用户自行承担 — 开发者不承担任何责任。',
+
+        sectionQualityLock: '画质锁定',
+        settingQualityLock: '强制最高画质',
+        settingQualityLockSub: '始终以最高分辨率播放',
+        warnQualityLock: '此功能使用 YouTube 播放器的非公开 API，并在每个视频上自动运行，可能被识别为异常行为。使用风险由用户自行承担 — 开发者不承担任何责任。',
+
         sectionLanguage: '语言',
         settingLanguage: '界面语言',
         settingLanguageSub: '覆盖浏览器默认语言',
@@ -1515,7 +1601,6 @@ const TRANSLATIONS = {
         setupUpdateDone: '更新过程已成功完成！',
         setupUpdateUpToDate: '已是最新版本！',
         setupUpdateError: '错误：无法连接到伴侣应用。',
-        // ── Setup page — additional UI strings ───────────────────────────────
         setupSubtitle: '要下载高清视频，请安装伴侣应用。它将 Chrome 与您电脑上的 yt-dlp 连接起来。',
         setupInstrLabel: '安装步骤',
         setupPrereqLabel: '前提条件：',
@@ -1634,3 +1719,4 @@ const i18n = (() => {
 
     return { init, setLang, getLang, t, applyToDOM, SUPPORTED_LANGS };
 })();
+// (no changes — appended nothing, file already complete)
