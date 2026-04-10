@@ -627,3 +627,62 @@ input:checked+.slider::before {
 .path-status-line.info {
     color: var(--yt-blue);
 }
+
+/* ── Premium Notice ── */
+.premium-banner {
+    background: linear-gradient(135deg, rgba(62, 166, 255, 0.15) 0%, rgba(62, 166, 255, 0.05) 100%);
+    border: 1px solid rgba(62, 166, 255, 0.25);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    animation: premiumFocus .4s ease-out;
+}
+
+@keyframes premiumFocus {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.premium-badge-icon {
+    font-size: 16px;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.premium-text-wrap {
+    flex: 1;
+}
+
+.premium-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--yt-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.premium-desc {
+    font-size: 11.5px;
+    color: var(--yt-text-primary);
+    line-height: 1.4;
+    opacity: 0.9;
+}
+
+.toggle-switch.disabled {
+    opacity: 0.4;
+    cursor: not-allowed !important;
+}
+
+.toggle-switch.disabled .slider {
+    cursor: not-allowed !important;
+}

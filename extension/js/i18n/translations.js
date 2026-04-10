@@ -21,6 +21,7 @@ const TRANSLATIONS = {
         statusPaused: 'Paused',
         statBlocked: 'Blocked',
         statHidden: 'Hidden',
+        statAdsBlocked: 'Ads Skipped',
         nativeDownloader: 'Native Downloader',
         nativeSubLabel: 'yt-dlp · high-quality videos',
         btnSetupMonitor: 'Setup / Monitor',
@@ -31,10 +32,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Settings',
         sectionShorts: 'Shorts Blocking',
-        settingBlockAuto: 'Block channels automatically',
-        settingBlockAutoSub: 'Adds channel to blocklist on click',
+        settingBlockAuto: 'Enable channel blocking buttons',
+        settingBlockAutoSub: 'Adds interactive Block button to every Short',
         settingHideHome: 'Hide Shorts from homepage',
         settingHideHomeSub: 'Removes Shorts shelf from feed',
+        settingAutoSkipAds: 'Auto-scroll Shorts ads',
+        settingAutoSkipAdsSub: 'Automatically skip to the next video when an ad is detected (High Risk)',
         sectionDownloader: 'Downloader',
         settingShowDlBtn: 'Show download button',
         settingShowDlBtnSub: 'In video player controls',
@@ -155,6 +158,9 @@ const TRANSLATIONS = {
         pathBrowseNotAvailable: 'Connect Native Downloader first to use Browse',
         pathPickerCancelled: 'No folder selected',
         btnBrowse: 'Browse',
+
+        premiumActive: 'YouTube Premium Active',
+        premiumNotice: 'Ad blocking is disabled because you have a Premium subscription. Thank you for supporting creators!',
     },
 
     // ── Türkçe ────────────────────────────────────────────────────────────────
@@ -170,6 +176,7 @@ const TRANSLATIONS = {
         statusPaused: 'Duraklatıldı',
         statBlocked: 'Engellenen',
         statHidden: 'Gizlenen',
+        statAdsBlocked: 'Reklam Atlandı',
         nativeDownloader: 'Yerel İndirici',
         nativeSubLabel: 'yt-dlp · yüksek kaliteli videolar',
         btnSetupMonitor: 'Kur / İzle',
@@ -180,8 +187,8 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Ayarlar',
         sectionShorts: 'Shorts Engelleme',
-        settingBlockAuto: 'Kanalları otomatik engelle',
-        settingBlockAutoSub: 'Tıklamada engel listesine ekler',
+        settingBlockAuto: 'Kanal engelleme butonlarını aktif et',
+        settingBlockAutoSub: "Her Short'a interaktif Engelle butonu ekler",
         settingHideHome: "Ana sayfadan Shorts'u gizle",
         settingHideHomeSub: 'Akıştan Shorts rafını kaldırır',
         sectionDownloader: 'İndirici',
@@ -304,6 +311,9 @@ const TRANSLATIONS = {
         pathBrowseNotAvailable: 'Gözat\'ı kullanmak için önce Native Downloader\'ı bağlayın',
         pathPickerCancelled: 'Klasör seçilmedi',
         btnBrowse: 'Gözat',
+
+        premiumActive: 'YouTube Premium Aktif',
+        premiumNotice: 'Premium aboneliğiniz olduğu için reklam engelleme devre dışı bırakıldı. İçerik üreticilerini desteklediğiniz için teşekkürler!',
     },
 
     // ── Deutsch ───────────────────────────────────────────────────────────────
@@ -319,6 +329,7 @@ const TRANSLATIONS = {
         statusPaused: 'Pausiert',
         statBlocked: 'Gesperrt',
         statHidden: 'Ausgeblendet',
+        statAdsBlocked: 'Werbung übersprungen',
         nativeDownloader: 'Nativer Downloader',
         nativeSubLabel: 'yt-dlp · hochwertige Videos',
         btnSetupMonitor: 'Einrichten / Überwachen',
@@ -329,10 +340,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Einstellungen',
         sectionShorts: 'Shorts blockieren',
-        settingBlockAuto: 'Kanäle automatisch blockieren',
-        settingBlockAutoSub: 'Fügt Kanal per Klick zur Sperrliste hinzu',
+        settingBlockAuto: 'Kanal-Blockier-Buttons aktivieren',
+        settingBlockAutoSub: 'Fügt jedem Short einen interaktiven Blockieren-Button hinzu',
         settingHideHome: 'Shorts von der Startseite ausblenden',
         settingHideHomeSub: 'Entfernt Shorts-Regal aus dem Feed',
+        settingAutoSkipAds: 'Shorts-Ads automatisch überspringen',
+        settingAutoSkipAdsSub: 'Springt automatisch zum nächsten Video, wenn eine Anzeige erkannt wird (Hohes Risiko)',
         sectionDownloader: 'Downloader',
         settingShowDlBtn: 'Download-Schaltfläche anzeigen',
         settingShowDlBtnSub: 'In den Videoplayer-Steuerelementen',
@@ -453,6 +466,9 @@ const TRANSLATIONS = {
         pathBrowseNotAvailable: 'Verbinde zuerst den Native Downloader',
         pathPickerCancelled: 'Kein Ordner ausgewählt',
         btnBrowse: 'Durchsuchen',
+
+        premiumActive: 'YouTube Premium Aktiv',
+        premiumNotice: 'Der Werbeblocker wurde deaktiviert, da du ein Premium-Abonnement hast. Vielen Dank für deine Unterstützung der Ersteller!',
     },
 
     // ── Français ──────────────────────────────────────────────────────────────
@@ -468,6 +484,7 @@ const TRANSLATIONS = {
         statusPaused: 'En pause',
         statBlocked: 'Bloqués',
         statHidden: 'Masqués',
+        statAdsBlocked: 'Publicités ignorées',
         nativeDownloader: 'Téléchargeur natif',
         nativeSubLabel: 'yt-dlp · vidéos haute qualité',
         btnSetupMonitor: 'Configurer / Surveiller',
@@ -478,10 +495,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Paramètres',
         sectionShorts: 'Blocage des Shorts',
-        settingBlockAuto: 'Bloquer les chaînes automatiquement',
-        settingBlockAutoSub: 'Ajoute la chaîne à la liste noire au clic',
+        settingBlockAuto: 'Activer les boutons de blocage de chaîne',
+        settingBlockAutoSub: 'Ajoute un bouton Bloquer interactif à chaque Short',
         settingHideHome: "Masquer les Shorts de la page d'accueil",
         settingHideHomeSub: 'Supprime le rayon Shorts du fil',
+        settingAutoSkipAds: 'Passage auto des pubs Shorts',
+        settingAutoSkipAdsSub: 'Passe automatiquement à la vidéo suivante si une pub est détectée (Risque élevé)',
         sectionDownloader: 'Téléchargeur',
         settingShowDlBtn: 'Afficher le bouton de téléchargement',
         settingShowDlBtnSub: 'Dans les contrôles du lecteur vidéo',
@@ -602,6 +621,9 @@ const TRANSLATIONS = {
         pathBrowseNotAvailable: "Connectez d'abord le Native Downloader",
         pathPickerCancelled: 'Aucun dossier sélectionné',
         btnBrowse: 'Parcourir',
+
+        premiumActive: 'YouTube Premium Actif',
+        premiumNotice: 'Le bloqueur de publicités est désactivé car vous avez un abonnement Premium. Merci de soutenir les créateurs !',
     },
 
     // ── Español ───────────────────────────────────────────────────────────────
@@ -617,6 +639,7 @@ const TRANSLATIONS = {
         statusPaused: 'En pausa',
         statBlocked: 'Bloqueados',
         statHidden: 'Ocultos',
+        statAdsBlocked: 'Anuncios omitidos',
         nativeDownloader: 'Descargador nativo',
         nativeSubLabel: 'yt-dlp · vídeos de alta calidad',
         btnSetupMonitor: 'Configurar / Monitor',
@@ -627,10 +650,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Ajustes',
         sectionShorts: 'Bloqueo de Shorts',
-        settingBlockAuto: 'Bloquear canales automáticamente',
-        settingBlockAutoSub: 'Añade el canal a la lista negra al hacer clic',
+        settingBlockAuto: 'Activar botones de bloqueo de canal',
+        settingBlockAutoSub: 'Añade un botón Bloquear interactivo a cada Short',
         settingHideHome: 'Ocultar Shorts de la página de inicio',
         settingHideHomeSub: 'Elimina la sección Shorts del feed',
+        settingAutoSkipAds: 'Auto-desplazar anuncios en Shorts',
+        settingAutoSkipAdsSub: 'Pasa automáticamente al siguiente vídeo si se detecta un anuncio (Riesgo alto)',
         sectionDownloader: 'Descargador',
         settingShowDlBtn: 'Mostrar botón de descarga',
         settingShowDlBtnSub: 'En los controles del reproductor de vídeo',
@@ -751,6 +776,9 @@ const TRANSLATIONS = {
         pathBrowseNotAvailable: 'Conecta primero el Native Downloader',
         pathPickerCancelled: 'Ninguna carpeta seleccionada',
         btnBrowse: 'Explorar',
+
+        premiumActive: 'YouTube Premium Activo',
+        premiumNotice: 'El bloqueador de anuncios está desactivado porque tienes una suscripción Premium. ¡Gracias por apoyar a los creadores!',
     },
 
     // ── Português ─────────────────────────────────────────────────────────────
@@ -766,6 +794,7 @@ const TRANSLATIONS = {
         statusPaused: 'Pausado',
         statBlocked: 'Bloqueados',
         statHidden: 'Ocultos',
+        statAdsBlocked: 'Anúncios ignorados',
         nativeDownloader: 'Baixador nativo',
         nativeSubLabel: 'yt-dlp · vídeos de alta qualidade',
         btnSetupMonitor: 'Configurar / Monitor',
@@ -776,10 +805,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Configurações',
         sectionShorts: 'Bloqueio de Shorts',
-        settingBlockAuto: 'Bloquear canais automaticamente',
-        settingBlockAutoSub: 'Adiciona o canal à lista negra ao clicar',
+        settingBlockAuto: 'Ativar botões de bloqueio de canal',
+        settingBlockAutoSub: 'Adiciona um botão de Bloqueio interativo a cada Short',
         settingHideHome: 'Ocultar Shorts da página inicial',
         settingHideHomeSub: 'Remove a seção Shorts do feed',
+        settingAutoSkipAds: 'Auto-deslizar anúncios em Shorts',
+        settingAutoSkipAdsSub: 'Pula automaticamente para o próximo vídeo quando um anúncio é detectado (Risco Alto)',
         sectionDownloader: 'Baixador',
         settingShowDlBtn: 'Mostrar botão de download',
         settingShowDlBtnSub: 'Nos controles do reprodutor de vídeo',
@@ -900,6 +931,9 @@ const TRANSLATIONS = {
         pathBrowseNotAvailable: 'Conecte primeiro o Native Downloader',
         pathPickerCancelled: 'Nenhuma pasta selecionada',
         btnBrowse: 'Procurar',
+
+        premiumActive: 'YouTube Premium Ativo',
+        premiumNotice: 'O bloqueador de anúncios está desativado porque você tem uma assinatura Premium. Obrigado por apoiar os criadores!',
     },
 
     // ── Italiano ──────────────────────────────────────────────────────────────
@@ -915,6 +949,7 @@ const TRANSLATIONS = {
         statusPaused: 'In pausa',
         statBlocked: 'Bloccati',
         statHidden: 'Nascosti',
+        statAdsBlocked: 'Annunci saltati',
         nativeDownloader: 'Downloader nativo',
         nativeSubLabel: 'yt-dlp · video di alta qualità',
         btnSetupMonitor: 'Configura / Monitor',
@@ -925,10 +960,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Impostazioni',
         sectionShorts: 'Blocco Shorts',
-        settingBlockAuto: 'Blocca i canali automaticamente',
-        settingBlockAutoSub: 'Aggiunge il canale alla lista nera al clic',
-        settingHideHome: 'Nascondi Shorts dalla homepage',
-        settingHideHomeSub: 'Rimuove la sezione Shorts dal feed',
+        settingBlockAuto: 'Attiva pulsanti di blocco canale',
+        settingBlockAutoSub: 'Aggiunge un pulsante Blocca interattivo a ogni Short',
+        settingHideHome: 'Nascondi Shorts dalla home page',
+        settingHideHomeSub: 'Rimuove lo scaffale Shorts dal feed',
+        settingAutoSkipAds: 'Auto-scorrimento annunci Shorts',
+        settingAutoSkipAdsSub: 'Passa automaticamente al video successivo se viene rilevato un annuncio (Rischio Elevato)',
         sectionDownloader: 'Downloader',
         settingShowDlBtn: 'Mostra pulsante di download',
         settingShowDlBtnSub: 'Nei controlli del player video',
@@ -1049,6 +1086,9 @@ const TRANSLATIONS = {
         pathBrowseNotAvailable: 'Connetti prima il Native Downloader',
         pathPickerCancelled: 'Nessuna cartella selezionata',
         btnBrowse: 'Sfoglia',
+
+        premiumActive: 'YouTube Premium Attivo',
+        premiumNotice: 'Il blocco degli annunci è disattivato perché hai un abbonamento Premium. Grazie per il supporto ai creatori!',
     },
 
     // ── Русский ───────────────────────────────────────────────────────────────
@@ -1064,6 +1104,7 @@ const TRANSLATIONS = {
         statusPaused: 'Приостановлен',
         statBlocked: 'Заблокировано',
         statHidden: 'Скрыто',
+        statAdsBlocked: 'Реклама пропущена',
         nativeDownloader: 'Нативный загрузчик',
         nativeSubLabel: 'yt-dlp · высококачественные видео',
         btnSetupMonitor: 'Настройка / Мониторинг',
@@ -1074,10 +1115,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Настройки',
         sectionShorts: 'Блокировка Shorts',
-        settingBlockAuto: 'Автоматически блокировать каналы',
-        settingBlockAutoSub: 'Добавляет канал в чёрный список при клике',
+        settingBlockAuto: 'Включить кнопки блокировки каналов',
+        settingBlockAutoSub: 'Добавляет интерактивную кнопку Блокировать к каждому Short',
         settingHideHome: 'Скрыть Shorts с главной страницы',
-        settingHideHomeSub: 'Убирает раздел Shorts из ленты',
+        settingHideHomeSub: 'Удаляет полку Shorts из ленты',
+        settingAutoSkipAds: 'Автопрокрутка рекламы в Shorts',
+        settingAutoSkipAdsSub: 'Автоматически переходит к следующему видео при обнаружении рекламы (Высокий риск)',
         sectionDownloader: 'Загрузчик',
         settingShowDlBtn: 'Показывать кнопку загрузки',
         settingShowDlBtnSub: 'В элементах управления плеером',
@@ -1198,6 +1241,9 @@ const TRANSLATIONS = {
         pathBrowseNotAvailable: 'Сначала подключите Native Downloader',
         pathPickerCancelled: 'Папка не выбрана',
         btnBrowse: 'Обзор',
+
+        premiumActive: 'YouTube Premium Активен',
+        premiumNotice: 'Блокировка рекламы отключена, так как у вас есть подписка Premium. Спасибо за поддержку создателей контента!',
     },
 
     // ── 日本語 ────────────────────────────────────────────────────────────────
@@ -1213,6 +1259,7 @@ const TRANSLATIONS = {
         statusPaused: '停止中',
         statBlocked: 'ブロック済み',
         statHidden: '非表示',
+        statAdsBlocked: '広告をスキップしました',
         nativeDownloader: 'ネイティブダウンローダー',
         nativeSubLabel: 'yt-dlp · 高品質動画',
         btnSetupMonitor: 'セットアップ / 監視',
@@ -1223,10 +1270,12 @@ const TRANSLATIONS = {
 
         settingsTitle: '設定',
         sectionShorts: 'Shortsブロック',
-        settingBlockAuto: 'チャンネルを自動ブロック',
-        settingBlockAutoSub: 'クリックでブロックリストに追加',
+        settingBlockAuto: 'チャンネル・ブロックボタンを有効化',
+        settingBlockAutoSub: 'すべてのShortにインタラクティブなブロックボタンを追加します',
         settingHideHome: 'ホームページからShortsを非表示',
-        settingHideHomeSub: 'フィードからShortsセクションを削除',
+        settingHideHomeSub: 'フィードからShortsシェルフを削除します',
+        settingAutoSkipAds: 'Shorts広告の自動スキップ',
+        settingAutoSkipAdsSub: '広告が検出されたときに自動的に次のビデオに移動します（高リスク）',
         sectionDownloader: 'ダウンローダー',
         settingShowDlBtn: 'ダウンロードボタンを表示',
         settingShowDlBtnSub: 'ビデオプレーヤーのコントロールに表示',
@@ -1345,8 +1394,11 @@ const TRANSLATIONS = {
         pathSaved: '保存済み — このフォルダにダウンロードされます',
         pathBrowsing: 'フォルダ選択を開いています…',
         pathBrowseNotAvailable: '最初にNative Downloaderを接続してください',
-        pathPickerCancelled: 'フォルダが選択されませんでした',
+        pathPickerCancelled: 'フォルダが選択されていません',
         btnBrowse: '参照',
+
+        premiumActive: 'YouTube Premium 有効',
+        premiumNotice: 'Premiumサブスクリプションをお持ちのため、広告ブロックは無効です。クリエイターへのご支援ありがとうございます！',
     },
 
     // ── 한국어 ────────────────────────────────────────────────────────────────
@@ -1362,6 +1414,7 @@ const TRANSLATIONS = {
         statusPaused: '일시정지',
         statBlocked: '차단됨',
         statHidden: '숨겨짐',
+        statAdsBlocked: '광고 건너뜀',
         nativeDownloader: '네이티브 다운로더',
         nativeSubLabel: 'yt-dlp · 고화질 동영상',
         btnSetupMonitor: '설정 / 모니터',
@@ -1372,10 +1425,12 @@ const TRANSLATIONS = {
 
         settingsTitle: '설정',
         sectionShorts: 'Shorts 차단',
-        settingBlockAuto: '채널 자동 차단',
-        settingBlockAutoSub: '클릭 시 차단 목록에 추가',
+        settingBlockAuto: '채널 차단 버튼 활성화',
+        settingBlockAutoSub: '모든 Short에 대화형 차단 버튼을 추가합니다',
         settingHideHome: '홈 페이지에서 Shorts 숨기기',
         settingHideHomeSub: '피드에서 Shorts 섹션 제거',
+        settingAutoSkipAds: 'Shorts 광고 자동 스크롤',
+        settingAutoSkipAdsSub: '광고가 감지되면 자동으로 다음 동영상으로 넘어갑니다 (고위험)',
         sectionDownloader: '다운로더',
         settingShowDlBtn: '다운로드 버튼 표시',
         settingShowDlBtnSub: '동영상 플레이어 컨트롤에 표시',
@@ -1496,6 +1551,9 @@ const TRANSLATIONS = {
         pathBrowseNotAvailable: '먼저 Native Downloader를 연결하세요',
         pathPickerCancelled: '폴더가 선택되지 않았습니다',
         btnBrowse: '찾아보기',
+
+        premiumActive: 'YouTube Premium 활성',
+        premiumNotice: 'Premium 구독 중이므로 광고 차단이 비활성화되었습니다. 제작자를 지원해 주셔서 감사합니다!',
     },
 
     // ── 中文（简体）──────────────────────────────────────────────────────────
@@ -1511,6 +1569,7 @@ const TRANSLATIONS = {
         statusPaused: '已暂停',
         statBlocked: '已屏蔽',
         statHidden: '已隐藏',
+        statAdsBlocked: '已跳过广告',
         nativeDownloader: '原生下载器',
         nativeSubLabel: 'yt-dlp · 高清视频',
         btnSetupMonitor: '设置 / 监控',
@@ -1521,10 +1580,12 @@ const TRANSLATIONS = {
 
         settingsTitle: '设置',
         sectionShorts: '屏蔽 Shorts',
-        settingBlockAuto: '自动屏蔽频道',
-        settingBlockAutoSub: '点击时将频道加入黑名单',
+        settingBlockAuto: '启用频道拦截按钮',
+        settingBlockAutoSub: '为每个 Short 添加交互式拦截按钮',
         settingHideHome: '在主页隐藏 Shorts',
-        settingHideHomeSub: '从信息流中移除 Shorts 区域',
+        settingHideHomeSub: '从信息流中移除 Shorts 栏目',
+        settingAutoSkipAds: '自动滚动 Shorts 广告',
+        settingAutoSkipAdsSub: '检测到广告时自动跳转到下一个视频（高风险）',
         sectionDownloader: '下载器',
         settingShowDlBtn: '显示下载按钮',
         settingShowDlBtnSub: '在视频播放器控件中显示',
@@ -1645,6 +1706,9 @@ const TRANSLATIONS = {
         pathBrowseNotAvailable: '请先连接 Native Downloader',
         pathPickerCancelled: '未选择文件夹',
         btnBrowse: '浏览',
+
+        premiumActive: 'YouTube Premium 已激活',
+        premiumNotice: '由于您已订阅 Premium，广告拦截已禁用。感谢您支持创作者！',
     },
 };
 

@@ -68,6 +68,11 @@
                             <div class="stat-val" id="stat-hidden">0</div>
                             <div class="stat-label" data-i18n="statHidden">Hidden</div>
                         </div>
+                        <div class="stat-divider"></div>
+                        <div class="stat-block">
+                            <div class="stat-val" id="stat-ads">0</div>
+                            <div class="stat-label" data-i18n="statAdsBlocked">Ads Skipped</div>
+                        </div>
                     </div>
                 </div>
 
@@ -122,6 +127,16 @@
                 <!-- Ad Blocker ← NEW -->
                 <div class="card">
                     <h2 data-i18n="sectionAdBlock">Ad Blocker</h2>
+
+                    <!-- Premium Notice -->
+                    <div id="premium-notice" class="premium-banner" style="display:none;">
+                        <span class="premium-badge-icon">💎</span>
+                        <div class="premium-text-wrap">
+                            <div class="premium-title" data-i18n="premiumActive"></div>
+                            <div class="premium-desc" data-i18n="premiumNotice"></div>
+                        </div>
+                    </div>
+
                     <div class="card-row">
                         <div>
                             <div class="row-label" data-i18n="settingAdBlock">Block video ads</div>
@@ -132,6 +147,19 @@
                             <span class="slider"></span>
                         </label>
                     </div>
+
+                    <!-- Auto-scroll Shorts ads (Isolated for safety) -->
+                    <div class="card-row">
+                        <div>
+                            <div class="row-label" data-i18n="settingAutoSkipAds">Auto-scroll Shorts ads</div>
+                            <div class="row-sublabel" data-i18n="settingAutoSkipAdsSub">Automatically skip to the next video when an ad is detected (High Risk)</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-auto-skip-shorts" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
                     <div class="risk-warning" data-i18n="warnAdBlock"></div>
                 </div>
 

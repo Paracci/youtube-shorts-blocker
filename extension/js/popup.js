@@ -23,11 +23,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toggleBlocking = document.getElementById('toggle-blocking');
     const toggleHideHome = document.getElementById('hide-homepage-toggle');
     const toggleDownloader = document.getElementById('toggle-downloader');
-    const langSelect = document.getElementById('lang-select');
-    const statusDot = document.getElementById('status-dot');
-    const statusText = document.getElementById('status-text');
-    const statBlocked = document.getElementById('stat-blocked');
-    const statHidden = document.getElementById('stat-hidden');
+    const premiumNotice = document.getElementById('premium-notice');
+    const statAds = document.getElementById('stat-ads');
+    const toggleAdblocker = document.getElementById('toggle-adblocker');
+    const toggleQualityLock = document.getElementById('toggle-quality-lock');
+    const toggleAutoSkipShorts = document.getElementById('toggle-auto-skip-shorts');
     const nativeBadge = document.getElementById('native-badge');
     const btnSetup = document.getElementById('btn-setup');
     const btnReset = document.getElementById('btn-reset');
@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         'userLang',
         'blockedCount',
         'hiddenCount',
+        'adsBlockedCount',
         'blockedChannels',
         'downloadPath'
     ], (res) => {
@@ -54,6 +55,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const blocking = res.blockingEnabled !== false;
         const hideHome = res.hideHomepageShorts !== false;
         const downloader = res.downloaderEnabled !== false;
+        const adBlocker = res.adBlockerEnabled !== false;
+        const qualityLock = res.qualityLockEnabled !== false;
+        const autoSkipShorts = res.autoSkipShortsAds !== false;
+        const isPremium = res.isPremium === true;
         const blocked = (res.blockedChannels || []).length || res.blockedCount || 0;
         const hidden = res.hiddenCount || 0;
 
@@ -61,6 +66,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         toggleBlocking.checked = blocking;
         toggleHideHome.checked = hideHome;
         toggleDownloader.checked = downloader;
+
+        if (toggleAdblocker) {
+            if (isPremium) {
+                toggleAdblocker.checked = false;
+                toggleAdblocker.disabled = true;
+                const container = toggleAdblocker.closest('.toggle-switch');
+                if (container) container.classList.add('disabled');
+                if (premiumNotice) premiumNotice.style.display = 'flex';
+            } else {
+                toggleAdblocker.checked = adBlocker;
+                toggleAdblocker.disabled = false;
+                const container = toggleAdblocker.closest('.toggle-switch');
+                if (container) container.classList.remove('disabled');
+                if (premiumNotice) premiumNotice.style.display = 'none';
+            }
+        }
+        if (toggleQualityLock) toggleQualityLock.checked = qualityLock;
+        if (toggleAutoSkipShorts) toggleAutoSkipShorts.checked = autoSkipShorts;
 
         // Set language selector to stored value (or 'auto')
         if (langSelect) langSelect.value = res.userLang || 'auto';
@@ -74,8 +97,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         updateStatusUI(isEnabled);
+        const ads = res.adsBlockedCount || 0;
         animateValue(statBlocked, 0, blocked, 900);
         animateValue(statHidden, 0, hidden, 900);
+        animateValue(statAds, 0, ads, 900);
 
         renderBlocklist(res.blockedChannels || []);
     });
@@ -134,6 +159,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         chrome.storage.local.set({ downloaderEnabled: e.target.checked });
         broadcastToYT({ action: 'toggle_downloader', enabled: e.target.checked });
     });
+
+    // ── Ad Blocker toggle ─────────────────────────────────────────────────────
+    if (toggleAdblocker) {
+        toggleAdblocker.addEventListener('change', (e) => {
+            chrome.storage.local.set({ adBlockerEnabled: e.target.checked });
+            broadcastToYT({ action: 'toggle_adblocker', enabled: e.target.checked });
+        });
+    }
+
+    // ── Quality Lock toggle ───────────────────────────────────────────────────
+    if (toggleQualityLock) {
+        toggleQualityLock.addEventListener('change', () => {
+            const enabled = toggleQualityLock.checked;
+            chrome.storage.local.set({ qualityLockEnabled: enabled });
+            broadcastToYT({ action: 'toggle_quality_lock', enabled });
+        });
+    }
+
+    if (toggleAutoSkipShorts) {
+        toggleAutoSkipShorts.addEventListener('change', () => {
+            const enabled = toggleAutoSkipShorts.checked;
+            chrome.storage.local.set({ autoSkipShortsAds: enabled });
+            broadcastToYT({ action: 'toggle_auto_skip_shorts', enabled });
+        });
+    }
 
     // ── Download path picker ──────────────────────────────────────────────────
     const pathDisplay = document.getElementById('path-display');
@@ -214,9 +264,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── Reset stats ───────────────────────────────────────────────────────────
     btnReset.addEventListener('click', () => {
         if (!confirm(i18n.t('resetConfirm'))) return;
-        chrome.storage.local.set({ blockedCount: 0, hiddenCount: 0, blockedChannels: [] }, () => {
+        chrome.storage.local.set({ blockedCount: 0, hiddenCount: 0, adsBlockedCount: 0, blockedChannels: [] }, () => {
             statBlocked.textContent = '0';
             statHidden.textContent = '0';
+            if (statAds) statAds.textContent = '0';
             renderBlocklist([]);
         });
     });
@@ -235,6 +286,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             animateValue(statHidden,
                 changes.hiddenCount.oldValue || 0,
                 changes.hiddenCount.newValue || 0, 700);
+        }
+        if (changes.adsBlockedCount && statAds) {
+            animateValue(statAds,
+                changes.adsBlockedCount.oldValue || 0,
+                changes.adsBlockedCount.newValue || 0, 700);
         }
     });
 

@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>YouTube Shorts Blocker — Block Shorts. Download Videos. Own Your Watch Time.</title>
-<meta name="description" content="A Chrome extension that blocks Shorts channels, hides the Shorts shelf, and downloads high-quality videos via yt-dlp — all on your device.">
-<meta property="og:title" content="YouTube Shorts Blocker">
-<meta property="og:description" content="Block Shorts channels, hide the Shorts shelf, and download videos in full quality. 100% local, zero telemetry.">
+<title>YouTube Shorts Blocker (v1.10.0) — Block Shorts. Download Videos. Own Your Watch Time.</title>
+<meta name="description" content="A Chrome extension that blocks Shorts channels, hides the Shorts shelf, and downloads high-quality videos via yt-dlp — now with YouTube Premium compliance and safety-isolated automation.">
+<meta property="og:title" content="YouTube Shorts Blocker (v1.10.0)">
+<meta property="og:description" content="Block Shorts channels, hide the Shorts shelf, and download videos in full quality. Premium compliant and 100% local.">
 <meta property="og:type" content="website">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22%23ff0000%22 d=%22M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z%22/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -806,7 +806,7 @@ footer{
     <div class="hero-content">
       <div class="hero-badge">
         <div class="hero-badge-dot"></div>
-        Free & Open Source · Chrome Extension
+        v1.10.0 · Chrome Extension
       </div>
       <h1 class="hero-title">
         Block<br>
@@ -860,6 +860,15 @@ footer{
                 </svg>
                 <h1>Shorts Blocker</h1>
               </header>
+
+              <!-- Premium Notice (Mockup) -->
+              <div class="card" style="background:rgba(255,0,0,0.05);border:1px solid rgba(255,0,0,0.15);display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:12px;">
+                <span style="font-size:16px;">💎</span>
+                <div style="flex:1;">
+                   <div style="font-size:11px;font-weight:700;color:#f1f1f1;">YouTube Premium Active</div>
+                   <div style="font-size:9.5px;color:#aaa;">Ad-blocking is disabled to support creators.</div>
+                </div>
+              </div>
 
               <div class="card">
                 <div class="card-row">
@@ -959,15 +968,15 @@ footer{
       <div class="feature-icon">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.41 0 8 3.59 8 8 0 1.85-.63 3.55-1.69 4.9z"/></svg>
       </div>
-      <h3>One-tap channel blocking</h3>
-      <p>A Block button appears in every Shorts action bar. Click once to send YouTube's native signal and permanently clean up your feed.</p>
+      <h3>Channel blocking buttons</h3>
+      <p>Injects an interactive Block button into every Shorts action bar. Send YouTube's native "Do not recommend" signal with one click — manual, safe, and transparent.</p>
     </div>
     <div class="feature-card fade-up">
       <div class="feature-icon" style="background:rgba(255,187,0,0.1);border-color:rgba(255,187,0,0.3);">
         <svg viewBox="0 0 24 24" style="fill:#fbbc04;"><path d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10zm-1-11v6h2v-6h-2zm0-4v2h2V7h-2z"/></svg>
       </div>
-      <h3>Robust Ad Blocker</h3>
-      <p>Automatically skips, mutes, and hides all video ads, including masthead banners and feed slots. Reclaim your focus with zero distractions.</p>
+      <h3>Premium Compliance</h3>
+      <p>Automatically detects YouTube Premium and disables ad-blocking to respect TOS and support creators. A premium-ready experience for every user status.</p>
     </div>
     <div class="feature-card fade-up">
       <div class="feature-icon" style="background:rgba(43,166,64,0.1);border-color:rgba(43,166,64,0.3);">
@@ -1031,8 +1040,8 @@ footer{
                 <h2>Shorts Blocking</h2>
                 <div class="card-row">
                   <div>
-                    <div class="row-label">Block channels automatically</div>
-                    <div class="row-sublabel">Adds channel to blocklist on click</div>
+                    <div class="row-label">Enable channel blocking buttons</div>
+                    <div class="row-sublabel">Adds interactive Block buttons to the Shorts feed</div>
                   </div>
                   <label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label>
                 </div>
@@ -1055,7 +1064,14 @@ footer{
                   </div>
                   <label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label>
                 </div>
-                <div class="risk-warning">This feature bypasses YouTube's ad system and may violate its Terms of Service. Use at your own risk.</div>
+                <div class="card-row">
+                  <div>
+                    <div class="row-label">Auto-scroll Shorts ads</div>
+                    <div class="row-sublabel">Automatically skip when ad is detected (High Risk)</div>
+                  </div>
+                  <label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label>
+                </div>
+                <div class="risk-warning">Advanced automation features are isolated for safety. Use at your own risk.</div>
               </div>
 
               <!-- New Quality Lock section in Settings Mockup -->

@@ -33,6 +33,15 @@
       ],
       "js": [
         "js/i18n/translations.js",
+        "js/utils.js",
+        "js/premium-detector.js",
+        "js/state.js",
+        "js/ad-blocker.js",
+        "js/shorts-hider.js",
+        "js/notifications.js",
+        "js/channel-blocker.js",
+        "js/downloader.js",
+        "js/quality-lock.js",
         "js/content.js"
       ],
       "css": [
