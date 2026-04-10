@@ -20,14 +20,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ── Element refs ──────────────────────────────────────────────────────────
     const mainToggle = document.getElementById('main-toggle');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
     const toggleBlocking = document.getElementById('toggle-blocking');
     const toggleHideHome = document.getElementById('hide-homepage-toggle');
     const toggleDownloader = document.getElementById('toggle-downloader');
     const premiumNotice = document.getElementById('premium-notice');
+    const statBlocked = document.getElementById('stat-blocked');
+    const statHidden = document.getElementById('stat-hidden');
     const statAds = document.getElementById('stat-ads');
     const toggleAdblocker = document.getElementById('toggle-adblocker');
     const toggleQualityLock = document.getElementById('toggle-quality-lock');
     const toggleAutoSkipShorts = document.getElementById('toggle-auto-skip-shorts');
+    const langSelect = document.getElementById('lang-select');
     const nativeBadge = document.getElementById('native-badge');
     const btnSetup = document.getElementById('btn-setup');
     const btnReset = document.getElementById('btn-reset');

@@ -1,8 +1,8 @@
-# YouTube Shorts Blocker & Ultimate Downloader (v1.10.0)
+# YouTube Shorts Blocker & Ultimate Downloader (v1.11.0)
 
-A privacy-focused, compliance-first Chrome extension designed to drastically improve your YouTube experience. Intelligently blocks unwanted Shorts channels, hides distracting content, and provides a powerful native-feeling media downloader — now with automatic YouTube Premium detection and enhanced safety controls.
+A privacy-focused, premium Chrome extension designed to drastically improve your YouTube experience. Intelligently blocks unwanted Shorts channels, skips ads, hides distracting content, and provides a powerful native-feeling video and audio downloader — now with **YouTube Premium compliance** and enhanced safety controls.
 
-> Part of the **Paracci Browser Tools** collection — privacy-first, zero telemetry, optimized for power users.
+> Part of the **Paracci Browser Tools** collection — privacy-first, zero telemetry, built for power users.
 
 
 ### 🌐 [Live Demo & Showcase](https://paracci.github.io/youtube-shorts-blocker/)
@@ -10,59 +10,167 @@ Explore the interactive landing page to see the premium UI and features in actio
 
 ---
 
-## ✨ Key Features (New in v1.10.0)
+## ✨ Key Features
 
-### 🛡️ Smart Blocking & Compliance
-- **YouTube Premium Compliance:** Automatically detects your subscription status. Ad-blocking features are gracefully disabled for Premium users to respect YouTube's Terms of Service while allowing creators to be supported. A premium-styled banner informs you when this is active.
-- **Granular Safety Controls:** High-risk automated behaviors (like **Auto-scrolling Shorts ads**) are now isolated into separate toggles. You decide exactly how much "bot-like" activity you want on your account.
-- **Improved Channel Blocking Buttons:** Renamed from "Auto-block" to "Enable channel blocking buttons" to clarify that the user remains in control. A custom button is injected into the Shorts action bar for manual, one-click blocking.
-- **Auto Ad Skipper (Standard):** For non-premium users, a robust system that detects, mutes, and skips ads at 16x speed to minimize interruption.
+### 🛡️ Smart Blocking & Distraction-Free
+- **One-Click Channel Blocking:** Instantly adds unwanted channels to YouTube's "Do not recommend" list via a custom button that blends natively into the Shorts action bar. The menu interaction is invisible — no popup flashes.
+- **Persistent Blocked Channel List:** Every blocked channel is stored locally with its channel ID, display name, and timestamp. The popup's **Blocked** tab lists them all, newest first — with a "Remove from list" button for local tracking management.
+- **Auto Ad Skipper & Premium Compliance:** A robust ad-blocking system that automatically detects, mutes, and skips video ads. **New in v1.11.0:** Automatically detects YouTube Premium and disables ad-blocking to respect TOS and support creators. It hides in-feed ad slots, masthead banners, and in-player overlays across all of YouTube.
+- **Hide Shorts from Homepage:** Completely removes the Shorts shelf from your main YouTube feed via CSS injection — toggleable live from the popup.
 
 ### 📥 High-Quality Media Downloader
-- **Native-Like UI:** Download buttons are injected seamlessly into the Shorts action bar and standard video player controls.
-- **4K/8K & Studio Audio:** Connects to a **Native Companion App** (`yt-dlp`) for ultra-high-quality downloads directly to your machine.
-- **Custom Download Location:** A dedicated folder picker in Settings lets you choose your save directory across sessions.
+- **Native-Like UI:** Download buttons are injected seamlessly into both the Shorts action bar and the standard video player controls bar.
+- **Browser & Native Downloads:**
+  - Instantly downloads standard MP4s in your browser via direct stream URLs.
+  - Connects to a **Native Companion App** (`yt-dlp`) for ultra-high-quality 4K/1080p video and pure audio (MP3) downloads directly to your machine.
+- **Custom Download Location:** Choose exactly where downloaded files are saved via the **Settings → Downloader → Download Location** panel. Click **Browse** to open Windows' modern File Explorer folder picker (Vista-style IFileOpenDialog — the same dialog used by "Save As" in any app). The selected path persists across sessions. If no custom path is set, files go to your default `Downloads` folder.
+- **Correct Filenames:** Downloaded files are named after the actual video title, not a generic placeholder.
+- **Stacked Toast Notifications:** Multiple downloads can run simultaneously with individual YouTube-themed toasts — each with its own progress, success/error state, and dismiss button. New toasts stack without overlapping.
+- **Download Deduplication:** Starting the same download twice (same video + quality) is silently rejected — both in the extension and the native host.
 
-### 🔒 Quality Lock & Optimization
-- **Always Highest Detail:** Automatically forces resolution to 4K/2160p using native player APIs.
-- **Performance Optimized:** Uses a centralized `MutationObserver` architecture to handle DOM changes with minimal CPU impact during long sessions.
+### 🔒 Quality Lock (Force Highest Detail)
+- **Always 4K/8K:** Automatically forces the YouTube player to its highest available resolution (2160p, 1440p) on every page load. No more manual quality switching — the extension handles it instantly via native player APIs.
+- **Risk-Aware:** Includes a clear warning about the use of non-public APIs to ensure users are informed of potential "unusual behavior" detection by YouTube.
 
 ### 🌍 Multi-Language Support
-- **11 Languages:** English, Türkçe, Deutsch, Français, Español, Português, Italiano, Русский, 日本語, 한국어, 中文.
-- **Automatic Detection:** Reads your browser language and sets the UI accordingly on the first run.
+- **11 Languages:** English, Türkçe, Deutsch, Français, Español, Português, Italiano, Русский, 日本語, 한국어, 中文 — every UI element, button label, toast notification, modal text, and setup page string is fully translated.
+- **Automatic Detection:** On first run the extension reads the browser's UI language (`chrome.i18n.getUILanguage()`) and selects the closest supported language automatically.
+- **Manual Override:** A language selector in the **Settings** page lets you switch languages instantly. The choice persists across sessions via `chrome.storage.local`. Setting it back to *Auto (Browser)* re-enables automatic detection.
+- **Zero Flash:** `i18n.init()` is awaited before any DOM text is rendered in both the popup and the setup page, so the correct language appears on the very first paint.
+- **Consistent Architecture:** The same shared `translations.js` engine is used by the popup, the setup page, and the content script — keeping all 200+ string keys in one place and ensuring content-script notifications match the popup language.
+
+### 🎛️ Fully Integrated Popup
+- **YouTube-Native Design:** Dark-mode popup matching YouTube's exact color palette (`#0f0f0f`), typography (**Outfit**), red accent (`#ff0000`), and pill-shaped components — with a fixed sidebar navigation.
+- **Real-Time Statistics:** Live-updating counters show how many unique channels have been blocked and how many Shorts shelves have been hidden, with smooth number animations.
+- **Granular Controls — All Six Toggles Wired to Content Script:**
+  - **Master toggle** — pauses/resumes all extension activity instantly.
+  - **Enable channel blocking buttons** — shows/hides the manual Block button in the Shorts action bar.
+  - **Hide Shorts from homepage** — toggles the CSS injection on `youtube.com/`.
+  - **Show download button** — shows/hides the download buttons.
+  - **Block video ads** — enables/disables skipping logic (Premium-aware).
+  - **Auto-scroll Shorts ads** — **(New)** Isolated safety toggle for automated "bot-like" scrolling behavior.
+  - **Force highest quality** — toggles the automated resolution lock.
+- **Risk Transparency:** Features that use advanced or experimental methods (Ad Blocker, Quality Lock) include dedicated **Risk Warning Banners** directly in the UI to keep you informed.
+- **Native Downloader Status Badge:** Shows live connection state (`Connected` / `Not installed`) to the yt-dlp companion app.
+- **Custom Download Location:** A **Browse** button in Settings opens the native Windows folder picker. The selected path is saved to `chrome.storage.local` and forwarded to the native host on every download. Leaving it empty uses the system `Downloads` folder. If a custom path is set but the native host is not connected, browser downloads fall back to `Downloads\YouTube\`.
+- **Blocked Channels Tab:** Browse, review, and remove entries from your local blocked channel history. Includes a clear note explaining that "Remove from list" is local-only — to fully unblock a channel on YouTube's side, visit [Google My Activity → YouTube feedback](https://myactivity.google.com/page?page=youtube_user_feedback).
+- **Reset Statistics** — clears both counters and the full blocked channel list, protected by a native confirm dialog.
+
+### 🖥️ Setup Page
+- **Premium YouTube-native setup flow** with a branded design, animated status pill, and numbered installation steps — all fully translated into all 11 supported languages.
+- **yt-dlp Updater:** Built-in update panel with a **live log console** — update the downloader engine without leaving Chrome if downloads ever start failing.
 
 ---
 
 ## 🚀 Installation Guide
 
 ### Phase 1: Chrome Extension
-1. Extract this repository to a permanent folder.
-2. Go to `chrome://extensions/` and enable **Developer mode**.
-3. Click **Load unpacked** and select the **`extension`** folder.
+1. Extract this repository to a permanent folder on your computer.
+2. Open `chrome://extensions/` in any Chromium-based browser (Chrome, Edge, Brave, etc.).
+3. Enable **Developer mode** (top-right toggle).
+4. Click **Load unpacked** and select the **`extension`** folder (the one containing `manifest.json`).
 
-### Phase 2: Native Companion App (For High-Quality Downloads)
-1. Open the extension popup and click **Setup / Monitor**.
-2. Follow the instructions to run `install_host.bat` from the **`native-host`** folder.
-3. Once connected, your download capability is upgraded to full `yt-dlp` power.
+### Phase 2: Native Companion App (Windows — for high-quality downloads)
+High-quality 4K/1080p and audio-only downloads require the extension to communicate with `yt-dlp` via Chrome's Native Messaging API.
+
+1. Click the extension icon in your browser toolbar to open the popup.
+2. On the **Home** tab, click **Setup / Monitor**.
+3. Follow the on-screen instructions on the setup page — you will be asked to run `install_host.bat` from the **`native-host`** folder.
+4. The script will prompt you for your Extension ID (displayed and copyable on the setup page), register the native host with Chrome, and automatically download `yt-dlp.exe`.
+5. Once connected, the popup badge will show **Connected** and downloads will route through yt-dlp.
 
 ---
 
-## ⚙️ Technical Notes (v1.10.0)
+## 📁 File Structure
 
-- **Premium Detection:** Uses a combination of `window.postMessage` and `ytcfg` inspection in the page context to determine subscription status reliably.
-- **Centralized Orchestration:** All DOM-based features (Shorts hiding, blocking buttons, download buttons) are triggered by a single debounced observer in `content.js` for maximum performance.
-- **Resource Management:** Intervals for "Quality Lock" and "Downloader Polling" are now fully cleared when features are toggled OFF, preventing background resource leaks.
-- **Privacy First:** All data (blocked channels, settings, path) is stored locally via `chrome.storage.local`. No external tracking.
+```text
+youtube-shorts-blocker/
+├── extension/                    # Main unpacked extension folder
+│   ├── icons/                    # Extension logos
+│   ├── _locales/                 # Chrome-native locale files (extension name & description)
+│   │   ├── en/messages.json
+│   │   ├── tr/messages.json
+│   │   ├── de/messages.json
+│   │   ├── fr/messages.json
+│   │   ├── es/messages.json
+│   │   ├── pt/messages.json
+│   │   ├── it/messages.json
+│   │   ├── ru/messages.json
+│   │   ├── ja/messages.json
+│   │   ├── ko/messages.json
+│   │   └── zh_CN/messages.json
+│   ├── css/                      # Stylesheets for popup & content scripts
+│   ├── js/
+│   │   ├── i18n/
+│   │   │   └── translations.js   # Shared i18n engine — all 200+ strings for 11 languages
+│   │   ├── ad-blocker.js         # Modular: skipping & hiding logic
+│   │   ├── background.js         # Service worker — native messaging & bridge
+│   │   ├── channel-blocker.js    # Modular: manual & auto blocking
+│   │   ├── content.js            # Entry point: coordinates modular features
+│   │   ├── downloader.js         # Modular: format fetching & button injection
+│   │   ├── notifications.js      # Modular: YouTube-style stackable toasts
+│   │   ├── premium-detector.js   # Modular: ytfm & postMessage detection
+│   │   ├── quality-lock.js       # Modular: player resolution control
+│   │   ├── shorts-hider.js       # Modular: Homepage feed hider
+│   │   ├── state.js              # Persistence: reactive settings state
+│   │   ├── utils.js              # Helpers: DOM & wait utilities
+│   │   ├── popup.js              # Popup logic — settings, stats, switcher
+│   │   ├── setup.js              # Setup page logic — connection & updater
+│   │   └── old-content.js        # ARCHIVE: Monolithic v1.10.5 core (unused)
+│   ├── views/
+│   │   ├── popup.html            # Popup markup — four-page layout
+│   │   └── setup.html            # Setup page markup — fully translated
+│   └── manifest.json             # Extension configuration (v1.11.0)
+│
+├── native-host/                  # Companion app for high-quality downloads
+│   ├── install_host.bat          # Windows installer & registry config
+│   ├── native-host.js            # Node.js wrapper for yt-dlp + folder picker dialog
+│   └── ...                       # Auto-generated bat & JSON files after install
+│
+├── README.md                     # Project documentation
+└── LICENSE                       # Open-source license
+```
+
+---
+
+## ⚙️ Technical Notes
+
+- **Centralized Orchestration (v1.11.0):** All DOM-based features (Shorts hiding, blocking buttons, download buttons) are triggered by a single debounced `MutationObserver` in `content.js` for maximum performance and zero resource leaks.
+- **Premium Detection:** Uses a combination of `window.postMessage` and `ytcfg` inspection in the page context to determine subscription status reliably and inform the UI.
+- **Popup ↔ Content Script Communication:** All popup toggles broadcast via `chrome.tabs.sendMessage` to every open YouTube tab. The content script listens via `chrome.runtime.onMessage` and responds instantly — no page refresh required.
+- **Settings & Data Persistence:** All settings, statistics, language preference, the blocked channel list, and the custom download path are stored locally via `chrome.storage.local`. Nothing is sent externally.
+- **Custom Download Path:** The path chosen in the popup is forwarded to the native host as a `savePath` parameter on every `download_video` call. If the folder does not exist it is created automatically via `fs.mkdirSync(..., { recursive: true })`. Browser-side downloads (non-native) with a custom path set are also routed through the native host so the path is respected — falling back to `Downloads\YouTube\` only when the native host is not connected.
+- **Folder Picker:** Clicking **Browse** triggers a `pick_folder` message to the native host, which spawns a `powershell.exe -STA` process and opens the Windows **IFileOpenDialog** COM interface (the same Vista-style File Explorer dialog used by Save As in any Windows app). The dialog opens pre-navigated to the currently configured folder. On failure, it automatically falls back to the legacy `FolderBrowserDialog`. The PowerShell script is written to a temp `.ps1` file to avoid command-line escaping issues and deleted immediately after the dialog closes.
+- **Multi-Language Architecture:** `translations.js` is listed as the **first entry** in both `content_scripts.js` and every HTML page's `<script>` order — guaranteeing the `i18n` global exists before any other script runs. Language resolution order: `storage.userLang` (manual) → `chrome.i18n.getUILanguage()` (browser) → `'en'` (fallback). `applyToDOM()` walks `data-i18n` / `data-i18n-html` / `data-i18n-title` / `data-i18n-placeholder` attributes in a single pass. Chrome's `_locales/` system localises the extension's name and description in `chrome://extensions/` independently.
+- **Blocked Channel Tracking:** Each blocked channel is stored as `{ id, name, blockedAt }`. The counter reflects unique channels only — blocking the same channel twice does not inflate the count. Channel IDs are extracted from `/channel/UCxxx` links; `@handle` is used as a fallback.
+- **"Don't recommend" vs. local list:** Clicking Block sends YouTube's own feedback signal. The local list is for your reference only. To remove the YouTube-side filter, visit [Google My Activity → YouTube feedback](https://myactivity.google.com/page?page=youtube_user_feedback) and delete the relevant entries.
+- **Ad Blocker Strategy:** Uses a hybrid approach combining aggressive CSS injection (to prevent layout shifts from ad slots) and a high-frequency (700ms) polling interval that handles skip buttons, auto-muting, and fast-forwarding of unskippable ads.
+- **Quality Lock Logic:** Binds to the YouTube player's `setPlaybackQualityRange` API to lock resolution to `hd2160`. It runs on both initial page load and via `IntersectionObserver` to ensure Shorts are also locked to the highest detail as you scroll.
+- **API Format Fetching — Waterfall Strategy:** The extension first tries to extract stream URLs from the page's embedded `ytInitialPlayerResponse` (zero extra requests). Only if that yields no web-muxed formats does it fall back through InnerTube clients in priority order: IOS → Android → TVHTML5.
+- **Memory Management:** `IntersectionObserver` entries are unobserved as soon as their target element is detached from the DOM, preventing unbounded growth as YouTube recycles `ytd-reel-video-renderer` nodes during scrolling.
+- **SPA Navigation:** A single `MutationObserver` on `document` handles all URL-change side effects — homepage visibility, quality lock transitions, and download button injection.
+- **n-Parameter Descrambling:** Browser-side downloads descramble YouTube's `n` query parameter from the player JS to prevent 403 errors on direct stream URLs.
+- **Codec Priority:** AV1 → VP9 → H.264 at each resolution, always merging to `.mp4` output.
+
+---
+
+## 🔒 Privacy
+
+- No data is collected, stored, or transmitted to any third party.
+- All settings, statistics, language preference, and the blocked channel list are stored locally in your browser via `chrome.storage.local`.
+- The only external network requests are to YouTube's own APIs — and only when you actively trigger a download.
+- All processing happens entirely on your device.
 
 ---
 
 ## 📜 License
 
-MIT License — see `LICENSE` for details.
+This project is licensed under the MIT License — see the `LICENSE` file for details.
 
 ---
 
 ## 🤝 Contact & Credit
 
 Crafted with ❤️ by **Paracci**.
-Check out the [Live Demo](https://paracci.github.io/youtube-shorts-blocker/) or visit [X Auto Ad Blocker](https://github.com/paracci/x-auto-ad-blocker).
+
+Part of the **Paracci Browser Tools** collection — check out the [Live Demo](https://paracci.github.io/youtube-shorts-blocker/) or visit [X Auto Ad Blocker](https://github.com/paracci/x-auto-ad-blocker).
