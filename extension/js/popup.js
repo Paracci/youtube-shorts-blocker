@@ -44,11 +44,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ── Load settings + stats ─────────────────────────────────────────────────
+    // FIX: Added missing keys 'adBlockerEnabled', 'qualityLockEnabled',
+    //      'autoSkipShortsAds', and 'isPremium' to the get call.
+    // Previously these were absent, so res.* was always undefined,
+    // causing `undefined !== false` → true — settings appeared stuck ON.
     chrome.storage.local.get([
         'extensionEnabled',
         'blockingEnabled',
         'hideHomepageShorts',
         'downloaderEnabled',
+        'adBlockerEnabled',
+        'qualityLockEnabled',
+        'autoSkipShortsAds',
+        'isPremium',
         'userLang',
         'blockedCount',
         'hiddenCount',
@@ -87,8 +95,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (premiumNotice) premiumNotice.style.display = 'none';
             }
         }
+        if (toggleAutoSkipShorts) {
+            if (isPremium) {
+                toggleAutoSkipShorts.checked = false;
+                toggleAutoSkipShorts.disabled = true;
+                const container = toggleAutoSkipShorts.closest('.toggle-switch');
+                if (container) container.classList.add('disabled');
+            } else {
+                toggleAutoSkipShorts.checked = autoSkipShorts;
+                toggleAutoSkipShorts.disabled = false;
+                const container = toggleAutoSkipShorts.closest('.toggle-switch');
+                if (container) container.classList.remove('disabled');
+            }
+        }
         if (toggleQualityLock) toggleQualityLock.checked = qualityLock;
-        if (toggleAutoSkipShorts) toggleAutoSkipShorts.checked = autoSkipShorts;
 
         // Set language selector to stored value (or 'auto')
         if (langSelect) langSelect.value = res.userLang || 'auto';
@@ -116,6 +136,65 @@ document.addEventListener('DOMContentLoaded', async () => {
             setNativeBadge(false);
         } else {
             setNativeBadge(true);
+        }
+    });
+
+    // ── Listen for premium status changes while popup is open ─────────────────
+    // This handles the case where the popup is opened before premium detection runs.
+    chrome.storage.onChanged.addListener((changes, ns) => {
+        if (ns !== 'local') return;
+
+        if (changes.isPremium) {
+            const nowPremium = changes.isPremium.newValue === true;
+            if (toggleAdblocker) {
+                if (nowPremium) {
+                    toggleAdblocker.checked = false;
+                    toggleAdblocker.disabled = true;
+                    const container = toggleAdblocker.closest('.toggle-switch');
+                    if (container) container.classList.add('disabled');
+                    if (premiumNotice) premiumNotice.style.display = 'flex';
+                } else {
+                    toggleAdblocker.disabled = false;
+                    const container = toggleAdblocker.closest('.toggle-switch');
+                    if (container) container.classList.remove('disabled');
+                    if (premiumNotice) premiumNotice.style.display = 'none';
+                }
+            }
+            if (toggleAutoSkipShorts) {
+                if (nowPremium) {
+                    toggleAutoSkipShorts.checked = false;
+                    toggleAutoSkipShorts.disabled = true;
+                    const container = toggleAutoSkipShorts.closest('.toggle-switch');
+                    if (container) container.classList.add('disabled');
+                } else {
+                    toggleAutoSkipShorts.disabled = false;
+                    const container = toggleAutoSkipShorts.closest('.toggle-switch');
+                    if (container) container.classList.remove('disabled');
+                }
+            }
+            // Bug 3 fix: sync storage so stale 'true' values cannot
+            // re-activate ad features if isPremium detection ever lags.
+            if (nowPremium) {
+                chrome.storage.local.set({ adBlockerEnabled: false, autoSkipShortsAds: false });
+            }
+        }
+
+        if (changes.blockedChannels) {
+            const list = changes.blockedChannels.newValue || [];
+            animateValue(statBlocked,
+                (changes.blockedChannels.oldValue || []).length,
+                list.length, 700);
+            renderBlocklist(list);
+        }
+        if (changes.hiddenCount) {
+            animateValue(statHidden,
+                changes.hiddenCount.oldValue || 0,
+                changes.hiddenCount.newValue || 0, 700);
+        }
+        if (changes.adsBlockedCount && statAds) {
+            animateValue(statAds,
+                changes.adsBlockedCount.oldValue || 0,
+                changes.adsBlockedCount.newValue || 0, 700);
         }
     });
 
@@ -168,8 +247,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── Ad Blocker toggle ─────────────────────────────────────────────────────
     if (toggleAdblocker) {
         toggleAdblocker.addEventListener('change', (e) => {
-            chrome.storage.local.set({ adBlockerEnabled: e.target.checked });
-            broadcastToYT({ action: 'toggle_adblocker', enabled: e.target.checked });
+            // Guard: premium users must never re-enable ad-blocking.
+            // The toggle is disabled in the UI but a programmatic click or
+            // DevTools interaction could still fire this event.
+            chrome.storage.local.get('isPremium', (r) => {
+                if (r.isPremium === true && e.target.checked) {
+                    e.target.checked = false; // revert UI
+                    return;
+                }
+                chrome.storage.local.set({ adBlockerEnabled: e.target.checked });
+                broadcastToYT({ action: 'toggle_adblocker', enabled: e.target.checked });
+            });
         });
     }
 
@@ -185,8 +273,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (toggleAutoSkipShorts) {
         toggleAutoSkipShorts.addEventListener('change', () => {
             const enabled = toggleAutoSkipShorts.checked;
-            chrome.storage.local.set({ autoSkipShortsAds: enabled });
-            broadcastToYT({ action: 'toggle_auto_skip_shorts', enabled });
+            // Guard: same protection as ad blocker toggle above.
+            chrome.storage.local.get('isPremium', (r) => {
+                if (r.isPremium === true && enabled) {
+                    toggleAutoSkipShorts.checked = false; // revert UI
+                    return;
+                }
+                chrome.storage.local.set({ autoSkipShortsAds: enabled });
+                broadcastToYT({ action: 'toggle_auto_skip_shorts', enabled });
+            });
         });
     }
 
@@ -275,28 +370,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (statAds) statAds.textContent = '0';
             renderBlocklist([]);
         });
-    });
-
-    // ── Live stat updates ─────────────────────────────────────────────────────
-    chrome.storage.onChanged.addListener((changes, ns) => {
-        if (ns !== 'local') return;
-        if (changes.blockedChannels) {
-            const list = changes.blockedChannels.newValue || [];
-            animateValue(statBlocked,
-                (changes.blockedChannels.oldValue || []).length,
-                list.length, 700);
-            renderBlocklist(list);
-        }
-        if (changes.hiddenCount) {
-            animateValue(statHidden,
-                changes.hiddenCount.oldValue || 0,
-                changes.hiddenCount.newValue || 0, 700);
-        }
-        if (changes.adsBlockedCount && statAds) {
-            animateValue(statAds,
-                changes.adsBlockedCount.oldValue || 0,
-                changes.adsBlockedCount.newValue || 0, 700);
-        }
     });
 
     // ── Render blocklist ──────────────────────────────────────────────────────

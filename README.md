@@ -1,4 +1,4 @@
-# YouTube Shorts Blocker & Ultimate Downloader (v1.11.5)
+# YouTube Shorts Blocker & Ultimate Downloader (v1.12.0)
 
 A privacy-focused, premium Chrome extension designed to drastically improve your YouTube experience. Intelligently blocks unwanted Shorts channels, skips ads, hides distracting content, and provides a powerful native-feeling video and audio downloader — now with **YouTube Premium compliance** and enhanced safety controls.
 
@@ -15,7 +15,7 @@ Explore the interactive landing page to see the premium UI and features in actio
 ### 🛡️ Smart Blocking & Distraction-Free
 - **One-Click Channel Blocking:** Instantly adds unwanted channels to YouTube's "Do not recommend" list via a custom button that blends natively into the Shorts action bar. The menu interaction is invisible — no popup flashes.
 - **Persistent Blocked Channel List:** Every blocked channel is stored locally with its channel ID, display name, and timestamp. The popup's **Blocked** tab lists them all, newest first — with a "Remove from list" button for local tracking management.
-- **Auto Ad Skipper & Premium Compliance:** A robust ad-blocking system that automatically detects, mutes, and skips video ads. **New in v1.11.5:** Automatically detects YouTube Premium and disables ad-blocking to respect TOS and support creators. It hides in-feed ad slots, masthead banners, and in-player overlays across all of YouTube.
+- **Auto Ad Skipper & Premium Compliance:** A robust ad-blocking system that automatically detects, mutes, and skips video ads. **New in v1.12.0:** A hardened, multi-layered Premium detection system using 5 independent signals (`ytcfg` flags, DOM badge, `ytInitialData`) correctly disables all ad-blocking features for YouTube Premium subscribers across initial page loads, SPA navigations, and popup interactions — preventing TOS violations and account bans. It hides in-feed ad slots, masthead banners, and in-player overlays across all of YouTube.
 - **Hide Shorts from Homepage:** Completely removes the Shorts shelf from your main YouTube feed via CSS injection — toggleable live from the popup.
 
 ### 📥 High-Quality Media Downloader
@@ -109,7 +109,7 @@ youtube-shorts-blocker/
 │   │   ├── content.js            # Entry point: coordinates modular features
 │   │   ├── downloader.js         # Modular: format fetching & button injection
 │   │   ├── notifications.js      # Modular: YouTube-style stackable toasts
-│   │   ├── premium-detector.js   # Modular: ytfm & postMessage detection
+│   │   ├── premium-detector.js   # Modular: 5-signal ytcfg & postMessage detection, SPA-safe re-injection
 │   │   ├── quality-lock.js       # Modular: player resolution control
 │   │   ├── shorts-hider.js       # Modular: Homepage feed hider
 │   │   ├── state.js              # Persistence: reactive settings state
@@ -120,7 +120,7 @@ youtube-shorts-blocker/
 │   ├── views/
 │   │   ├── popup.html            # Popup markup — four-page layout
 │   │   └── setup.html            # Setup page markup — fully translated
-│   └── manifest.json             # Extension configuration (v1.11.5)
+│   └── manifest.json             # Extension configuration (v1.12.0)
 │
 ├── native-host/                  # Companion app for high-quality downloads
 │   ├── install_host.bat          # Windows installer & registry config
@@ -136,7 +136,7 @@ youtube-shorts-blocker/
 ## ⚙️ Technical Notes
 
 - **Centralized Orchestration (v1.11.5):** All DOM-based features (Shorts hiding, blocking buttons, download buttons) are triggered by a single debounced `MutationObserver` in `content.js` for maximum performance and zero resource leaks.
-- **Premium Detection:** Uses a combination of `window.postMessage` and `ytcfg` inspection in the page context to determine subscription status reliably and inform the UI.
+- **Premium Detection:** Uses a 5-signal detection cascade running in the page context via `inject.js`: (1) primary `PremiumClientSharedConfig__` flag in `ytcfg.EXPERIMENT_FLAGS`, (2) count of Premium config keys, (3) `ytcfg.IS_YT_PREMIUM` top-level field, (4) `ytInitialData` header inspection, (5) DOM badge fallback. Results are posted to the content script via `window.postMessage`. On error, `null` is sent so the cached storage value is never overwritten with a false negative. Re-detection fires correctly on every SPA navigation — the old `<script>` tag is removed before re-injection so the IIFE always executes fresh.
 - **Popup ↔ Content Script Communication:** All popup toggles broadcast via `chrome.tabs.sendMessage` to every open YouTube tab. The content script listens via `chrome.runtime.onMessage` and responds instantly — no page refresh required.
 - **Settings & Data Persistence:** All settings, statistics, language preference, the blocked channel list, and the custom download path are stored locally via `chrome.storage.local`. Nothing is sent externally.
 - **Custom Download Path:** The path chosen in the popup is forwarded to the native host as a `savePath` parameter on every `download_video` call. If the folder does not exist it is created automatically via `fs.mkdirSync(..., { recursive: true })`. Browser-side downloads (non-native) with a custom path set are also routed through the native host so the path is respected — falling back to `Downloads\YouTube\` only when the native host is not connected.
@@ -144,11 +144,11 @@ youtube-shorts-blocker/
 - **Multi-Language Architecture:** `translations.js` is listed as the **first entry** in both `content_scripts.js` and every HTML page's `<script>` order — guaranteeing the `i18n` global exists before any other script runs. Language resolution order: `storage.userLang` (manual) → `chrome.i18n.getUILanguage()` (browser) → `'en'` (fallback). `applyToDOM()` walks `data-i18n` / `data-i18n-html` / `data-i18n-title` / `data-i18n-placeholder` attributes in a single pass. Chrome's `_locales/` system localises the extension's name and description in `chrome://extensions/` independently.
 - **Blocked Channel Tracking:** Each blocked channel is stored as `{ id, name, blockedAt }`. The counter reflects unique channels only — blocking the same channel twice does not inflate the count. Channel IDs are extracted from `/channel/UCxxx` links; `@handle` is used as a fallback.
 - **"Don't recommend" vs. local list:** Clicking Block sends YouTube's own feedback signal. The local list is for your reference only. To remove the YouTube-side filter, visit [Google My Activity → YouTube feedback](https://myactivity.google.com/page?page=youtube_user_feedback) and delete the relevant entries.
-- **Ad Blocker Strategy:** Uses a hybrid approach combining aggressive CSS injection (to prevent layout shifts from ad slots) and a high-frequency (700ms) polling interval that handles skip buttons, auto-muting, and fast-forwarding of unskippable ads.
+- **Ad Blocker Strategy:** Uses a hybrid approach: aggressive CSS injection (to prevent layout shifts from ad slots) combined with a `MutationObserver` on `#movie_player` that fires in under 1ms when the `ad-showing` class is added or removed, replacing the old 700ms polling approach. A lightweight 250ms fallback interval handles edge cases and skip-button polling. For Premium subscribers all ad-related logic is disabled at the state level before any of this runs.
 - **Quality Lock Logic:** Binds to the YouTube player's `setPlaybackQualityRange` API to lock resolution to `hd2160`. It runs on both initial page load and via `IntersectionObserver` to ensure Shorts are also locked to the highest detail as you scroll.
 - **API Format Fetching — Waterfall Strategy:** The extension first tries to extract stream URLs from the page's embedded `ytInitialPlayerResponse` (zero extra requests). Only if that yields no web-muxed formats does it fall back through InnerTube clients in priority order: IOS → Android → TVHTML5.
 - **Memory Management:** `IntersectionObserver` entries are unobserved as soon as their target element is detached from the DOM, preventing unbounded growth as YouTube recycles `ytd-reel-video-renderer` nodes during scrolling.
-- **SPA Navigation:** A single `MutationObserver` on `document` handles all URL-change side effects — homepage visibility, quality lock transitions, and download button injection.
+- **SPA Navigation:** A single `MutationObserver` on `document` handles all URL-change side effects — homepage visibility, quality lock transitions, and download button injection. Premium re-detection also fires on every `yt-navigate-finish` event; the old injected `<script>` tag is removed first so `inject.js` always re-executes with fresh page context.
 - **n-Parameter Descrambling:** Browser-side downloads descramble YouTube's `n` query parameter from the player JS to prevent 403 errors on direct stream URLs.
 - **Codec Priority:** AV1 → VP9 → H.264 at each resolution, always merging to `.mp4` output.
 

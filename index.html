@@ -4,10 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YouTube Shorts Blocker (v1.11.5) — Block Shorts. Download Videos. Own Your Watch Time.</title>
+  <title>YouTube Shorts Blocker (v1.12.0) — Block Shorts. Download Videos. Own Your Watch Time.</title>
   <meta name="description"
     content="A Chrome extension that blocks Shorts channels, hides the Shorts shelf, and downloads high-quality videos via yt-dlp — now with YouTube Premium compliance and safety-isolated automation.">
-  <meta property="og:title" content="YouTube Shorts Blocker (v1.11.5)">
+  <meta property="og:title" content="YouTube Shorts Blocker (v1.12.0)">
   <meta property="og:description"
     content="Block Shorts channels, hide the Shorts shelf, and download videos in full quality. Premium compliant and 100% local.">
   <meta property="og:type" content="website">
@@ -1860,7 +1860,7 @@
       <div class="hero-content">
         <div class="hero-badge">
           <div class="hero-badge-dot"></div>
-          v1.11.5 · Chrome Extension
+          v1.12.0 · Chrome Extension
         </div>
         <h1 class="hero-title">
           Block<br>
@@ -2055,8 +2055,9 @@
           </svg>
         </div>
         <h3>Premium Compliance</h3>
-        <p>Automatically detects YouTube Premium and disables ad-blocking to respect TOS and support creators. A
-          premium-ready experience for every user status.</p>
+        <p>A hardened, multi-layered detection system using 5 independent signals disables all ad-blocking for YouTube
+          Premium subscribers — across page loads, SPA navigations, and popup interactions. No TOS violations, no
+          account bans.</p>
       </div>
       <div class="feature-card fade-up">
         <div class="feature-icon" style="background:rgba(43,166,64,0.1);border-color:rgba(43,166,64,0.3);">
@@ -2298,8 +2299,10 @@
           <div class="step-num">04</div>
           <div class="step-body">
             <h4>Privacy-Focused Ad Blocking</h4>
-            <p>A hybrid engine uses CSS hiding for instant layout stabilization and a high-frequency logic loop that
-              detects and fast-forwards ads in 700ms — keeping your eyes on the content.</p>
+            <p>A hybrid engine uses CSS hiding for instant layout stabilization and a <code>MutationObserver</code> on
+              <span class="code-tag">#movie_player</span> that reacts in under 1ms when an ad starts — replacing the old
+              700ms polling loop. A 250ms fallback interval handles edge cases. All ad logic is fully disabled for
+              Premium subscribers before it ever runs.</p>
           </div>
         </div>
         <div class="step-row fade-up">
