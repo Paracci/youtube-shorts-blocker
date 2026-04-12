@@ -6,21 +6,21 @@
 /**
  * Applies CSS hiding and logs stats for homepage Shorts shelves.
  */
+const _countedShelves = new WeakSet();
+
 function applyHomepageVisibility() {
     const isHome = window.location.pathname === '/' || window.location.pathname === '';
-    
     if (isHome && EXTENSION_ENABLED && HIDE_SHORTS_HOMEPAGE) {
         document.body.classList.add('my-hide-shorts-home');
-        
-        // Count how many shelves are currently visible that we are about to hide
         const shelves = document.querySelectorAll(
             'ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts]), ' +
             'ytd-rich-section-renderer:has(a[href^="/shorts/"])'
         );
-        
-        if (shelves.length > 0) {
+        const newShelves = Array.from(shelves).filter(s => !_countedShelves.has(s));
+        newShelves.forEach(s => _countedShelves.add(s));
+        if (newShelves.length > 0) {
             safeStorageGet('hiddenCount', (res) => {
-                safeStorageSet({ hiddenCount: (res.hiddenCount || 0) + shelves.length });
+                safeStorageSet({ hiddenCount: (res.hiddenCount || 0) + newShelves.length });
             });
         }
     } else {

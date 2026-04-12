@@ -191,6 +191,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     // ── Download video (browser — direct MP4 stream URL) ──────────────────────
+    // NOTE: This message is currently not sent by any content script.
+    // downloader.js handles low-quality streams directly via fetch + blob URL.
+    // Kept here as a ready fallback if a browser-routed download is ever needed.
     // If a custom savePath is set AND native host is connected, route through
     // native host so the file lands in the configured folder without any dialog.
     // Otherwise fall back to chrome.downloads (saves to default Downloads folder,

@@ -4,21 +4,17 @@
 // Depends on: utils.js, state.js, ad-blocker.js, notifications.js
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ─── Quality lock ─────────────────────────────────────────────────────────────
-function forceHighestQuality() {
-    if (!QUALITY_LOCK_ENABLED || !EXTENSION_ENABLED) return;
-    const player = document.getElementById('movie_player') ||
-        document.querySelector('.html5-video-player');
-    if (player && typeof player.setPlaybackQualityRange === 'function') {
-        player.setPlaybackQualityRange('hd2160');
-    }
-}
-
 // ─── Intersection Observer (lazy-check visible Shorts) ───────────────────────
+// Note: forceHighestQuality() is defined in quality-lock.js (loaded before this file)
 const scrollObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (!entry.isIntersecting) return;
         const renderer = entry.target;
+        // If the element has been removed from the DOM, unobserve it
+        if (!document.contains(renderer)) {
+            scrollObserver.unobserve(renderer);
+            return;
+        }
         if (checkForAdAndSkip(renderer)) return;
         forceHighestQuality();
         const btn = renderer.querySelector('.my-block-button');
@@ -147,7 +143,7 @@ function createBlockButton(container, videoContext) {
         btn.querySelector('.my-btn-text').textContent = i18n.t('btnBlocking');
 
         const channelName = extractChannelName(videoContext);
-        const channelId   = extractChannelId(videoContext);
+        const channelId = extractChannelId(videoContext);
 
         const menuBtn = videoContext.querySelector('ytd-menu-renderer button') ||
             Array.from(videoContext.querySelectorAll('button')).find(b => {

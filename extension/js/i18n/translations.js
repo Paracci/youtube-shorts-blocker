@@ -161,6 +161,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium Active',
         premiumNotice: 'Ad blocking is disabled because you have a Premium subscription. Thank you for supporting creators!',
+        alertContextInvalidated: 'Extension was updated. Please refresh the page to continue.',
     },
 
     // ── Türkçe ────────────────────────────────────────────────────────────────
@@ -314,6 +315,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium Aktif',
         premiumNotice: 'Premium aboneliğiniz olduğu için reklam engelleme devre dışı bırakıldı. İçerik üreticilerini desteklediğiniz için teşekkürler!',
+        alertContextInvalidated: 'Eklenti güncellendi. Devam etmek için lütfen sayfayı yenileyin.',
     },
 
     // ── Deutsch ───────────────────────────────────────────────────────────────
@@ -469,6 +471,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium Aktiv',
         premiumNotice: 'Der Werbeblocker wurde deaktiviert, da du ein Premium-Abonnement hast. Vielen Dank für deine Unterstützung der Ersteller!',
+        alertContextInvalidated: 'Die Erweiterung wurde aktualisiert. Bitte aktualisieren Sie die Seite, um fortzufahren.',
     },
 
     // ── Français ──────────────────────────────────────────────────────────────
@@ -624,6 +627,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium Actif',
         premiumNotice: 'Le bloqueur de publicités est désactivé car vous avez un abonnement Premium. Merci de soutenir les créateurs !',
+        alertContextInvalidated: 'L\'extension a été mise à jour. Veuillez actualiser la page pour continuer.',
     },
 
     // ── Español ───────────────────────────────────────────────────────────────
@@ -779,6 +783,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium Activo',
         premiumNotice: 'El bloqueador de anuncios está desactivado porque tienes una suscripción Premium. ¡Gracias por apoyar a los creadores!',
+        alertContextInvalidated: 'La extensión ha sido actualizada. Por favor, recarga la página para continuar.',
     },
 
     // ── Português ─────────────────────────────────────────────────────────────
@@ -934,6 +939,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium Ativo',
         premiumNotice: 'O bloqueador de anúncios está desativado porque você tem uma assinatura Premium. Obrigado por apoiar os criadores!',
+        alertContextInvalidated: 'A extensão foi atualizada. Por favor, recarregue a página para continuar.',
     },
 
     // ── Italiano ──────────────────────────────────────────────────────────────
@@ -1089,6 +1095,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium Attivo',
         premiumNotice: 'Il blocco degli annunci è disattivato perché hai un abbonamento Premium. Grazie per il supporto ai creatori!',
+        alertContextInvalidated: 'L\'estensione è stata aggiornata. Ricarica la pagina per continuare.',
     },
 
     // ── Русский ───────────────────────────────────────────────────────────────
@@ -1244,6 +1251,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium Активен',
         premiumNotice: 'Блокировка рекламы отключена, так как у вас есть подписка Premium. Спасибо за поддержку создателей контента!',
+        alertContextInvalidated: 'Расширение было обновлено. Пожалуйста, обновите страницу, чтобы продолжить.',
     },
 
     // ── 日本語 ────────────────────────────────────────────────────────────────
@@ -1399,6 +1407,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium 有効',
         premiumNotice: 'Premiumサブスクリプションをお持ちのため、広告ブロックは無効です。クリエイターへのご支援ありがとうございます！',
+        alertContextInvalidated: '拡張機能が更新されました。続行するにはページを更新してください。',
     },
 
     // ── 한국어 ────────────────────────────────────────────────────────────────
@@ -1554,6 +1563,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium 활성',
         premiumNotice: 'Premium 구독 중이므로 광고 차단이 비활성화되었습니다. 제작자를 지원해 주셔서 감사합니다!',
+        alertContextInvalidated: '확장 프로그램이 업데이트되었습니다. 계속하려면 페이지를 새로고침하세요.',
     },
 
     // ── 中文（简体）──────────────────────────────────────────────────────────
@@ -1709,6 +1719,7 @@ const TRANSLATIONS = {
 
         premiumActive: 'YouTube Premium 已激活',
         premiumNotice: '由于您已订阅 Premium，广告拦截已禁用。感谢您支持创作者！',
+        alertContextInvalidated: '扩展程序已更新。请刷新页面以继续。',
     },
 };
 

@@ -38,6 +38,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnReset = document.getElementById('btn-reset');
     const aboutVersion = document.getElementById('about-version');
 
+    // ── State ─────────────────────────────────────────────────────────────────
+    let _nativeConnected = false; // Reliable connection status for browsing
+
     // ── Version ───────────────────────────────────────────────────────────────
     if (aboutVersion) {
         aboutVersion.textContent = `Version ${chrome.runtime.getManifest().version}`;
@@ -132,12 +135,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ── Check native host status ──────────────────────────────────────────────
     chrome.runtime.sendMessage({ action: 'check_native_host_status' }, (res) => {
-        if (chrome.runtime.lastError || !res || res.status !== 'connected') {
-            setNativeBadge(false);
-        } else {
-            setNativeBadge(true);
-        }
+        const connected = !chrome.runtime.lastError && res?.status === 'connected';
+        _nativeConnected = connected;
+        setNativeBadge(connected);
     });
+
 
     // ── Listen for premium status changes while popup is open ─────────────────
     // This handles the case where the popup is opened before premium detection runs.
@@ -329,8 +331,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnBrowse) {
         btnBrowse.addEventListener('click', () => {
             // Check native host is connected first
-            const isConnected = nativeBadge && !nativeBadge.classList.contains('inactive');
-            if (!isConnected) {
+            if (!_nativeConnected) {
                 setPathStatus('warn', i18n.t('pathBrowseNotAvailable'));
                 return;
             }
