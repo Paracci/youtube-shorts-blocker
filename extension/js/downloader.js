@@ -14,8 +14,8 @@ function isShortPage() {
 
 function getCurrentVideoId() {
     const m = window.location.pathname.match(/\/shorts\/([^/?#]+)/);
-    if (m) return m[1];
-    return new URLSearchParams(window.location.search).get('v');
+    const candidate = m ? m[1] : new URLSearchParams(window.location.search).get('v');
+    return candidate && /^[A-Za-z0-9_-]{6,}$/.test(candidate) ? candidate : null;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -30,37 +30,107 @@ const QUALITY_ORDER = {
 const CODEC_PRIORITY  = { 'av01': 4, 'vp9': 3, 'vp09': 3, 'avc1': 2, 'mp4v': 1 };
 const SOURCE_PRIORITY = { 'IOS': 4, 'ANDROID': 3, 'TVHTML5': 2, 'WEB': 1 };
 
+function _positiveNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? number : null;
+}
+
+function _formatHeight(formatOrLabel) {
+    const directHeight = typeof formatOrLabel === 'object'
+        ? _positiveNumber(formatOrLabel?.height)
+        : null;
+    if (directHeight) return Math.round(directHeight);
+
+    const label = typeof formatOrLabel === 'string'
+        ? formatOrLabel
+        : String(formatOrLabel?.quality || formatOrLabel?.qualityLabel || '');
+    const match = label.match(/(\d{2,5})p/i);
+    return match ? parseInt(match[1], 10) : null;
+}
+
+function _formatFps(format) {
+    const fps = _positiveNumber(format?.fps);
+    return fps ? Math.round(fps) : null;
+}
+
+function _hasDirectUrl(format) {
+    return typeof format?.url === 'string' && format.url.trim().length > 0;
+}
+
+function _formatQuality(format, type, height, fps) {
+    const rawQuality = typeof format?.qualityLabel === 'string' && format.qualityLabel.trim()
+        ? format.qualityLabel.trim()
+        : typeof format?.quality === 'string' && format.quality.trim()
+            ? format.quality.trim()
+            : '';
+
+    if (type === 'audio') {
+        const aqMap = {
+            AUDIO_QUALITY_HIGH: 'High',
+            AUDIO_QUALITY_MEDIUM: 'Medium',
+            AUDIO_QUALITY_LOW: 'Low'
+        };
+        const aqLabel = aqMap[format?.audioQuality] || null;
+        return 'Audio Only' + (aqLabel ? ` (${aqLabel})` : '');
+    }
+
+    if (rawQuality) return rawQuality;
+    if (height) return `${height}p${fps ? `${fps}` : ''}`;
+    return '?';
+}
+
+function _normalizePlayerFormat(format, preferredType) {
+    if (!format || typeof format !== 'object') return null;
+
+    const mime = typeof format.mimeType === 'string' && format.mimeType.trim()
+        ? format.mimeType.trim()
+        : 'video/mp4';
+    const isAudioMime = mime.toLowerCase().startsWith('audio/');
+    const type = preferredType || (isAudioMime ? 'audio' : 'video');
+    const height = _formatHeight(format);
+    const fps = _formatFps(format);
+    const hasDirectUrl = _hasDirectUrl(format);
+    const hasItag = _positiveNumber(format.itag) !== null;
+    const hasVideoMetadata = Boolean(height || format.qualityLabel || format.quality || mime.toLowerCase().startsWith('video/'));
+    const hasAudioMetadata = Boolean(format.audioQuality || format.audioSampleRate || isAudioMime);
+
+    // A metadata-only adaptive entry is useful only when it can still be
+    // described and selected by quality. Cipher/signature fields are never
+    // retained; yt-dlp resolves the actual stream in the native host.
+    if (!hasDirectUrl && (!hasItag || (type === 'audio' ? !hasAudioMetadata : !hasVideoMetadata))) {
+        return null;
+    }
+
+    const record = {
+        quality: _formatQuality(format, type, height, fps) + (type === 'video' ? ' (High Quality)' : ''),
+        mime,
+        itag: format.itag || 0,
+        size: format.contentLength || null,
+        type,
+        height,
+        fps,
+        hasDirectUrl
+    };
+
+    if (hasDirectUrl) record.url = format.url;
+    return record;
+}
+
 function parseStreamingData(data) {
     if (!data || !data.streamingData) return [];
 
-    const formats = (data.streamingData.formats || []).filter(f => f.url).map(f => ({
-        url: f.url,
-        quality: f.qualityLabel || f.quality || '?',
-        mime: f.mimeType || 'video/mp4',
-        itag: f.itag || 0,
-        size: f.contentLength || null,
-        type: 'video_audio'
-    }));
+    const formats = (data.streamingData.formats || [])
+        .map(f => _normalizePlayerFormat(f, 'video_audio'))
+        .filter(Boolean);
 
-    const adaptive = (data.streamingData.adaptiveFormats || []).filter(f => f.url).map(f => {
-        const isAudio = f.mimeType && f.mimeType.includes('audio');
-        let q    = f.qualityLabel || f.quality || (isAudio ? 'Audio' : '?');
-        let type = isAudio ? 'audio' : 'video';
-        if (type === 'video') q += ' (High Quality)';
-        if (type === 'audio') {
-            const aqMap = { 'AUDIO_QUALITY_HIGH': 'High', 'AUDIO_QUALITY_MEDIUM': 'Medium', 'AUDIO_QUALITY_LOW': 'Low' };
-            const aqLabel = (f.audioQuality && aqMap[f.audioQuality]) ? aqMap[f.audioQuality] : null;
-            q = 'Audio Only' + (aqLabel ? ` (${aqLabel})` : '');
-        }
-        return {
-            url: f.url,
-            quality: q,
-            mime: f.mimeType || (isAudio ? 'audio/mp4' : 'video/mp4'),
-            itag: f.itag || 0,
-            size: f.contentLength || null,
-            type
-        };
-    });
+    const adaptive = (data.streamingData.adaptiveFormats || [])
+        .map(f => _normalizePlayerFormat(
+            f,
+            typeof f.mimeType === 'string' && f.mimeType.toLowerCase().startsWith('audio/')
+                ? 'audio'
+                : 'video'
+        ))
+        .filter(Boolean);
 
     return [...formats, ...adaptive];
 }
@@ -97,12 +167,28 @@ function formatSize(bytes) {
     return mb >= 1 ? '~' + mb.toFixed(0) + ' MB' : '';
 }
 
+function _qualityOrder(format) {
+    const clean = String(format?.quality || '')
+        .replace(' (High Quality)', '')
+        .replace(/Audio Only.*/, 'Audio Only')
+        .trim();
+
+    if (QUALITY_ORDER[clean] !== undefined) return QUALITY_ORDER[clean];
+
+    const height = _formatHeight(format);
+    if (height) {
+        const knownHeights = [2160, 1440, 1080, 720, 480, 360, 240, 144];
+        const index = knownHeights.findIndex(value => height >= value);
+        if (index >= 0) return index * 2 + 1;
+    }
+    return 99;
+}
+
 function _deduplicateAndSort(allFormats, title) {
     const uniqueFormatsMap = new Map();
 
     for (const f of allFormats) {
-        const heightMatch = f.quality.match(/(\d+)p/);
-        const height = heightMatch ? heightMatch[1] : f.quality;
+        const height = _formatHeight(f) || f.quality;
         const key = height + '|' + f.type;
 
         if (uniqueFormatsMap.has(key)) {
@@ -111,7 +197,11 @@ function _deduplicateAndSort(allFormats, title) {
             const newCodec       = _getCodecPriority(f.mime);
             const existingSource = SOURCE_PRIORITY[existing.source] || 0;
             const newSource      = SOURCE_PRIORITY[f.source] || 0;
-            if (newCodec > existingCodec || (newCodec === existingCodec && newSource > existingSource)) {
+            const existingDirect = existing.hasDirectUrl === true || _hasDirectUrl(existing);
+            const newDirect = f.hasDirectUrl === true || _hasDirectUrl(f);
+            if (newDirect !== existingDirect
+                ? newDirect
+                : newCodec > existingCodec || (newCodec === existingCodec && newSource > existingSource)) {
                 uniqueFormatsMap.set(key, f);
             }
         } else {
@@ -125,14 +215,14 @@ function _deduplicateAndSort(allFormats, title) {
     const muxedHeights = new Set(
         finalList
             .filter(f => f.type === 'video_audio')
-            .map(f => { const m = f.quality.match(/(\d+)p/); return m ? m[1] : null; })
+            .map(f => _formatHeight(f))
             .filter(Boolean)
     );
     finalList = finalList.filter(f => {
         if (f.type !== 'video') return true;
-        const m = f.quality.match(/(\d+)p/);
-        if (!m) return true;
-        return !muxedHeights.has(m[1]);
+        const height = _formatHeight(f);
+        if (!height) return true;
+        return !muxedHeights.has(height);
     });
 
     finalList = finalList.map(f => ({
@@ -143,23 +233,16 @@ function _deduplicateAndSort(allFormats, title) {
     finalList.sort((a, b) => {
         const typeOrder = { 'video_audio': 0, 'video': 1, 'audio': 2 };
         if (typeOrder[a.type] !== typeOrder[b.type]) return typeOrder[a.type] - typeOrder[b.type];
-
-        let cleanA = a.quality.replace(' (High Quality)', '').replace(/Audio Only.*/, 'Audio Only').trim();
-        let cleanB = b.quality.replace(' (High Quality)', '').replace(/Audio Only.*/, 'Audio Only').trim();
-
-        const matchA = cleanA.match(/^(\d+px?|Audio Only)/);
-        const matchB = cleanB.match(/^(\d+px?|Audio Only)/);
-
-        if (matchA && matchB) {
-            const baseA  = matchA[1]; const baseB = matchB[1];
-            const orderA = QUALITY_ORDER[cleanA] !== undefined ? QUALITY_ORDER[cleanA] : (QUALITY_ORDER[baseA] ?? 99);
-            const orderB = QUALITY_ORDER[cleanB] !== undefined ? QUALITY_ORDER[cleanB] : (QUALITY_ORDER[baseB] ?? 99);
-            if (orderA !== orderB) return orderA - orderB;
-        }
-        return (QUALITY_ORDER[cleanA] ?? 99) - (QUALITY_ORDER[cleanB] ?? 99);
+        return _qualityOrder(a) - _qualityOrder(b);
     });
 
     return { formats: finalList, title };
+}
+
+function mergeFormatResults(results, title) {
+    const allFormats = (Array.isArray(results) ? results : [])
+        .flatMap(result => Array.isArray(result?.formats) ? result.formats : []);
+    return allFormats.length ? _deduplicateAndSort(allFormats, title) : { formats: [], title };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -319,9 +402,10 @@ async function fetchVideoFormats() {
                 if (data.videoDetails?.title) { title = data.videoDetails.title; titleVerified = true; }
                 const parsed = parseStreamingData(data);
                 if (parsed.length > 0) {
-                    const formats = await Promise.all(
-                        parsed.map(async f => ({ ...f, url: await descrambleUrl(f.url), source: 'WEB' }))
-                    );
+                    const formats = await Promise.all(parsed.map(async f => {
+                        if (!f.hasDirectUrl) return { ...f, source: 'WEB' };
+                        return { ...f, url: await descrambleUrl(f.url), source: 'WEB' };
+                    }));
                     return { formats, title };
                 }
             } catch (_) { }
@@ -329,20 +413,16 @@ async function fetchVideoFormats() {
         return { formats: [], title };
     })();
 
-    const webMuxed = webResult.formats.filter(f => f.type === 'video_audio');
-    if (webMuxed.length > 0) {
-        if (!titleVerified && webResult.title) title = webResult.title;
-        return _deduplicateAndSort(webResult.formats, title);
-    }
-
-    // Fall back to API clients in priority order
+    // Always combine the client responses. A client can expose a low-quality
+    // muxed stream while another client exposes higher adaptive metadata
+    // without a direct URL (for example 1440p/2160p Android entries).
     const clients = [
         { fetcher: fetchViaIOS,            name: 'IOS'     },
         { fetcher: fetchViaAndroid,        name: 'ANDROID' },
         { fetcher: fetchViaEmbeddedPlayer, name: 'TVHTML5' },
     ];
 
-    let allFormats = [...webResult.formats];
+    const sourceResults = [webResult];
     if (webResult.title && title === 'video') title = webResult.title;
 
     for (const { fetcher, name } of clients) {
@@ -350,32 +430,174 @@ async function fetchVideoFormats() {
             const result  = await fetcher(videoId);
             const formats = (result.formats || []).map(f => ({ ...f, source: name }));
             if (result.title && !titleVerified) { title = result.title; titleVerified = true; }
-            allFormats.push(...formats);
-            if (formats.some(f => f.type === 'video_audio')) break;
+            sourceResults.push({ formats, title: result.title });
         } catch (_) { }
     }
 
-    if (allFormats.length === 0) return { formats: [], title };
-    return _deduplicateAndSort(allFormats, title);
+    return mergeFormatResults(sourceResults, title);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  TRIGGER DOWNLOAD
 // ═════════════════════════════════════════════════════════════════════════════
 
+const activeNativeDownloadToasts = new Map();
+const activeDirectDownloads = new Map();
+
+function createDownloadId() {
+    const randomPart = Math.random().toString(36).slice(2, 12);
+    return `download-${Date.now().toString(36)}-${randomPart}`;
+}
+
+function getDownloadFormatLabel(format, outputFormat = null) {
+    const height = _formatHeight(format);
+    const quality = String(format?.quality || format?.qualityLabel || '').trim();
+    const qualityLabel = quality || (height ? `${height}p` : 'Download');
+    if (format?.type === 'audio') return String(outputFormat || 'MP3').toUpperCase();
+
+    const mime = String(format?.mime || format?.mimeType || '').toLowerCase();
+    const extension = outputFormat || (mime.includes('webm') ? 'webm' : 'mp4');
+    return `${qualityLabel} ${String(extension).toUpperCase()}`.trim();
+}
+
+function formatByteRate(bytesPerSecond) {
+    if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '—';
+    const units = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    let value = bytesPerSecond;
+    let index = 0;
+    while (value >= 1024 && index < units.length - 1) {
+        value /= 1024;
+        index++;
+    }
+    return `${value >= 10 || index === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[index]}`;
+}
+
+function formatDownloadEta(seconds) {
+    if (!Number.isFinite(seconds) || seconds < 0) return '—';
+    const rounded = Math.ceil(seconds);
+    if (rounded < 60) return `${rounded}s`;
+    const minutes = Math.floor(rounded / 60);
+    const remainder = rounded % 60;
+    return `${minutes}m ${String(remainder).padStart(2, '0')}s`;
+}
+
+function openDownloadFolderFromNotification(button) {
+    if (!button) return;
+    button.disabled = true;
+
+    const resetButton = () => {
+        button.disabled = false;
+    };
+
+    try {
+        chrome.runtime.sendMessage({ action: 'open_download_folder' }, (response) => {
+            if (chrome.runtime.lastError || !response || response.status !== 'ok') {
+                resetButton();
+                showYouTubeNotification('', i18n.t('downloadOpenFolderError'), null, 'error');
+                return;
+            }
+
+            button.textContent = i18n.t('downloadFolderOpened');
+            button.style.borderColor = 'rgba(123, 220, 137, .7)';
+            button.style.background = 'rgba(43, 166, 64, .22)';
+            // Keep the action reusable. Opening the folder is independent from
+            // the completed download, so one notification can open it again.
+            resetButton();
+        });
+    } catch (_) {
+        resetButton();
+        showYouTubeNotification('', i18n.t('downloadOpenFolderError'), null, 'error');
+    }
+}
+
+function registerNativeDownloadToast(downloadId, videoId, toast) {
+    if (!downloadId || !toast) return;
+    activeNativeDownloadToasts.set(String(downloadId), { videoId: String(videoId || ''), toast });
+}
+
+function getNativeDownloadEntry(downloadId, videoId) {
+    const directEntry = downloadId ? activeNativeDownloadToasts.get(String(downloadId)) : null;
+    if (directEntry) return { downloadId: String(downloadId), ...directEntry };
+
+    const candidates = [...activeNativeDownloadToasts.entries()]
+        .filter(([, entry]) => String(entry.videoId) === String(videoId || ''));
+    return candidates.length === 1
+        ? { downloadId: candidates[0][0], ...candidates[0][1] }
+        : null;
+}
+
+function takeNativeDownloadToast(downloadId, videoId) {
+    const entry = getNativeDownloadEntry(downloadId, videoId);
+    if (entry) activeNativeDownloadToasts.delete(entry.downloadId);
+    return entry;
+}
+
+function sendNativeDownloadCancel(downloadId, videoId, toast) {
+    try {
+        chrome.runtime.sendMessage({
+            action: 'cancel_video_download',
+            downloadId,
+            videoId
+        }, (response) => {
+            if (chrome.runtime.lastError || !response || response.status !== 'cancel_requested') {
+                toast.setState('error', i18n.t('notifDownloadFailed'));
+                toast.showRetry?.();
+            }
+        });
+    } catch (_) {
+        toast.setState('error', i18n.t('notifDownloadFailed'));
+        toast.showRetry?.();
+    }
+}
+
+async function readDirectResponseWithProgress(response, toast) {
+    const totalBytes = Number(response.headers?.get?.('content-length'));
+    if (!response.body?.getReader) {
+        const blob = await response.blob();
+        toast.update(i18n.t('notifDownloading'), { percent: Number.isFinite(totalBytes) ? 100 : null });
+        return blob;
+    }
+
+    const reader = response.body.getReader();
+    const chunks = [];
+    const startedAt = Date.now();
+    let receivedBytes = 0;
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!value) continue;
+
+        chunks.push(value);
+        receivedBytes += value.byteLength;
+        const elapsedSeconds = Math.max((Date.now() - startedAt) / 1000, 0.001);
+        const bytesPerSecond = receivedBytes / elapsedSeconds;
+        const remainingBytes = Number.isFinite(totalBytes) ? Math.max(totalBytes - receivedBytes, 0) : null;
+        toast.update(i18n.t('notifDownloading'), {
+            percent: Number.isFinite(totalBytes) && totalBytes > 0 ? (receivedBytes / totalBytes) * 100 : null,
+            speed: formatByteRate(bytesPerSecond),
+            eta: remainingBytes !== null ? formatDownloadEta(remainingBytes / bytesPerSecond) : '—'
+        });
+    }
+
+    return new Blob(chunks, {
+        type: response.headers?.get?.('content-type') || 'application/octet-stream'
+    });
+}
+
 async function triggerDownload(fmt, rawFilename, allFormats = []) {
     const videoId = getCurrentVideoId();
+    const downloadId = createDownloadId();
+    const qualityHeight = _formatHeight(fmt);
 
     // Prefer H.264 over WebM for muxed streams (wider compatibility)
     let actualFmt = fmt;
     const isMuxedWebm = fmt.type === 'video_audio' && fmt.mime && fmt.mime.includes('webm');
     if (isMuxedWebm && allFormats.length > 0) {
-        const heightMatch = fmt.quality.match(/(\d+)p/);
-        if (heightMatch) {
-            const h    = heightMatch[1];
+        if (qualityHeight) {
             const h264 = allFormats.find(f =>
-                f.type === 'video_audio' && f.url && f.mime && !f.mime.includes('webm') &&
-                f.quality.startsWith(h + 'p')
+                f.type === 'video_audio' && _hasDirectUrl(f) && f.mime && !f.mime.includes('webm') &&
+                _formatHeight(f) === qualityHeight
             );
             if (h264) actualFmt = h264;
         }
@@ -384,7 +606,7 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
     const isWebmContainer = actualFmt.mime && actualFmt.mime.includes('webm');
     const containerExt    = isWebmContainer ? '.webm' : '.mp4';
 
-    const safeFilename = rawFilename
+    const safeFilename = (rawFilename || 'video')
         .replace(/[/\\<>:"|?*\x00-\x1f]/g, '_')
         .replace(/\.(mp4|webm|mkv|m4v|3gp)$/i, '')
         .trim()
@@ -397,60 +619,113 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
     }
 
     // High-quality / adaptive streams → route through native host for proper mux
-    if (fmt.type === 'video' || fmt.type === 'audio' || fmt.quality.includes('Quality') ||
-        fmt.quality.includes('Audio') || parseInt(fmt.quality) >= 1080 ||
-        fmt.quality.includes('1080p') || fmt.quality.includes('1440p')) {
+    const hasDirectUrl = actualFmt.hasDirectUrl !== false && _hasDirectUrl(actualFmt);
+    const qualityLabel = String(fmt.quality || 'best');
+    if (!hasDirectUrl || fmt.type === 'video' || fmt.type === 'audio' || qualityLabel.includes('Quality') ||
+        qualityLabel.includes('Audio') || (qualityHeight !== null && qualityHeight >= 1080)) {
 
-        const toast = showYouTubeNotification(rawFilename, i18n.t('notifPreparing'), videoId, 'preparing');
-        const heightMatch = fmt.quality.match(/(\d+)p/);
-        const qualityHeight = heightMatch ? parseInt(heightMatch[1]) : null;
-
+        const toast = showYouTubeNotification(rawFilename, i18n.t('notifPreparing'), videoId, 'preparing', {
+            kind: 'download',
+            downloadId,
+            formatLabel: getDownloadFormatLabel(fmt, fmt.type === 'audio' ? 'mp3' : 'mp4'),
+            actionLabel: i18n.t('downloadOpenFolder'),
+            onAction: openDownloadFolderFromNotification,
+            onCancel: (id, card) => sendNativeDownloadCancel(id, videoId, card),
+            onRetry: () => { void triggerDownload(fmt, rawFilename, allFormats); }
+        });
+        registerNativeDownloadToast(downloadId, videoId, toast);
         safeMsg({
             action: 'download_video_native',
-            videoId, title: rawFilename, videoQuality: fmt.quality,
+            downloadId, videoId, title: rawFilename, videoQuality: qualityLabel,
             qualityHeight, isAudioOnly: fmt.type === 'audio', isVideoAudio: fmt.type === 'video_audio'
         }).then((response) => {
             if (response && response.status === 'sent_to_native') {
-                toast.success(i18n.t('notifDownloadingBg'));
+                toast.setState('downloading', i18n.t('notifDownloadingBg'), { percent: 0 });
             } else {
-                toast.remove();
-                alert(i18n.t('alertNativeNotFound'));
+                takeNativeDownloadToast(downloadId, videoId);
+                toast.setState('error', i18n.t('alertNativeNotFound'));
+                toast.showRetry?.();
             }
+        }).catch(() => {
+            takeNativeDownloadToast(downloadId, videoId);
+            toast.setState('error', i18n.t('alertNativeNotFound'));
+            toast.showRetry?.();
         });
         return;
     }
 
     // Simple muxed stream → fetch blob directly
-    const url   = actualFmt.url;
-    const toast = showYouTubeNotification(rawFilename, i18n.t('notifDownloading'), videoId, 'preparing');
+    if (!hasDirectUrl) {
+        alert(i18n.t('alertNativeNotFound') || 'Native host is required for this format.');
+        return;
+    }
+    const url = actualFmt.url;
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const toast = showYouTubeNotification(rawFilename, i18n.t('notifPreparing'), videoId, 'preparing', {
+        kind: 'download',
+        downloadId,
+        formatLabel: getDownloadFormatLabel(actualFmt),
+        actionLabel: i18n.t('downloadOpenFolder'),
+        onAction: openDownloadFolderFromNotification,
+        onCancel: () => controller?.abort(),
+        onRetry: () => { void triggerDownload(fmt, rawFilename, allFormats); }
+    });
+    activeDirectDownloads.set(downloadId, { controller, toast });
 
     try {
-        const response = await fetch(url, { credentials: 'include' });
+        const fetchOptions = { credentials: 'include' };
+        if (controller) fetchOptions.signal = controller.signal;
+        const response = await fetch(url, fetchOptions);
         if (!response.ok) throw new Error('HTTP ' + response.status);
 
-        const blob    = await response.blob();
+        toast.setState('downloading', i18n.t('notifDownloading'), { percent: 0 });
+        const blob = await readDirectResponseWithProgress(response, toast);
         const blobUrl = URL.createObjectURL(blob);
         const a       = document.createElement('a');
         a.href = blobUrl; a.download = safeFilename; a.style.display = 'none';
         document.body.appendChild(a); a.click();
         setTimeout(() => { a.remove(); URL.revokeObjectURL(blobUrl); }, 5000);
 
-        toast.success(i18n.t('notifDownloadComplete'));
+        toast.success(i18n.t('notifDownloadComplete'), { percent: 100 });
     } catch (err) {
-        toast.remove();
-        if (confirm(i18n.t('confirmOpenInTab').replace('%s', err.message))) {
-            window.open(url, '_blank');
+        if (controller?.signal.aborted || err?.name === 'AbortError') {
+            toast.setState('cancelled', i18n.t('downloadCancelled'));
+        } else {
+            toast.setState('error', i18n.t('notifDownloadFailed'));
+            toast.showRetry?.();
         }
+    } finally {
+        activeDirectDownloads.delete(downloadId);
     }
 }
 
 // Listen for native-host download result broadcast from background.js
 chrome.runtime.onMessage.addListener((msg) => {
+    if (msg && msg.action === 'download_video_progress') {
+        const entry = getNativeDownloadEntry(msg.downloadId, msg.videoId);
+        if (entry && (msg.status === 'progress' || msg.status === 'info')) {
+            entry.toast.update(i18n.t('notifDownloadingBg'), {
+                percent: msg.percent,
+                speed: msg.speed,
+                eta: msg.eta
+            });
+        }
+        return;
+    }
+
     if (msg && msg.action === 'download_video_result') {
+        const entry = takeNativeDownloadToast(msg.downloadId, msg.videoId);
+        if (!entry) return;
+
         if (msg.status === 'success') {
-            showYouTubeNotification(msg.title, i18n.t('notifDownloadComplete'), msg.videoId, 'success');
+            entry.toast.success(i18n.t('notifDownloadComplete'), { percent: 100 });
+            entry.toast.showAction?.();
+        } else if (msg.status === 'cancelled') {
+            entry.toast.setState('cancelled', i18n.t('downloadCancelled'));
+            entry.toast.showRetry?.();
         } else {
-            showYouTubeNotification(msg.title, i18n.t('notifDownloadFailed'),  msg.videoId, 'error');
+            entry.toast.setState('error', i18n.t('notifDownloadFailed'));
+            entry.toast.showRetry?.();
         }
     }
 });
@@ -501,9 +776,7 @@ function showDownloadModal(anchor, data, isShorts) {
         if (formats.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'yt-dl-empty';
-            const vid = getCurrentVideoId();
-            empty.innerHTML = i18n.t('dlModalNoStreams') +
-                (vid ? `<a class="yt-dl-fallback-link" href="https://y2mate.com/youtube/${vid}" target="_blank" rel="noopener">${i18n.t('dlModalWebService')}</a>` : '');
+            empty.textContent = i18n.t('dlModalNoStreams');
             modal.appendChild(empty);
         } else {
             formats.forEach(fmt => {
@@ -513,9 +786,9 @@ function showDownloadModal(anchor, data, isShorts) {
                 const sizeLabel  = formatSize(fmt.size);
                 const codecBadge = fmt.type === 'audio' ? 'MP3' : (fmt.codec || getMimeLabel(fmt.mime));
                 opt.innerHTML =
-                    `<span class="yt-dl-quality">${fmt.quality}</span>` +
-                    `<span class="yt-dl-badges"><span class="yt-dl-badge-mime">${codecBadge}</span>` +
-                    (sizeLabel ? `<span class="yt-dl-badge-size">${sizeLabel}</span>` : '') +
+                    `<span class="yt-dl-quality">${escapeHtml(fmt.quality)}</span>` +
+                    `<span class="yt-dl-badges"><span class="yt-dl-badge-mime">${escapeHtml(codecBadge)}</span>` +
+                    (sizeLabel ? `<span class="yt-dl-badge-size">${escapeHtml(sizeLabel)}</span>` : '') +
                     `</span><svg class="yt-dl-arrow" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`;
 
                 opt.addEventListener('click', async (e) => {
@@ -561,11 +834,7 @@ function showDownloadModal(anchor, data, isShorts) {
         if (formats.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'ytp-menuitem';
-            const vid = getCurrentVideoId();
-            empty.innerHTML = `<div class="ytp-menuitem-label" style="white-space:normal;line-height:1.5;">
-                ${i18n.t('dlModalNoStreams')}
-                ${vid ? `<a href="https://y2mate.com/youtube/${vid}" target="_blank" style="color:#3ea6ff;display:block;margin-top:4px;">${i18n.t('dlModalWebService')}</a>` : ''}
-            </div>`;
+            empty.textContent = i18n.t('dlModalNoStreams');
             menu.appendChild(empty);
         } else {
             formats.forEach(fmt => {
@@ -576,10 +845,10 @@ function showDownloadModal(anchor, data, isShorts) {
                 const sizeLabel  = formatSize(fmt.size);
                 const codecBadge = fmt.type === 'audio' ? 'MP3' : (fmt.codec || getMimeLabel(fmt.mime));
                 opt.innerHTML = `
-                    <div class="ytp-menuitem-label">${fmt.quality}</div>
+                    <div class="ytp-menuitem-label">${escapeHtml(fmt.quality)}</div>
                     <div class="ytp-menuitem-content">
-                        <span class="yt-dl-badge-mime" style="margin-right:8px;">${codecBadge}</span>
-                        ${sizeLabel ? `<span class="yt-dl-badge-size" style="margin-right:8px;">${sizeLabel}</span>` : ''}
+                        <span class="yt-dl-badge-mime" style="margin-right:8px;">${escapeHtml(codecBadge)}</span>
+                        ${sizeLabel ? `<span class="yt-dl-badge-size" style="margin-right:8px;">${escapeHtml(sizeLabel)}</span>` : ''}
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="white" style="opacity:0.6;vertical-align:middle;"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
                     </div>`;
                 opt.addEventListener('click', async (e) => {
@@ -647,6 +916,7 @@ function showDownloadModal(anchor, data, isShorts) {
 function createShortsDownloadButton(container) {
     const btn = document.createElement('button');
     btn.className = 'my-block-button my-dl-btn-shorts';
+    btn.dataset.shortsControl = 'download';
     btn.title = i18n.t('dlBtnTitle');
     btn.innerHTML = `
         <div class="my-btn-circle">
@@ -669,13 +939,111 @@ function createShortsDownloadButton(container) {
         showDownloadModal(btn, data, true);
     });
 
-    container.appendChild(btn);
+    if (typeof appendShortsControl === 'function') appendShortsControl(container, btn);
+    else container.appendChild(btn);
     return btn;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  VIDEO PLAYER DOWNLOAD BUTTON
 // ═════════════════════════════════════════════════════════════════════════════
+
+const VIDEO_BUTTON_TOOLTIP_ID = 'my-video-dl-tooltip';
+const VIDEO_BUTTON_TOOLTIP_DELAY = 300;
+let videoButtonTooltip = null;
+let videoButtonTooltipTimer = null;
+let videoButtonTooltipAnchor = null;
+
+function getVideoButtonTooltip() {
+    if (videoButtonTooltip && videoButtonTooltip.parentNode) return videoButtonTooltip;
+
+    const existing = document.getElementById?.(VIDEO_BUTTON_TOOLTIP_ID);
+    if (existing) {
+        videoButtonTooltip = existing;
+        return existing;
+    }
+
+    if (!document.body || typeof document.createElement !== 'function') return null;
+
+    const tooltip = document.createElement('div');
+    tooltip.id = VIDEO_BUTTON_TOOLTIP_ID;
+    tooltip.className = 'my-video-dl-tooltip';
+    tooltip.setAttribute('role', 'tooltip');
+    tooltip.setAttribute('aria-hidden', 'true');
+    tooltip.hidden = true;
+    document.body.appendChild(tooltip);
+    videoButtonTooltip = tooltip;
+    return tooltip;
+}
+
+function positionVideoButtonTooltip(button, tooltip) {
+    if (!button?.getBoundingClientRect || !tooltip) return;
+
+    const rect = button.getBoundingClientRect();
+    const tooltipHeight = tooltip.offsetHeight || 0;
+    const gap = 8;
+    let top = rect.top - tooltipHeight - gap;
+
+    // Keep the label visible for controls close to the top of the viewport.
+    if (top < 8) top = rect.bottom + gap;
+
+    const viewportWidth = window.innerWidth || document.documentElement?.clientWidth || 1024;
+    const left = Math.min(Math.max(rect.left + (rect.width / 2), 8), viewportWidth - 8);
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${Math.max(8, top)}px`;
+}
+
+function showVideoButtonTooltip(button) {
+    const text = button?.getAttribute?.('data-title') || button?.getAttribute?.('aria-label');
+    if (!text) return;
+
+    const tooltip = getVideoButtonTooltip();
+    if (!tooltip) return;
+
+    if (videoButtonTooltipAnchor && videoButtonTooltipAnchor !== button) {
+        videoButtonTooltipAnchor.removeAttribute?.('aria-describedby');
+    }
+
+    tooltip.textContent = text;
+    tooltip.hidden = false;
+    tooltip.setAttribute('aria-hidden', 'false');
+    positionVideoButtonTooltip(button, tooltip);
+    tooltip.classList.add('is-visible');
+    button.setAttribute('aria-describedby', VIDEO_BUTTON_TOOLTIP_ID);
+    videoButtonTooltipAnchor = button;
+}
+
+function hideVideoButtonTooltip(button = null) {
+    if (videoButtonTooltipTimer) {
+        clearTimeout(videoButtonTooltipTimer);
+        videoButtonTooltipTimer = null;
+    }
+
+    if (videoButtonTooltip) {
+        videoButtonTooltip.classList.remove('is-visible');
+        videoButtonTooltip.hidden = true;
+        videoButtonTooltip.setAttribute('aria-hidden', 'true');
+    }
+
+    const anchor = button || videoButtonTooltipAnchor;
+    anchor?.removeAttribute?.('aria-describedby');
+    if (!button || videoButtonTooltipAnchor === button) videoButtonTooltipAnchor = null;
+}
+
+function scheduleVideoButtonTooltip(button) {
+    if (videoButtonTooltipTimer) clearTimeout(videoButtonTooltipTimer);
+    videoButtonTooltipTimer = setTimeout(() => {
+        videoButtonTooltipTimer = null;
+        showVideoButtonTooltip(button);
+    }, VIDEO_BUTTON_TOOLTIP_DELAY);
+}
+
+function bindVideoButtonTooltip(button) {
+    button.addEventListener('mouseenter', () => scheduleVideoButtonTooltip(button));
+    button.addEventListener('focus', () => scheduleVideoButtonTooltip(button));
+    button.addEventListener('mouseleave', () => hideVideoButtonTooltip(button));
+    button.addEventListener('blur', () => hideVideoButtonTooltip(button));
+}
 
 function addVideoDownloadButton() {
     if (isShortPage()) return;
@@ -686,11 +1054,14 @@ function addVideoDownloadButton() {
     const btn = document.createElement('button');
     btn.className = 'ytp-button my-video-dl-btn';
     btn.setAttribute('data-title', i18n.t('dlBtnTitle'));
+    btn.setAttribute('data-tooltip-text', i18n.t('dlBtnTitle'));
     btn.setAttribute('aria-label', i18n.t('dlBtnAriaLabel'));
     btn.innerHTML = `<svg height="24" viewBox="0 0 24 24" width="24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="white"/></svg>`;
+    bindVideoButtonTooltip(btn);
 
     btn.addEventListener('click', async (e) => {
         e.stopPropagation(); e.preventDefault();
+        hideVideoButtonTooltip(btn);
         if (activeModal) { closeModal(); return; }
 
         const settingsBtn = document.querySelector('.ytp-settings-button');
@@ -711,49 +1082,91 @@ function addVideoDownloadButton() {
 }
 
 let videoPlayerInterval = null;
+let videoPlayerObserver = null;
+const VIDEO_PLAYER_POLL_INTERVAL = 100;
+const VIDEO_PLAYER_MAX_ATTEMPTS = 100;
+
+function stopVideoPlayerWatchers() {
+    if (videoPlayerInterval) {
+        clearInterval(videoPlayerInterval);
+        videoPlayerInterval = null;
+    }
+    if (videoPlayerObserver) {
+        videoPlayerObserver.disconnect();
+        videoPlayerObserver = null;
+    }
+}
+
+function attachVideoDownloadButtonIfReady() {
+    const controlsLeft = document.querySelector('.ytp-right-controls-left');
+    if (!controlsLeft) return false;
+
+    const existing = controlsLeft.querySelector('.my-video-dl-btn');
+    if (existing) {
+        existing.style.display = '';
+        return true;
+    }
+
+    addVideoDownloadButton();
+    return Boolean(controlsLeft.querySelector('.my-video-dl-btn'));
+}
+
+function mutationContainsVideoControls(mutations) {
+    const selector = '.ytp-right-controls-left, .ytp-settings-button, #movie_player, .html5-video-player';
+    return mutations.some(mutation => {
+        if (mutation.type !== 'childList') return false;
+        return [...mutation.addedNodes].some(node => {
+            if (!node || node.nodeType !== 1) return false;
+            return Boolean(node.matches?.(selector) || node.querySelector?.(selector));
+        });
+    });
+}
+
+function watchForVideoControls() {
+    if (videoPlayerObserver || !document.body || typeof MutationObserver !== 'function') return;
+
+    videoPlayerObserver = new MutationObserver((mutations) => {
+        if (mutationContainsVideoControls(mutations) && attachVideoDownloadButtonIfReady()) {
+            stopVideoPlayerWatchers();
+        }
+    });
+    videoPlayerObserver.observe(document.body, { childList: true, subtree: true });
+}
 
 /**
  * Periodically checks for the YouTube player controls and injects the download button.
  * Uses a limited number of attempts to avoid infinite loops.
  */
 function initVideoDownloadButton() {
-    // 1. Cleanup if already running or if disabled
-    if (videoPlayerInterval) clearInterval(videoPlayerInterval);
-    
+    // Keep one watcher alive while YouTube is constructing the player. Repeated
+    // mutation events must not restart the retry window and delay attachment.
     if (!EXTENSION_ENABLED || !DOWNLOADER_ENABLED || isShortPage()) {
+        hideVideoButtonTooltip();
+        stopVideoPlayerWatchers();
         const existing = document.querySelector('.my-video-dl-btn');
         if (existing) existing.style.display = 'none';
         return;
     }
 
-    // 2. Immediate check
-    const controlsLeft = document.querySelector('.ytp-right-controls-left');
-    if (controlsLeft && controlsLeft.querySelector('.my-video-dl-btn')) {
-        controlsLeft.querySelector('.my-video-dl-btn').style.display = '';
+    if (videoPlayerInterval || videoPlayerObserver) {
+        attachVideoDownloadButtonIfReady();
         return;
     }
 
-    // 3. Polling check (YouTube player controls are injected dynamically)
+    // Try synchronously first, then use a fast retry while the player is built.
+    if (attachVideoDownloadButtonIfReady()) return;
+    watchForVideoControls();
+
     let attempts = 0;
     videoPlayerInterval = setInterval(() => {
         attempts++;
-        if (attempts > 20) { 
-            clearInterval(videoPlayerInterval); 
-            videoPlayerInterval = null;
-            return; 
-        }
-
-        const controls = document.querySelector('.ytp-right-controls-left');
-        if (controls) {
-            if (!controls.querySelector('.my-video-dl-btn')) {
-                addVideoDownloadButton();
-            } else {
-                controls.querySelector('.my-video-dl-btn').style.display = '';
-            }
+        if (attachVideoDownloadButtonIfReady()) {
+            stopVideoPlayerWatchers();
+        } else if (attempts >= VIDEO_PLAYER_MAX_ATTEMPTS) {
             clearInterval(videoPlayerInterval);
             videoPlayerInterval = null;
         }
-    }, 500);
+    }, VIDEO_PLAYER_POLL_INTERVAL);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -761,9 +1174,13 @@ function initVideoDownloadButton() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 window.addEventListener('yt-navigate-finish', () => {
+    hideVideoButtonTooltip();
     if (activeModal) closeModal();
+    initVideoDownloadButton();
 });
 
 window.addEventListener('popstate', () => {
+    hideVideoButtonTooltip();
     if (activeModal) closeModal();
+    initVideoDownloadButton();
 });

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Shorts Blocker — Downloader</title>
+    <link rel="stylesheet" href="../css/download.css">
+</head>
+
+<body>
+    <div class="download-shell">
+        <header class="page-brand">
+            <div class="brand-lockup">
+                <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                        d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" />
+                </svg>
+                <div>
+                    <div class="brand-name" data-i18n="appName">Shorts Blocker</div>
+                    <div class="brand-kicker" data-i18n="downloadKicker">Private YouTube downloader</div>
+                </div>
+            </div>
+            <a class="header-link" href="setup.html" target="_blank" rel="noopener noreferrer"
+                data-i18n="btnSetupMonitor">Setup / Monitor</a>
+        </header>
+
+        <main class="download-layout">
+            <section class="intro-card">
+                <div class="eyebrow" data-i18n="downloadPageEyebrow">LOCAL DOWNLOADS</div>
+                <h1 data-i18n="downloadPageTitle">Download a YouTube video</h1>
+                <p class="intro-copy" data-i18n="downloadPageSubtitle">
+                    Paste a public YouTube video link and choose the format that fits you.
+                </p>
+
+                <form id="url-form" novalidate>
+                    <label class="field-label" for="video-url" data-i18n="downloadUrlLabel">YouTube URL</label>
+                    <div class="url-input-row">
+                        <input id="video-url" name="video-url" type="url" autocomplete="url" spellcheck="false"
+                            data-i18n-placeholder="downloadUrlPlaceholder"
+                            placeholder="https://www.youtube.com/watch?v=..." aria-describedby="url-status">
+                        <button class="icon-button" id="paste-url" type="button"
+                            data-i18n-title="downloadPaste" aria-label="Paste">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path
+                                    d="M19 2h-4.18C14.4.84 13.3 0 12 0s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm7 18H5V4h2v3h10V4h2v16z" />
+                            </svg>
+                        </button>
+                        <button class="icon-button" id="clear-url" type="button"
+                            data-i18n-title="downloadClear" aria-label="Clear">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path
+                                    d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.41 4.3 19.71 2.89 18.3 9.18 12 2.89 5.7 4.3 4.29l6.29 6.3 6.3-6.3z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="form-actions">
+                        <button class="text-button" id="use-current-url" type="button" data-i18n="downloadUseCurrent">
+                            Use current YouTube tab
+                        </button>
+                        <button class="primary-button" id="fetch-formats" type="submit">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path
+                                    d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm-6.7 3.2L3.84 5.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8z" />
+                            </svg>
+                            <span data-i18n="downloadFetchFormats">Get formats</span>
+                        </button>
+                    </div>
+                    <p class="inline-status" id="url-status" role="status" aria-live="polite"></p>
+                </form>
+            </section>
+
+            <aside class="side-column">
+                <section class="side-card">
+                    <div class="side-card-heading">
+                        <div>
+                            <div class="eyebrow" data-i18n="downloadHostLabel">DOWNLOAD ENGINE</div>
+                            <h2 data-i18n="downloadHostStatus">Native host status</h2>
+                        </div>
+                        <span class="status-dot checking" id="host-status-dot"></span>
+                    </div>
+                    <p class="side-status" id="host-status-text" data-i18n="downloadHostChecking">
+                        Checking connection...
+                    </p>
+                    <button class="outline-button full-width" id="open-setup" type="button">
+                        <span data-i18n="downloadOpenSetup">Open setup</span>
+                    </button>
+                </section>
+
+                <section class="side-card">
+                    <div class="eyebrow" data-i18n="downloadPathLabel">SAVE LOCATION</div>
+                    <h2 data-i18n="downloadPathTitle">Download folder</h2>
+                    <div class="path-display" id="path-display" data-i18n="downloadPathDefault">
+                        Default Downloads folder
+                    </div>
+                    <button class="outline-button full-width" id="change-path" type="button">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                                d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                        </svg>
+                        <span data-i18n="downloadChangePath">Change folder</span>
+                    </button>
+                    <p class="side-hint" id="path-status" aria-live="polite"></p>
+                </section>
+            </aside>
+
+            <section class="content-card hidden" id="media-card">
+                <div class="media-heading">
+                    <div>
+                        <div class="eyebrow" data-i18n="downloadSourceLabel">SOURCE VIDEO</div>
+                        <h2 id="media-title">—</h2>
+                        <p id="media-meta" class="muted-copy"></p>
+                    </div>
+                    <span class="format-count" id="format-count"></span>
+                </div>
+            </section>
+
+            <section class="content-card hidden" id="presets-section">
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow" data-i18n="downloadPresetsEyebrow">QUICK CHOICES</div>
+                        <h2 data-i18n="downloadPresetsTitle">Recommended formats</h2>
+                    </div>
+                </div>
+                <div class="preset-grid" id="preset-grid"></div>
+            </section>
+
+            <section class="content-card hidden" id="advanced-section">
+                <div class="section-heading">
+                    <div>
+                        <div class="eyebrow" data-i18n="downloadAdvancedEyebrow">FULL CONTROL</div>
+                        <h2 data-i18n="downloadAdvancedTitle">Advanced formats</h2>
+                    </div>
+                    <button class="text-button" id="advanced-toggle" type="button" aria-expanded="true"
+                        aria-controls="advanced-panel" data-i18n="downloadCollapse">
+                        Collapse
+                    </button>
+                </div>
+                <div id="advanced-panel">
+                    <div class="format-table-wrap">
+                        <table class="format-table">
+                            <thead>
+                                <tr>
+                                    <th data-i18n="downloadResolution">Quality</th>
+                                    <th data-i18n="downloadCodec">Codec</th>
+                                    <th data-i18n="downloadType">Type</th>
+                                    <th data-i18n="downloadSize">Size</th>
+                                    <th data-i18n="downloadOutputLabel">Output</th>
+                                    <th class="sr-only" data-i18n="downloadAction">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="format-table-body"></tbody>
+                        </table>
+                    </div>
+                    <p class="empty-state hidden" id="advanced-empty" data-i18n="downloadNoFormats">
+                        No formats were found.
+                    </p>
+                </div>
+            </section>
+
+        </main>
+
+        <aside class="jobs-notification hidden" id="jobs-section" aria-label="Download activity">
+            <section class="jobs-panel" id="jobs-panel" aria-labelledby="jobs-panel-title">
+                <header class="jobs-panel-header">
+                    <div>
+                        <div class="eyebrow" data-i18n="downloadJobsEyebrow">ACTIVITY</div>
+                        <h2 id="jobs-panel-title">
+                            <span data-i18n="downloadJobsTitle">Downloads</span>
+                            <span class="jobs-count hidden" id="jobs-count" aria-live="polite">0</span>
+                        </h2>
+                    </div>
+                    <div class="jobs-panel-header-actions">
+                        <button class="jobs-open-folder" id="jobs-open-folder" type="button"
+                            data-i18n-title="downloadOpenFolder">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                                <path d="M12 10v3H9l3 3 3-3h-3v-3z" />
+                            </svg>
+                            <span data-i18n="downloadOpenFolder">Open folder</span>
+                        </button>
+                        <button class="icon-button jobs-panel-toggle" id="jobs-panel-toggle" type="button"
+                            aria-expanded="true" aria-controls="jobs-panel-body"
+                            data-i18n-title="downloadJobsCollapse">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m7.41 8.59 4.59 4.58 4.59-4.58L18 10l-6 6-6-6z" />
+                            </svg>
+                        </button>
+                    </div>
+                </header>
+                <div class="jobs-panel-body" id="jobs-panel-body">
+                    <div class="jobs-list" id="jobs-list"></div>
+                </div>
+            </section>
+
+            <button class="jobs-indicator" id="jobs-indicator" type="button" hidden
+                aria-expanded="false" aria-controls="jobs-panel" data-i18n-title="downloadJobsExpand">
+                <span class="jobs-indicator-dot" aria-hidden="true"></span>
+                <span class="jobs-indicator-copy">
+                    <span class="jobs-indicator-format" id="jobs-indicator-format">MP4</span>
+                    <span class="jobs-indicator-status" id="jobs-indicator-status">Downloading</span>
+                </span>
+                <span class="jobs-indicator-count" id="jobs-indicator-count" hidden>1</span>
+            </button>
+
+            <div class="sr-only" id="jobs-live-status" role="status" aria-live="polite" aria-atomic="true"></div>
+        </aside>
+
+        <footer class="page-footer">
+            <span data-i18n="privacyDesc">No data is collected or transmitted.</span>
+            <span class="footer-brand">Paracci</span>
+        </footer>
+    </div>
+
+    <script src="../js/i18n/translations.js"></script>
+    <script src="../js/download-policy.js"></script>
+    <script src="../js/download-page.js"></script>
+</body>
+
+</html>

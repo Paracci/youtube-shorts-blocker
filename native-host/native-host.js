@@ -3,37 +3,142 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const https = require('https');
+const crypto = require('crypto');
 const { spawn } = require('child_process');
+const { parseYouTubeUrl } = require('./download-policy');
 
 // The local path where we expect to find our bundled/downloaded yt-dlp tool
 const YTDLP_BIN = path.join(__dirname, 'yt-dlp.exe');
+const FFMPEG_HOME = path.join(__dirname, 'ffmpeg');
+const FFMPEG_BIN = path.join(FFMPEG_HOME, 'ffmpeg.exe');
+const FFMPEG_RELEASE_TAG = 'autobuild-2026-08-11-13-11';
+const FFMPEG_ARCHIVE_NAME = 'ffmpeg-n8.1.2-34-g9b6c8969e0-win64-gpl-shared-8.1.zip';
+const FFMPEG_ARCHIVE_URL =
+    'https://github.com/BtbN/FFmpeg-Builds/releases/download/' +
+    FFMPEG_RELEASE_TAG + '/' + FFMPEG_ARCHIVE_NAME;
+const FFMPEG_ARCHIVE_SHA256 =
+    'e9d24d8cdd3c2aab4bc5923839d777b693d72a5cb6152bf61c263454b9023dd6';
 
-const downloadYtdlp = () => {
+let ytdlpInstallPromise = null;
+let ffmpegInstallPromise = null;
+
+function requestBuffer(url, headers = {}, redirectCount = 0, maxBytes = 100 * 1024 * 1024) {
     return new Promise((resolve, reject) => {
-        const fileStream = fs.createWriteStream(YTDLP_BIN);
-        // Follow redirects since GitHub releases redirect to objects
-        const attemptDownload = (url) => {
-            https.get(url, (res) => {
-                if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-                    attemptDownload(res.headers.location);
-                } else if (res.statusCode === 200) {
-                    res.pipe(fileStream);
-                    fileStream.on('finish', () => {
-                        fileStream.close();
-                        resolve();
-                    });
-                } else {
-                    reject(new Error(`Server returned ${res.statusCode}`));
+        if (redirectCount > 5) {
+            reject(new Error('Too many redirects while contacting GitHub.'));
+            return;
+        }
+
+        const request = https.get(url, {
+            headers: { 'User-Agent': 'YouTube-Shorts-Blocker-Native-Host', ...headers }
+        }, (res) => {
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                res.resume();
+                try {
+                    const redirectUrl = new URL(res.headers.location, url).toString();
+                    if (!redirectUrl.startsWith('https://')) {
+                        throw new Error('Refusing a non-HTTPS GitHub redirect.');
+                    }
+                    requestBuffer(redirectUrl, headers, redirectCount + 1, maxBytes)
+                        .then(resolve, reject);
+                } catch (error) {
+                    reject(error);
                 }
-            }).on('error', (err) => {
-                fs.unlink(YTDLP_BIN, () => { });
-                reject(err);
+                return;
+            }
+
+            const contentLength = Number(res.headers['content-length']);
+            if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+                res.resume();
+                reject(new Error('GitHub response is larger than the allowed limit.'));
+                return;
+            }
+
+            const chunks = [];
+            let totalBytes = 0;
+            let aborted = false;
+            res.on('data', chunk => {
+                totalBytes += chunk.length;
+                if (totalBytes > maxBytes) {
+                    aborted = true;
+                    res.destroy();
+                    reject(new Error('GitHub response is larger than the allowed limit.'));
+                    return;
+                }
+                chunks.push(chunk);
             });
-        };
-        attemptDownload('https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe');
+            res.on('error', error => {
+                if (!aborted) reject(error);
+            });
+            res.on('end', () => {
+                if (aborted) return;
+                if (res.statusCode !== 200) {
+                    reject(new Error(`Server returned ${res.statusCode}`));
+                    return;
+                }
+                resolve(Buffer.concat(chunks));
+            });
+        });
+        request.on('error', reject);
     });
-};
+}
+
+async function downloadYtdlp() {
+    const releaseBuffer = await requestBuffer(
+        'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest',
+        { Accept: 'application/vnd.github+json' }
+    );
+    const release = JSON.parse(releaseBuffer.toString('utf8'));
+    const assets = Array.isArray(release.assets) ? release.assets : [];
+    const executable = assets.find(asset => asset.name === 'yt-dlp.exe');
+    if (!executable?.browser_download_url) throw new Error('yt-dlp.exe asset not found.');
+
+    let expectedHash = typeof executable.digest === 'string'
+        ? executable.digest.replace(/^sha256:/i, '').toLowerCase()
+        : '';
+
+    // Older GitHub API responses may omit asset.digest. Use the release's
+    // published SHA2-256SUMS asset in that case; never install an unchecked
+    // binary downloaded from a redirect URL.
+    if (!/^[a-f0-9]{64}$/.test(expectedHash)) {
+        const sumsAsset = assets.find(asset => /^sha2-256sums$/i.test(asset.name));
+        if (sumsAsset?.browser_download_url) {
+            const sums = (await requestBuffer(sumsAsset.browser_download_url)).toString('utf8');
+            const escapedName = executable.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const match = sums.match(new RegExp(`^([a-f0-9]{64})\\s+\\*?${escapedName}\\s*$`, 'im'));
+            expectedHash = match ? match[1].toLowerCase() : '';
+        }
+    }
+    if (!/^[a-f0-9]{64}$/.test(expectedHash)) {
+        throw new Error('No trusted SHA-256 digest was published for yt-dlp.exe.');
+    }
+
+    const binary = await requestBuffer(executable.browser_download_url);
+    const actualHash = crypto.createHash('sha256').update(binary).digest('hex');
+    if (actualHash !== expectedHash) {
+        throw new Error('yt-dlp.exe SHA-256 verification failed.');
+    }
+
+    const tempPath = `${YTDLP_BIN}.download`;
+    const backupPath = `${YTDLP_BIN}.previous`;
+    fs.writeFileSync(tempPath, binary);
+    try {
+        fs.rmSync(backupPath, { force: true });
+        if (fs.existsSync(YTDLP_BIN)) fs.renameSync(YTDLP_BIN, backupPath);
+        fs.renameSync(tempPath, YTDLP_BIN);
+        fs.rmSync(backupPath, { force: true });
+    } catch (error) {
+        try { fs.rmSync(tempPath, { force: true }); } catch (_) { }
+        try {
+            if (!fs.existsSync(YTDLP_BIN) && fs.existsSync(backupPath)) {
+                fs.renameSync(backupPath, YTDLP_BIN);
+            }
+        } catch (_) { }
+        throw error;
+    }
+}
 
 // ── Native Messaging stdin reader ─────────────────────────────────────────────
 // The old implementation called process.stdin.on('data', ...) inside getMessage()
@@ -48,7 +153,8 @@ const _messageQueue = [];   // resolved messages waiting to be consumed
 const _resolverQueue = [];  // pending getMessage() callers waiting for a message
 let _stdinBuf = Buffer.alloc(0);
 
-process.stdin.on('data', (chunk) => {
+function startNativeMessaging() {
+    process.stdin.on('data', (chunk) => {
     _stdinBuf = Buffer.concat([_stdinBuf, chunk]);
 
     // A single chunk may contain multiple complete messages — drain all of them
@@ -74,9 +180,11 @@ process.stdin.on('data', (chunk) => {
             _messageQueue.push(parsed);
         }
     }
-});
+    });
 
-process.stdin.on('end', () => process.exit(0));
+    process.stdin.on('end', () => process.exit(0));
+    process.stdout.on('error', () => process.exit(0));
+}
 
 const getMessage = () => {
     return new Promise((resolve) => {
@@ -89,78 +197,880 @@ const getMessage = () => {
     });
 };
 
-const sendMessage = (msg) => {
+const encodeNativeMessage = (msg) => {
     const buffer = Buffer.from(JSON.stringify(msg));
     const header = Buffer.alloc(4);
     header.writeUInt32LE(buffer.length, 0);
-    process.stdout.write(header);
-    process.stdout.write(buffer);
+    return Buffer.concat([header, buffer]);
+};
+
+const sendMessage = (msg) => {
+    try {
+        process.stdout.write(encodeNativeMessage(msg));
+    } catch (_) {
+        // Chrome closed the native-messaging pipe.
+    }
 };
 
 // Main loop
-const activeNativeDownloads = new Set(); // videoId → prevents duplicate spawns
+const activeNativeDownloads = new Set(); // videoId + quality → prevents duplicate spawns
+const activeVideoDownloads = new Map(); // downloadId → { child, videoId, downloadKey, cancelled }
+const activePageDownloads = new Map(); // jobId → { child, requestId, cancelled }
+const pageJobReservations = new Set(); // covers metadata/tool setup before child spawn
+const pendingPageCancellations = new Map(); // jobId → requestId
+
+const PAGE_ID_PATTERN = /^[A-Za-z0-9_-]{8,80}$/;
+const FORMAT_ID_PATTERN = /^[A-Za-z0-9_.-]{1,40}$/;
+const DOWNLOAD_ID_PATTERN = /^[A-Za-z0-9_-]{8,100}$/;
+const PROFILE_ID_PATTERN = /^(best_mp4|height_(2160|1440|1080|720)|audio_(mp3|m4a))$/;
+const OUTPUT_FORMATS = new Set(['mp4', 'webm', 'mkv', 'mp3', 'm4a', 'opus']);
+
+function isPageId(value) {
+    return typeof value === 'string' && PAGE_ID_PATTERN.test(value);
+}
+
+function isDownloadId(value) {
+    return typeof value === 'string' && DOWNLOAD_ID_PATTERN.test(value);
+}
+
+function isSafeFormatId(value) {
+    return typeof value === 'string' && FORMAT_ID_PATTERN.test(value);
+}
+
+function isSafeProfileId(value) {
+    return typeof value === 'string' && PROFILE_ID_PATTERN.test(value);
+}
+
+function isSafeOutputFormat(value) {
+    return typeof value === 'string' && OUTPUT_FORMATS.has(value);
+}
+
+function sanitizeFilePart(value, fallback = 'video') {
+    const safe = String(value || fallback)
+        .replace(/[/\\<>:"|?*\x00-\x1f]/g, '_')
+        .replace(/\.{2,}/g, '.')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 150);
+    return safe || fallback;
+}
+
+function redactStreamUrls(value) {
+    return String(value || '').replace(
+        /https?:\/\/[^\s"'<>]*googlevideo\.com[^\s"'<>]*/gi,
+        '[stream URL hidden]'
+    );
+}
+
+function runCaptured(binary, args, maxBytes = 24 * 1024 * 1024) {
+    return new Promise((resolve, reject) => {
+        let child;
+        try {
+            child = spawn(binary, args, { windowsHide: true });
+        } catch (error) {
+            reject(error);
+            return;
+        }
+
+        let stdout = '';
+        let stderr = '';
+        let tooLarge = false;
+
+        const append = (target, chunk) => {
+            if (tooLarge) return target;
+            const next = target + chunk.toString();
+            if (Buffer.byteLength(next, 'utf8') > maxBytes) {
+                tooLarge = true;
+                try { child.kill(); } catch (_) { }
+                return target;
+            }
+            return next;
+        };
+
+        child.stdout.on('data', chunk => { stdout = append(stdout, chunk); });
+        child.stderr.on('data', chunk => { stderr = append(stderr, chunk); });
+        child.on('error', reject);
+        child.on('close', code => {
+            if (tooLarge) {
+                reject(new Error('yt-dlp output exceeded the safety limit.'));
+            } else if (code !== 0) {
+                reject(new Error((stderr || stdout || ('Process exited with code ' + code)).trim().slice(-1200)));
+            } else {
+                resolve({ stdout, stderr, code });
+            }
+        });
+    });
+}
+
+function parseJsonOutput(output) {
+    const text = String(output || '');
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start < 0 || end <= start) throw new Error('yt-dlp returned no media metadata.');
+    return JSON.parse(text.slice(start, end + 1));
+}
+
+function normalizeYtdlpFormat(format) {
+    const id = String(format?.format_id || '');
+    const vcodec = typeof format?.vcodec === 'string' ? format.vcodec : '';
+    const acodec = typeof format?.acodec === 'string' ? format.acodec : '';
+    const hasVideo = Boolean(vcodec && vcodec !== 'none');
+    const hasAudio = Boolean(acodec && acodec !== 'none');
+    if (!id || (!hasVideo && !hasAudio)) return null;
+
+    const type = hasVideo && hasAudio ? 'muxed' : hasVideo ? 'video' : 'audio';
+    const numeric = (value) => Number.isFinite(Number(value)) && Number(value) > 0
+        ? Number(value)
+        : null;
+    const filesize = numeric(format.filesize) || numeric(format.filesize_approx);
+
+    return {
+        id,
+        type,
+        ext: String(format.ext || '').replace(/[^a-z0-9]/gi, '').slice(0, 10),
+        width: numeric(format.width),
+        height: numeric(format.height),
+        fps: numeric(format.fps),
+        vcodec: hasVideo ? vcodec.slice(0, 32) : '',
+        acodec: hasAudio ? acodec.slice(0, 32) : '',
+        filesize,
+        hasVideo,
+        hasAudio
+    };
+}
+
+async function extractVideoMetadata(url) {
+    const result = await runCaptured(YTDLP_BIN, [
+        '--dump-single-json',
+        '--skip-download',
+        '--no-playlist',
+        '--no-warnings',
+        url
+    ]);
+    const data = parseJsonOutput(result.stdout);
+    const formats = Array.isArray(data.formats) ? data.formats : [];
+    const unique = new Map();
+    for (const rawFormat of formats) {
+        const normalized = normalizeYtdlpFormat(rawFormat);
+        if (normalized && !unique.has(normalized.id)) unique.set(normalized.id, normalized);
+    }
+
+    const normalizedFormats = [...unique.values()]
+        .sort((a, b) => {
+            const typeOrder = { muxed: 0, video: 1, audio: 2 };
+            const typeDiff = (typeOrder[a.type] || 9) - (typeOrder[b.type] || 9);
+            if (typeDiff) return typeDiff;
+            return (b.height || 0) - (a.height || 0) || (b.fps || 0) - (a.fps || 0);
+        })
+        .slice(0, 128);
+
+    return {
+        title: sanitizeFilePart(data.title || 'video'),
+        duration: numericDuration(data.duration),
+        formats: normalizedFormats
+    };
+}
+
+function numericDuration(value) {
+    return Number.isFinite(Number(value)) && Number(value) > 0 ? Number(value) : 0;
+}
+
+function installYtdlp() {
+    if (!ytdlpInstallPromise) {
+        ytdlpInstallPromise = downloadYtdlp().finally(() => {
+            ytdlpInstallPromise = null;
+        });
+    }
+    return ytdlpInstallPromise;
+}
+
+async function ensureYtdlp() {
+    if (fs.existsSync(YTDLP_BIN)) return;
+    await installYtdlp();
+    if (!fs.existsSync(YTDLP_BIN)) throw new Error('yt-dlp.exe was not installed.');
+}
+
+function powershellLiteral(value) {
+    return "'" + String(value).replace(/'/g, "''") + "'";
+}
+
+function expandZipArchive(zipPath, destination) {
+    const script = [
+        "$ErrorActionPreference = 'Stop'",
+        'Expand-Archive -LiteralPath ' + powershellLiteral(zipPath) +
+            ' -DestinationPath ' + powershellLiteral(destination) + ' -Force'
+    ].join('; ');
+
+    return new Promise((resolve, reject) => {
+        const child = spawn('powershell.exe', [
+            '-NoProfile',
+            '-NonInteractive',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-Command',
+            script
+        ], { windowsHide: true });
+        let stderr = '';
+        child.stderr.on('data', chunk => { stderr += chunk.toString(); });
+        child.on('error', reject);
+        child.on('close', code => {
+            if (code === 0) resolve();
+            else reject(new Error((stderr || 'Could not extract ffmpeg archive.').trim()));
+        });
+    });
+}
+
+function findFileRecursive(directory, filename) {
+    if (!fs.existsSync(directory)) return null;
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const candidate = path.join(directory, entry.name);
+        if (entry.isFile() && entry.name.toLowerCase() === filename.toLowerCase()) {
+            return candidate;
+        }
+        if (entry.isDirectory()) {
+            const nested = findFileRecursive(candidate, filename);
+            if (nested) return nested;
+        }
+    }
+    return null;
+}
+
+async function downloadFfmpeg() {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'paracci-ffmpeg-'));
+    const archivePath = path.join(tempRoot, FFMPEG_ARCHIVE_NAME);
+    const extractPath = path.join(tempRoot, 'extract');
+    const stagedPath = path.join(__dirname, 'ffmpeg.download');
+
+    try {
+        sendMessage({ status: 'media_tool_progress', message: 'Downloading verified ffmpeg...' });
+        const archive = await requestBuffer(FFMPEG_ARCHIVE_URL, {}, 0, 120 * 1024 * 1024);
+        const actualHash = crypto.createHash('sha256').update(archive).digest('hex');
+        if (actualHash !== FFMPEG_ARCHIVE_SHA256) {
+            throw new Error('ffmpeg archive SHA-256 verification failed.');
+        }
+
+        fs.writeFileSync(archivePath, archive);
+        fs.mkdirSync(extractPath, { recursive: true });
+        await expandZipArchive(archivePath, extractPath);
+
+        const executable = findFileRecursive(extractPath, 'ffmpeg.exe');
+        if (!executable) throw new Error('ffmpeg.exe was not found in the verified archive.');
+
+        const binDirectory = path.dirname(executable);
+        fs.rmSync(stagedPath, { recursive: true, force: true });
+        fs.cpSync(binDirectory, stagedPath, { recursive: true });
+
+        // Swap the complete directory only after the archive has been
+        // verified and extracted. If the rename fails, restore the previous
+        // directory instead of leaving the host without its old binary.
+        const backupPath = path.join(__dirname, 'ffmpeg.previous');
+        let movedPrevious = false;
+        try {
+            fs.rmSync(backupPath, { recursive: true, force: true });
+            if (fs.existsSync(FFMPEG_HOME)) {
+                fs.renameSync(FFMPEG_HOME, backupPath);
+                movedPrevious = true;
+            }
+            fs.renameSync(stagedPath, FFMPEG_HOME);
+            if (!fs.existsSync(FFMPEG_BIN)) throw new Error('Verified ffmpeg installation is incomplete.');
+            fs.rmSync(backupPath, { recursive: true, force: true });
+        } catch (error) {
+            try { fs.rmSync(FFMPEG_HOME, { recursive: true, force: true }); } catch (_) { }
+            if (movedPrevious && fs.existsSync(backupPath)) {
+                try { fs.renameSync(backupPath, FFMPEG_HOME); } catch (_) { }
+            }
+            throw error;
+        }
+    } finally {
+        fs.rmSync(tempRoot, { recursive: true, force: true });
+        fs.rmSync(stagedPath, { recursive: true, force: true });
+    }
+}
+
+async function ensureFfmpeg() {
+    if (fs.existsSync(FFMPEG_BIN)) return FFMPEG_BIN;
+    try {
+        if (!ffmpegInstallPromise) {
+            ffmpegInstallPromise = downloadFfmpeg().finally(() => {
+                ffmpegInstallPromise = null;
+            });
+        }
+        await ffmpegInstallPromise;
+    } catch (error) {
+        const wrapped = new Error('ffmpeg setup failed: ' + String(error?.message || error));
+        wrapped.code = 'ffmpeg_required';
+        throw wrapped;
+    }
+    if (!fs.existsSync(FFMPEG_BIN)) throw new Error('ffmpeg.exe is not available.');
+    return FFMPEG_BIN;
+}
+
+function getToolStatus() {
+    return {
+        ytdlpReady: fs.existsSync(YTDLP_BIN),
+        ffmpegReady: fs.existsSync(FFMPEG_BIN)
+    };
+}
+
+function parseProgressLine(line) {
+    const message = redactStreamUrls(String(line || '').replace(/\s+/g, ' ').trim()).slice(-300);
+    const match = message.match(/(\d+(?:\.\d+)?)%/);
+    const speedMatch = message.match(/\bat\s+([\d.]+\s*(?:B|K|M|G)i?B\/s)/i);
+    const etaMatch = message.match(/\bETA\s+([\d:]+)/i);
+    return {
+        percent: match ? Math.max(0, Math.min(100, Number(match[1]))) : null,
+        speed: speedMatch ? speedMatch[1].replace(/\s+/g, '') : null,
+        eta: etaMatch ? etaMatch[1] : null,
+        message
+    };
+}
+
+function terminateProcessTree(child) {
+    if (!child || !child.pid) return;
+    if (process.platform === 'win32') {
+        try {
+            spawn('taskkill', ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true });
+        } catch (_) {
+            try { child.kill(); } catch (_) { }
+        }
+    } else {
+        try { child.kill('SIGTERM'); } catch (_) { }
+    }
+}
+
+async function resolvePageSelector(request, metadata) {
+    const outputFormat = String(request.outputFormat || 'mp4').toLowerCase();
+    if (!isSafeOutputFormat(outputFormat)) throw new Error('Unsupported output format.');
+
+    if (request.profileId) {
+        if (!isSafeProfileId(request.profileId)) throw new Error('Unsupported download profile.');
+        if (request.profileId === 'best_mp4') {
+            if (outputFormat !== 'mp4') throw new Error('Quality profiles use MP4 output.');
+            return { selector: 'bestvideo+bestaudio/best', audioOnly: false };
+        }
+        if (request.profileId.startsWith('height_')) {
+            if (outputFormat !== 'mp4') throw new Error('Quality profiles use MP4 output.');
+            const height = Number(request.profileId.slice(7));
+            return {
+                selector: 'bestvideo[height<=' + height + ']+bestaudio/best[height<=' + height + ']',
+                audioOnly: false
+            };
+        }
+        if (outputFormat !== request.profileId.slice(6)) {
+            throw new Error('Audio profile output does not match the profile.');
+        }
+        const audioFormat = request.profileId.slice(6);
+        return { selector: 'bestaudio', audioOnly: true, outputFormat: audioFormat };
+    }
+
+    if (!isSafeFormatId(request.formatId)) throw new Error('Unsupported format id.');
+    const selected = metadata.formats.find(format => format.id === request.formatId);
+    if (!selected) throw new Error('The selected format is no longer available.');
+
+    const audioOutput = outputFormat === 'mp3' || outputFormat === 'm4a' || outputFormat === 'opus';
+    if (selected.type === 'audio') {
+        if (!audioOutput) throw new Error('Audio formats require an audio output.');
+        return { selector: request.formatId, audioOnly: true };
+    }
+    if (audioOutput) throw new Error('Audio output requires an audio format.');
+    return {
+        selector: selected.hasAudio ? request.formatId : request.formatId + '+bestaudio',
+        audioOnly: false
+    };
+}
+
+function resolveDownloadFolderPath(requestedPath, homeDirectory = process.env.USERPROFILE || process.env.HOME || '') {
+    const value = typeof requestedPath === 'string' ? requestedPath.trim() : '';
+    const resolvedHome = typeof homeDirectory === 'string' && homeDirectory.trim()
+        ? homeDirectory.trim()
+        : os.homedir();
+    const defaultPath = path.join(resolvedHome, 'Downloads');
+    if (value && !path.isAbsolute(value)) {
+        throw new Error('The download folder must be an absolute local path.');
+    }
+    return path.resolve(value || defaultPath);
+}
+
+function getExplorerExecutable(environment = process.env, platform = process.platform) {
+    if (platform !== 'win32') return 'explorer.exe';
+
+    const windowsRoot = [environment?.WINDIR, environment?.SystemRoot, 'C:\\Windows']
+        .find(value => typeof value === 'string' && value.trim());
+    return path.join(windowsRoot, 'explorer.exe');
+}
+
+function buildOpenFolderCommand(folderPath, environment = process.env, platform = process.platform) {
+    if (typeof folderPath !== 'string' || !path.isAbsolute(folderPath)) {
+        throw new Error('The download folder must be an absolute local path.');
+    }
+
+    return {
+        executable: getExplorerExecutable(environment, platform),
+        args: [folderPath]
+    };
+}
+
+function buildPageDownloadArgs({ saveDir, title, label, outputFormat, ffmpegPath, selector, audioOnly, url }) {
+    const outputTemplate = path.join(saveDir, title + ' [' + label + '].%(ext)s');
+    const args = [
+        '--newline',
+        '--no-playlist',
+        '--no-part',
+        '--no-overwrites',
+        '--concurrent-fragments',
+        '4',
+        '--ffmpeg-location',
+        path.dirname(ffmpegPath),
+        '-f',
+        selector,
+        '-o',
+        outputTemplate
+    ];
+
+    if (audioOnly) {
+        args.push('-x', '--audio-format', outputFormat, '--audio-quality', '0');
+    } else {
+        args.push('--merge-output-format', outputFormat);
+    }
+    args.push(url);
+    return args;
+}
+
+async function handlePageDownload(request) {
+    const requestId = String(request.requestId || '');
+    const jobId = String(request.jobId || '');
+    const parsed = parseYouTubeUrl(request.url);
+    if (!isPageId(requestId) || !isPageId(jobId) || !parsed.ok) {
+        sendMessage({
+            action: 'download_page_result',
+            status: 'error',
+            errorCode: 'invalid_download_request',
+            requestId,
+            jobId,
+            message: 'Invalid YouTube download request.'
+        });
+        return;
+    }
+
+    if (pendingPageCancellations.get(jobId) === requestId) {
+        pendingPageCancellations.delete(jobId);
+        sendMessage({
+            action: 'download_page_result',
+            status: 'cancelled',
+            requestId,
+            jobId,
+            message: 'Download cancelled.'
+        });
+        return;
+    }
+
+    if (activePageDownloads.has(jobId) || pageJobReservations.has(jobId)) {
+        sendMessage({
+            action: 'download_page_result',
+            status: 'error',
+            errorCode: 'already_downloading',
+            requestId,
+            jobId,
+            message: 'This download is already active.'
+        });
+        return;
+    }
+
+    pageJobReservations.add(jobId);
+
+    try {
+        await ensureYtdlp();
+        const metadata = await extractVideoMetadata(parsed.canonicalUrl);
+        const selection = await resolvePageSelector(request, metadata);
+        const ffmpegPath = await ensureFfmpeg();
+
+        if (pendingPageCancellations.get(jobId) === requestId) {
+            pendingPageCancellations.delete(jobId);
+            sendMessage({
+                action: 'download_page_result',
+                status: 'cancelled',
+                requestId,
+                jobId,
+                message: 'Download cancelled.'
+            });
+            return;
+        }
+
+        const savePath = typeof request.savePath === 'string' ? request.savePath.trim() : '';
+        const saveDir = resolveDownloadFolderPath(savePath);
+        if (!saveDir) throw new Error('No download folder is available.');
+        if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true });
+
+        const outputFormat = selection.outputFormat || String(request.outputFormat || 'mp4').toLowerCase();
+        if (!isSafeOutputFormat(outputFormat)) throw new Error('Unsupported output format.');
+        if (selection.audioOnly && !['mp3', 'm4a', 'opus'].includes(outputFormat)) {
+            throw new Error('Audio downloads require MP3, M4A, or Opus output.');
+        }
+        if (!selection.audioOnly && !['mp4', 'webm', 'mkv'].includes(outputFormat)) {
+            throw new Error('Video downloads require MP4, WebM, or MKV output.');
+        }
+
+        const title = sanitizeFilePart(request.title || metadata.title || 'video');
+        const label = sanitizeFilePart(
+            request.profileId || request.formatId || outputFormat,
+            outputFormat
+        );
+        const args = buildPageDownloadArgs({
+            saveDir,
+            title,
+            label,
+            outputFormat,
+            ffmpegPath,
+            selector: selection.selector,
+            audioOnly: selection.audioOnly,
+            url: parsed.canonicalUrl
+        });
+
+        sendMessage({
+            action: 'download_page_progress',
+            status: 'progress',
+            requestId,
+            jobId,
+            percent: 0,
+            message: 'Starting download...'
+        });
+
+        const child = spawn(YTDLP_BIN, args, { windowsHide: true });
+        const job = { child, requestId, cancelled: false, finished: false };
+        activePageDownloads.set(jobId, job);
+
+        const finish = (status, message) => {
+            if (job.finished) return;
+            job.finished = true;
+            activePageDownloads.delete(jobId);
+            sendMessage({
+                action: 'download_page_result',
+                status,
+                requestId,
+                jobId,
+                message
+            });
+        };
+
+        child.stdout.on('data', chunk => {
+            const progress = parseProgressLine(chunk.toString());
+            sendMessage({
+                action: 'download_page_progress',
+                status: 'progress',
+                requestId,
+                jobId,
+                percent: progress.percent,
+                message: progress.message
+            });
+        });
+        child.stderr.on('data', chunk => {
+            const progress = parseProgressLine(chunk.toString());
+            if (progress.message) {
+                sendMessage({
+                    action: 'download_page_progress',
+                    status: 'progress',
+                    requestId,
+                    jobId,
+                    percent: progress.percent,
+                    message: progress.message
+                });
+            }
+        });
+        child.on('error', error => finish('error', error.message));
+        child.on('close', code => {
+            if (job.cancelled) {
+                finish('cancelled', 'Download cancelled.');
+            } else if (code === 0) {
+                finish('success', 'Download completed.');
+            } else {
+                finish('error', 'yt-dlp exited with code ' + code + '.');
+            }
+        });
+    } catch (error) {
+        const message = redactStreamUrls(String(error?.message || error));
+        const errorCode = error?.code === 'ffmpeg_required' || /ffmpeg/i.test(message)
+            ? 'ffmpeg_required'
+            : 'download_failed';
+        sendMessage({
+            action: 'download_page_result',
+            status: 'error',
+            errorCode,
+            requestId,
+            jobId,
+            message
+        });
+    } finally {
+        pageJobReservations.delete(jobId);
+    }
+}
+
+function isAllowedDirectUrl(value) {
+    try {
+        const url = new URL(value);
+        return url.protocol === 'https:' &&
+            (url.hostname === 'googlevideo.com' || url.hostname.endsWith('.googlevideo.com'));
+    } catch (_) {
+        return false;
+    }
+}
 
 async function main() {
-    sendMessage({ status: 'ready', message: 'Native host started' });
+    startNativeMessaging();
+    sendMessage({ status: 'ready', message: 'Native host started', ...getToolStatus() });
 
     while (true) {
         try {
             const request = await getMessage();
 
-            if (request.action === 'download_video') {
-                const { videoId, title, videoQuality, qualityHeight, isAudioOnly, isDirectUrl, url, savePath } = request;
+            if (request.action === 'resolve_formats') {
+                const requestId = String(request.requestId || '');
+                const parsed = parseYouTubeUrl(request.url);
+                if (!isPageId(requestId) || !parsed.ok) {
+                    sendMessage({
+                        action: 'download_page_formats',
+                        status: 'error',
+                        requestId,
+                        errorCode: 'invalid_url',
+                        message: 'Only a valid public YouTube video URL is allowed.'
+                    });
+                    continue;
+                }
 
-                if (!videoId) {
-                    sendMessage({ status: 'error', message: 'No videoId provided.' });
+                try {
+                    await ensureYtdlp();
+                    const metadata = await extractVideoMetadata(parsed.canonicalUrl);
+                    if (!metadata.formats.length) {
+                        sendMessage({
+                            action: 'download_page_formats',
+                            status: 'error',
+                            requestId,
+                            errorCode: 'no_formats',
+                            message: 'No downloadable formats were found.'
+                        });
+                    } else {
+                        sendMessage({
+                            action: 'download_page_formats',
+                            status: 'success',
+                            requestId,
+                            url: parsed.canonicalUrl,
+                            videoId: parsed.videoId,
+                            title: metadata.title,
+                            duration: metadata.duration,
+                            formats: metadata.formats
+                        });
+                    }
+                } catch (error) {
+                    sendMessage({
+                        action: 'download_page_formats',
+                        status: 'error',
+                        requestId,
+                        errorCode: 'resolve_failed',
+                        message: redactStreamUrls(String(error?.message || error)).slice(-1200)
+                    });
+                }
+                continue;
+            }
+
+            if (request.action === 'cancel_download') {
+                const requestId = String(request.requestId || '');
+                const jobId = String(request.jobId || '');
+                const job = activePageDownloads.get(jobId);
+                if (job && isPageId(requestId) && isPageId(jobId) && job.requestId === requestId) {
+                    job.cancelled = true;
+                    terminateProcessTree(job.child);
+                } else if (isPageId(requestId) && isPageId(jobId)) {
+                    pendingPageCancellations.set(jobId, requestId);
+                }
+                continue;
+            }
+
+            if (request.action === 'cancel_video_download') {
+                const downloadId = String(request.downloadId || '');
+                const videoId = String(request.videoId || '');
+                if (!isDownloadId(downloadId) || !/^[A-Za-z0-9_-]{6,}$/.test(videoId)) continue;
+
+                const job = activeVideoDownloads.get(downloadId);
+                if (job && job.videoId === videoId) {
+                    job.cancelled = true;
+                    terminateProcessTree(job.child);
+                }
+                continue;
+            }
+
+            if (request.action === 'open_download_folder') {
+                const requestId = typeof request.requestId === 'string' ? request.requestId : '';
+                const requestedPath = typeof request.path === 'string' ? request.path.trim() : '';
+                let folderPath;
+                try {
+                    folderPath = resolveDownloadFolderPath(requestedPath);
+                } catch (error) {
+                    sendMessage({
+                        action: 'open_download_folder_result',
+                        requestId,
+                        status: 'error',
+                        message: error.message
+                    });
+                    continue;
+                }
+
+                try {
+                    if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true });
+                    if (!fs.statSync(folderPath).isDirectory()) {
+                        throw new Error('The configured download path is not a folder.');
+                    }
+
+                    let replied = false;
+                    const reply = (message) => {
+                        if (replied) return;
+                        replied = true;
+                        sendMessage(message);
+                    };
+                    const explorerCommand = buildOpenFolderCommand(folderPath);
+                    const explorer = spawn(explorerCommand.executable, explorerCommand.args, {
+                        detached: true,
+                        stdio: 'ignore',
+                        windowsHide: true
+                    });
+                    explorer.once('spawn', () => reply({
+                        action: 'open_download_folder_result',
+                        requestId,
+                        status: 'success',
+                        path: folderPath
+                    }));
+                    explorer.once('error', error => reply({
+                        action: 'open_download_folder_result',
+                        requestId,
+                        status: 'error',
+                        message: 'Could not open Windows Explorer: ' + error.message
+                    }));
+                    explorer.unref();
+                } catch (error) {
+                    sendMessage({
+                        action: 'open_download_folder_result',
+                        requestId,
+                        status: 'error',
+                        message: error.message
+                    });
+                }
+                continue;
+            }
+
+            if (request.action === 'download_video') {
+                if (request.mode === 'page') {
+                    // Keep the native message loop responsive so a subsequent
+                    // cancel_download request can terminate the child process.
+                    void handlePageDownload(request);
+                    continue;
+                }
+
+                const videoId = String(request.videoId || '');
+                const downloadId = isDownloadId(request.downloadId)
+                    ? request.downloadId
+                    : `legacy-${videoId}-${Date.now()}`;
+                const title = typeof request.title === 'string' ? request.title : 'video';
+                const videoQuality = typeof request.videoQuality === 'string' ? request.videoQuality : 'best';
+                const qualityHeight = Number.isInteger(request.qualityHeight) &&
+                    request.qualityHeight >= 144 && request.qualityHeight <= 4320
+                    ? request.qualityHeight
+                    : null;
+                const isAudioOnly = request.isAudioOnly === true;
+                const isDirectUrl = request.isDirectUrl === true;
+                const url = typeof request.url === 'string' ? request.url : '';
+                const savePath = typeof request.savePath === 'string' ? request.savePath : '';
+
+                if (!/^[A-Za-z0-9_-]{6,}$/.test(videoId)) {
+                    sendMessage({ action: 'download_video_result', status: 'error', message: 'Invalid videoId.', downloadId, videoId, title });
+                    continue;
+                }
+                if (isDirectUrl && !isAllowedDirectUrl(url)) {
+                    sendMessage({ action: 'download_video_result', status: 'error', message: 'Direct stream URL is not an allowed YouTube host.', downloadId, videoId, title });
+                    continue;
+                }
+
+                if (activeVideoDownloads.has(downloadId)) {
+                    sendMessage({ action: 'download_video_result', status: 'error', message: 'This download is already active.', downloadId, videoId, title });
                     continue;
                 }
 
                 // Second-line dedup defence (first is in background.js)
-                if (activeNativeDownloads.has(videoId)) {
-                    sendMessage({ status: 'error', message: `Already downloading ${videoId} — ignoring duplicate.` });
+                const downloadKey = `${videoId}|${isAudioOnly ? 'audio' : (qualityHeight || videoQuality || 'best')}`;
+                if (activeNativeDownloads.has(downloadKey)) {
+                    sendMessage({ action: 'download_video_result', status: 'error', message: `Already downloading ${videoId} — ignoring duplicate.`, downloadId, videoId, title });
                     continue;
                 }
-                activeNativeDownloads.add(videoId);
+                activeNativeDownloads.add(downloadKey);
+                const videoJob = { child: null, videoId, downloadKey, cancelled: false };
+                activeVideoDownloads.set(downloadId, videoJob);
+
+                const finishBeforeSpawnIfCancelled = () => {
+                    if (!videoJob.cancelled) return false;
+                    videoJob.cancelled = true;
+                    activeNativeDownloads.delete(downloadKey);
+                    activeVideoDownloads.delete(downloadId);
+                    sendMessage({
+                        action: 'download_video_result',
+                        status: 'cancelled',
+                        message: 'Download cancelled.',
+                        downloadId,
+                        videoId,
+                        title
+                    });
+                    return true;
+                };
 
                 if (!fs.existsSync(YTDLP_BIN)) {
                     sendMessage({ status: 'info', message: 'Local yt-dlp.exe not found! Downloading it now...' });
                     try {
-                        await downloadYtdlp();
+                        await installYtdlp();
                         sendMessage({ status: 'info', message: 'Successfully downloaded yt-dlp.exe!' });
                     } catch (e) {
-                        sendMessage({ status: 'error', message: 'Failed to download yt-dlp.exe: ' + e.message });
+                        activeNativeDownloads.delete(downloadKey);
+                        activeVideoDownloads.delete(downloadId);
+                        sendMessage({
+                            action: 'download_video_result', status: 'error',
+                            message: 'Failed to download yt-dlp.exe: ' + e.message,
+                            downloadId, videoId, title
+                        });
                         continue;
                     }
                 }
 
+                if (finishBeforeSpawnIfCancelled()) continue;
+
                 // ── Output directory ───────────────────────────────────────────
                 // Use custom savePath if provided & non-empty; otherwise default Downloads.
-                const saveDir = (savePath && savePath.trim())
-                    ? savePath.trim()
+                const normalizedSavePath = savePath.trim();
+                const saveDir = normalizedSavePath
+                    ? normalizedSavePath
                     : path.join(process.env.USERPROFILE || process.env.HOME, 'Downloads');
 
                 // Ensure the target directory exists (create recursively if needed)
                 try {
                     if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true });
                 } catch (mkdirErr) {
-                    sendMessage({ status: 'error', message: `Cannot create save folder: ${mkdirErr.message}` });
-                    activeNativeDownloads.delete(videoId);
+                    sendMessage({
+                        action: 'download_video_result', status: 'error',
+                        message: `Cannot create save folder: ${mkdirErr.message}`,
+                        downloadId, videoId, title
+                    });
+                    activeNativeDownloads.delete(downloadKey);
+                    activeVideoDownloads.delete(downloadId);
                     continue;
                 }
 
                 const ytUrl = isDirectUrl ? url : `https://www.youtube.com/watch?v=${videoId}`;
 
                 // Normalize quality label for use in filename (strip chars unsafe for Windows paths)
-                const safeQuality = (videoQuality || 'best')
+                const safeQuality = videoQuality
                     .replace(/[/\\<>:"|?*\x00-\x1f]/g, '_')
                     .trim();
 
                 // Keep full Unicode title (Windows NTFS handles it), only strip truly unsafe chars
-                const safeTitle = (title || 'video')
+                const safeTitle = title
                     .replace(/[/\\<>:"|?*\x00-\x1f]/g, '_')
                     .replace(/\.{2,}/g, '.')
                     .trim()
-                    .substring(0, 150);
+                    .substring(0, 150) || 'video';
 
                 // ── Build yt-dlp format selector ───────────────────────────────
                 //
@@ -238,6 +1148,7 @@ async function main() {
                 //   --no-playlist             → never accidentally grab a playlist
                 //   --no-part                 → write directly, no .part temp file clutter
                 const commonArgs = [
+                    '--newline',
                     '--concurrent-fragments', '4',
                     '--no-playlist',
                     '--no-part'
@@ -247,6 +1158,7 @@ async function main() {
                 if (isDirectUrl) {
                     // Direct stream URL (browser fallback routed to native for custom path)
                     args = [
+                        '--newline',
                         '--no-playlist',
                         '--no-part',
                         '-o', outTemplate,
@@ -267,36 +1179,86 @@ async function main() {
                     ];
                 }
 
-                sendMessage({ status: 'info', message: `Starting yt-dlp: ${args.join(' ')}` });
-
-                const ytdlp = spawn(YTDLP_BIN, args, { windowsHide: true });
-
-                ytdlp.stdout.on('data', (data) => {
-                    sendMessage({ status: 'progress', data: data.toString() });
+                sendMessage({
+                    action: 'download_video_progress',
+                    status: 'progress',
+                    downloadId,
+                    videoId,
+                    percent: 0,
+                    speed: null,
+                    eta: null
                 });
-                ytdlp.stderr.on('data', (data) => {
-                    sendMessage({ status: 'error_log', data: data.toString() });
-                });
-                ytdlp.on('close', (code) => {
-                    activeNativeDownloads.delete(videoId);
-                    if (code === 0) {
+
+                let ytdlp;
+                try {
+                    ytdlp = spawn(YTDLP_BIN, args, { windowsHide: true });
+                } catch (error) {
+                    activeNativeDownloads.delete(downloadKey);
+                    activeVideoDownloads.delete(downloadId);
+                    sendMessage({
+                        action: 'download_video_result',
+                        status: 'error',
+                        message: `Could not start yt-dlp: ${error.message}`,
+                        downloadId,
+                        videoId,
+                        title: safeTitle
+                    });
+                    continue;
+                }
+                videoJob.child = ytdlp;
+                let finished = false;
+                const finishDownload = (code, errorMessage = '') => {
+                    if (finished) return;
+                    finished = true;
+                    activeNativeDownloads.delete(downloadKey);
+                    activeVideoDownloads.delete(downloadId);
+                    if (videoJob.cancelled) {
                         sendMessage({
-                            action: 'download_video_result',
-                            status: 'success',
-                            message: 'Download completed.',
-                            videoId: videoId,
-                            title: safeTitle
+                            action: 'download_video_result', status: 'cancelled',
+                            message: 'Download cancelled.', downloadId, videoId, title: safeTitle
+                        });
+                    } else if (code === 0) {
+                        sendMessage({
+                            action: 'download_video_result', status: 'success',
+                            message: 'Download completed.', downloadId, videoId, title: safeTitle
                         });
                     } else {
                         sendMessage({
-                            action: 'download_video_result',
-                            status: 'error',
-                            message: `yt-dlp error code: ${code}`,
-                            videoId: videoId,
-                            title: safeTitle
+                            action: 'download_video_result', status: 'error',
+                            message: errorMessage || `yt-dlp error code: ${code}`,
+                            downloadId, videoId, title: safeTitle
                         });
                     }
+                };
+
+                ytdlp.stdout.on('data', (data) => {
+                    const progress = parseProgressLine(data.toString());
+                    sendMessage({
+                        action: 'download_video_progress',
+                        status: 'progress',
+                        downloadId,
+                        videoId,
+                        percent: progress.percent,
+                        speed: progress.speed,
+                        eta: progress.eta,
+                        message: progress.message
+                    });
                 });
+                ytdlp.stderr.on('data', (data) => {
+                    const progress = parseProgressLine(data.toString());
+                    sendMessage({
+                        action: 'download_video_progress',
+                        status: 'progress',
+                        downloadId,
+                        videoId,
+                        percent: progress.percent,
+                        speed: progress.speed,
+                        eta: progress.eta,
+                        message: progress.message
+                    });
+                });
+                ytdlp.on('error', error => finishDownload(null, `Could not start yt-dlp: ${error.message}`));
+                ytdlp.on('close', code => finishDownload(code));
 
             } else if (request.action === 'pick_folder') {
                 // ── IFileOpenDialog (Vista-style File Explorer picker) ────────
@@ -423,12 +1385,19 @@ async function main() {
                     continue;
                 }
 
-                const ps = spawn('powershell.exe', [
-                    '-NoProfile',
-                    '-STA',
-                    '-ExecutionPolicy', 'Bypass',
-                    '-File', tmpPs1
-                ], { windowsHide: false, detached: false });
+                let ps;
+                try {
+                    ps = spawn('powershell.exe', [
+                        '-NoProfile',
+                        '-STA',
+                        '-ExecutionPolicy', 'Bypass',
+                        '-File', tmpPs1
+                    ], { windowsHide: false, detached: false });
+                } catch (error) {
+                    try { fs.unlinkSync(tmpPs1); } catch (_) { }
+                    sendMessage({ action: 'pick_folder_result', path: '', error: error.message });
+                    continue;
+                }
 
                 let psOut = '', psErr = '';
                 ps.stdout.on('data', d => { psOut += d.toString(); });
@@ -447,36 +1416,27 @@ async function main() {
                     sendMessage({ action: 'pick_folder_result', path: '', error: err.message });
                 });
 
-            } else if (request.action === 'update_ytdlp') {
-                if (!fs.existsSync(YTDLP_BIN)) {
-                    sendMessage({ status: 'info', message: 'yt-dlp.exe is missing. Downloading the latest version now...' });
-                    try {
-                        await downloadYtdlp();
-                        sendMessage({ status: 'update_success', message: 'Successfully installed yt-dlp.exe!' });
-                    } catch (e) {
-                        sendMessage({ status: 'error', message: 'Failed to download yt-dlp.exe: ' + e.message });
-                    }
-                } else {
-                    sendMessage({ status: 'info', message: 'Checking for yt-dlp updates...' });
-                    const ytdlp = spawn(YTDLP_BIN, ['-U'], { windowsHide: true });
+            } else if (request.action === 'update_media_tools') {
+                sendMessage({ status: 'info', message: 'Preparing verified media tools...' });
+                try {
+                    await ensureYtdlp();
+                    await ensureFfmpeg();
+                    sendMessage({ status: 'media_tools_ready', ...getToolStatus() });
+                } catch (e) {
+                    sendMessage({ status: 'error', message: 'Failed to prepare media tools: ' + e.message, ...getToolStatus() });
+                }
 
-                    ytdlp.stdout.on('data', (data) => {
-                        sendMessage({ status: 'progress', data: data.toString() });
-                    });
-                    ytdlp.stderr.on('data', (data) => {
-                        sendMessage({ status: 'error_log', data: data.toString() });
-                    });
-                    ytdlp.on('close', (code) => {
-                        if (code === 0) {
-                            sendMessage({ status: 'update_success', message: 'Update check finished.' });
-                        } else {
-                            sendMessage({ status: 'error', message: `yt-dlp updater error code: ${code}` });
-                        }
-                    });
+            } else if (request.action === 'update_ytdlp') {
+                sendMessage({ status: 'info', message: 'Downloading and verifying the latest yt-dlp version...' });
+                try {
+                    await installYtdlp();
+                    sendMessage({ status: 'update_success', message: 'Successfully installed the verified yt-dlp version!' });
+                } catch (e) {
+                    sendMessage({ status: 'error', message: 'Failed to update yt-dlp: ' + e.message });
                 }
 
             } else if (request.action === 'ping') {
-                sendMessage({ status: 'pong' });
+                sendMessage({ status: 'pong', ...getToolStatus() });
             }
 
         } catch (e) {
@@ -485,4 +1445,35 @@ async function main() {
     }
 }
 
-main();
+if (require.main === module) {
+    main();
+}
+
+module.exports = {
+    FFMPEG_ARCHIVE_NAME,
+    FFMPEG_ARCHIVE_SHA256,
+    FFMPEG_ARCHIVE_URL,
+    FFMPEG_RELEASE_TAG,
+    OUTPUT_FORMATS,
+    PAGE_ID_PATTERN,
+    PROFILE_ID_PATTERN,
+    FORMAT_ID_PATTERN,
+    encodeNativeMessage,
+    isAllowedDirectUrl,
+    isPageId,
+    isDownloadId,
+    isSafeFormatId,
+    isSafeOutputFormat,
+    isSafeProfileId,
+    sanitizeFilePart,
+    redactStreamUrls,
+    parseJsonOutput,
+    normalizeYtdlpFormat,
+    numericDuration,
+    parseProgressLine,
+    resolvePageSelector,
+    resolveDownloadFolderPath,
+    getExplorerExecutable,
+    buildOpenFolderCommand,
+    buildPageDownloadArgs
+};

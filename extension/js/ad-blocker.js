@@ -1,17 +1,25 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// ad-blocker.js – CSS ad hiding + video ad skipper + Shorts feed ad navigation
+// ad-blocker.js – CSS ad hiding + video ad skipper + Shorts ad navigation
 // Depends on: utils.js, state.js
 // ─────────────────────────────────────────────────────────────────────────────
 
 const AD_BLOCK_STYLE_ID = 'my-yt-ad-blocker-css';
 let _adSkipInterval = null;
-let _adClassObserver = null;   // MutationObserver: watches #movie_player class changes
-let _adMutedByUs = false;  // track whether WE muted the video
-let _adNavPending = false;  // debounce: prevent double-skip in Shorts feed
-let _lastAdState = false;  // track ad presence for counter
-let _originalPlaybackRate = 1; // backup to restore after 16x ad speedup
+let _adAttachTimer = null;
+let _adClassObserver = null;
+let _adMutedByUs = false;
+let _adMutedVideo = null;
+let _adPlaybackVideo = null;
+let _adNavPending = false;
+let _adNavTimer = null;
+let _adNavResetTimer = null;
+let _adMediaRestoreTimer = null;
+let _lastAdState = false;
+let _originalPlaybackRate = 1;
 
 // ─── CSS that hides YouTube's ad elements ────────────────────────────────────
+// Do not hide the entire Shorts player. YouTube recycles that renderer; hiding
+// #player-container can leave the next normal Short frozen inside a hidden node.
 const AD_BLOCK_CSS = `
 /* ── Feed / banner ads ─────────────────────────────────────── */
 ytd-ad-slot-renderer,
@@ -40,10 +48,19 @@ ytd-engagement-panel-section-list-renderer[target-id*="ads"],
 ytd-ad-slot-renderer[is-desktop-sticky-video],
 #related ytd-ad-slot-renderer { display: none !important; }
 
-/* ── Main Ad Module – use opacity instead of display:none to prevent buffering lag ── */
-.video-ads.ytp-ad-module { 
-    opacity: 0 !important; 
-    pointer-events: none !important; 
+/* ── Main Ad Module – opacity avoids player layout churn ───── */
+.video-ads.ytp-ad-module {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* ── Confirmed Shorts ad overlays only ─────────────────────── */
+ytd-reel-video-renderer[is-ads-overlay] ytd-reel-player-overlay-renderer,
+ytd-reel-video-renderer[my-ad-detected="true"] ytd-reel-player-overlay-renderer,
+ytd-reel-video-renderer[is-ads-overlay] .ytp-ad-player-overlay,
+ytd-reel-video-renderer[my-ad-detected="true"] .ytp-ad-player-overlay {
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 `;
 
@@ -61,18 +78,140 @@ function removeAdBlockCSS() {
     if (el) el.remove();
 }
 
-// ─── Instant ad handler (called by MutationObserver, ~0ms delay) ─────────────
-function _onAdStarted() {
-    if (!AD_BLOCKER_ENABLED || !EXTENSION_ENABLED) return;
+function _isShortsPage() {
+    return window.location.pathname.startsWith('/shorts/');
+}
 
-    // Strict Check: Only proceed if an ad class is actually present right now
-    const adActive = document.querySelector('.ad-showing, .ytp-ad-player-overlay, .ytp-ad-simple-ad-badge');
+function _isHiddenElement(el) {
+    if (!el) return true;
+    if (el.hidden || el.getAttribute('aria-hidden') === 'true') return true;
+
+    const inlineStyle = el.getAttribute('style') || '';
+    if (/display\s*:\s*none|visibility\s*:\s*hidden/i.test(inlineStyle)) return true;
+
+    try {
+        const style = getComputedStyle(el);
+        return style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0';
+    } catch (_) {
+        return false;
+    }
+}
+
+function _getActiveShortRenderer() {
+    const explicit = document.querySelector('ytd-reel-video-renderer[is-active]');
+    if (explicit) return explicit;
+
+    const renderers = Array.from(document.querySelectorAll('ytd-reel-video-renderer'));
+    if (renderers.length === 1 && !_isHiddenElement(renderers[0])) return renderers[0];
+
+    // Some Shorts versions omit is-active entirely. Pick the visible renderer
+    // whose center is closest to the viewport center; this also works while
+    // YouTube is recycling the surrounding off-screen renderers.
+    const viewportCenter = window.innerHeight / 2;
+    let best = null;
+    let bestDistance = Infinity;
+    for (const renderer of renderers) {
+        if (_isHiddenElement(renderer)) continue;
+        try {
+            const rect = renderer.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height < Math.max(300, window.innerHeight * 0.4)) continue;
+            const distance = Math.abs((rect.top + rect.bottom) / 2 - viewportCenter);
+            if (distance < bestDistance) {
+                best = renderer;
+                bestDistance = distance;
+            }
+        } catch (_) { }
+    }
+    return best;
+}
+
+function _isActiveShortRenderer(renderer) {
+    if (!renderer) return false;
+    if (renderer.hasAttribute('is-active')) return true;
+
+    const active = _getActiveShortRenderer();
+    if (active) return active === renderer;
+
+    // Some YouTube layouts temporarily omit is-active while the player is
+    // visible. Use geometry only as a fallback; never use renderer id parsing.
+    try {
+        const rect = renderer.getBoundingClientRect();
+        return rect.height > Math.max(400, window.innerHeight * 0.5) &&
+            rect.width > 0 && !_isHiddenElement(renderer);
+    } catch (_) {
+        return false;
+    }
+}
+
+// Only use explicit YouTube ad markers. Generic CTA/product labels are not
+// sufficient: normal Shorts can contain sponsored-looking UI elements too.
+function _hasShortsAdMarker(renderer) {
+    if (!renderer) return false;
+    if (renderer.hasAttribute('is-ads-overlay')) return true;
+    if (renderer.matches && renderer.matches('.ad-showing')) return true;
+
+    const player = renderer.querySelector('.html5-video-player, #shorts-player');
+    if (player && player.classList.contains('ad-showing')) return true;
+
+    const adSlot = renderer.querySelector('ytd-ad-slot-renderer');
+    if (adSlot && !_isHiddenElement(adSlot)) return true;
+
+    const explicitMarker = renderer.querySelector(
+        '.ytp-ad-player-overlay, .ytp-ad-simple-ad-badge, ' +
+        '.ytp-ad-skip-button, .ytp-ad-skip-button-modern'
+    );
+    return !!explicitMarker && !_isHiddenElement(explicitMarker);
+}
+
+function _muteVideoForAd(video) {
+    if (!video || video.muted) return;
+    video.muted = true;
+    _adMutedByUs = true;
+    _adMutedVideo = video;
+}
+
+function _restoreAdMedia() {
+    if (_adPlaybackVideo && _adPlaybackVideo.playbackRate === 16) {
+        _adPlaybackVideo.playbackRate = _originalPlaybackRate;
+    }
+
+    if (_adMutedByUs && _adMutedVideo && _adMutedVideo.muted) {
+        _adMutedVideo.muted = false;
+    }
+
+    _adMutedByUs = false;
+    _adMutedVideo = null;
+    _adPlaybackVideo = null;
+    _originalPlaybackRate = 1;
+}
+
+function _clearShortsAdState() {
+    if (_adNavTimer) { clearTimeout(_adNavTimer); _adNavTimer = null; }
+    if (_adNavResetTimer) { clearTimeout(_adNavResetTimer); _adNavResetTimer = null; }
+    if (_adMediaRestoreTimer) { clearTimeout(_adMediaRestoreTimer); _adMediaRestoreTimer = null; }
+    _adNavPending = false;
+
+    document.querySelectorAll('ytd-reel-video-renderer[my-ad-detected="true"]')
+        .forEach(renderer => renderer.removeAttribute('my-ad-detected'));
+    _restoreAdMedia();
+}
+
+// Called by state.js when Shorts automation is disabled or Premium is detected.
+function resetShortsAdHandling() {
+    _clearShortsAdState();
+}
+
+// ─── Instant regular-video ad handler ────────────────────────────────────────
+function _onAdStarted() {
+    if (!AD_BLOCKER_ENABLED || !EXTENSION_ENABLED || _isShortsPage()) return;
+
+    const playerEl = document.querySelector('#movie_player, .html5-video-player');
+    const adActive = playerEl && playerEl.classList.contains('ad-showing');
     if (!adActive) return;
 
     const player = document.querySelector('.html5-main-video, video.html5-main-video');
     if (!player) return;
 
-    // 1. Instant speed boost + counter
     if (!_lastAdState) {
         _lastAdState = true;
         _originalPlaybackRate = player.playbackRate || 1;
@@ -81,25 +220,20 @@ function _onAdStarted() {
         });
     }
 
-    // Force 16x speed and mute immediately
+    _adPlaybackVideo = player;
     if (player.playbackRate !== 16) player.playbackRate = 16;
-    if (!player.muted) { player.muted = true; _adMutedByUs = true; }
+    _muteVideoForAd(player);
 
-    // 2. Click skip button if already visible
-    const skipBtn = document.querySelector(
-        '.ytp-skip-ad-button:not([style*="display: none"]), ' +
-        '.ytp-ad-skip-button:not([style*="display: none"]), ' +
-        '.ytp-skip-ad-button-modern:not([style*="display: none"]), ' +
-        '.ytp-ad-skip-button-modern:not([style*="display: none"])'
+    const skipBtn = playerEl.querySelector(
+        '.ytp-skip-ad-button:not([hidden]), ' +
+        '.ytp-ad-skip-button:not([hidden]), ' +
+        '.ytp-skip-ad-button-modern:not([hidden]), ' +
+        '.ytp-ad-skip-button-modern:not([hidden])'
     );
-    if (skipBtn) { skipBtn.click(); }
+    if (skipBtn && !_isHiddenElement(skipBtn)) skipBtn.click();
 
-    // 3. Aggressive seeking to force finish
     const seekToEnd = () => {
-        // Final verification: don't seek if we transitioned to main video
-        const stillAd = document.querySelector('.ad-showing, .ytp-ad-player-overlay');
-        if (!stillAd) return;
-
+        if (!playerEl.classList.contains('ad-showing')) return;
         if (isFinite(player.duration) && player.duration > 0 &&
             player.currentTime < player.duration - 0.1) {
             player.currentTime = player.duration;
@@ -111,104 +245,87 @@ function _onAdStarted() {
     } else {
         player.addEventListener('loadedmetadata', function onMeta() {
             player.removeEventListener('loadedmetadata', onMeta);
-            // Verify we are still in ad mode when metadata arrived
-            const stillAdAtMeta = document.querySelector('.ad-showing, .ytp-ad-player-overlay');
-            if (stillAdAtMeta) seekToEnd();
+            seekToEnd();
         }, { once: true });
     }
 }
 
 function _onAdEnded() {
     _lastAdState = false;
-    const player = document.querySelector('.html5-main-video, video.html5-main-video');
-    if (player) {
-        // Restore speed
-        if (player.playbackRate === 16) {
-            player.playbackRate = _originalPlaybackRate;
-        }
-        // Restore audio
-        if (_adMutedByUs) {
-            player.muted = false;
-            _adMutedByUs = false;
-            if (player.paused) player.play().catch(() => { });
-        }
-    }
+    _restoreAdMedia();
 }
 
-// ─── MutationObserver: attaches to #movie_player and watches class changes ───
-// Fires in <1ms when YouTube adds/removes the "ad-showing" class, replacing
-// the old 700ms setInterval approach that caused the visible black-screen delay.
+// ─── MutationObserver: watches regular player class changes ──────────────────
 function _attachAdClassObserver() {
+    if (!AD_BLOCKER_ENABLED || !EXTENSION_ENABLED || _isShortsPage()) return;
+
     const playerEl = document.querySelector('#movie_player, .html5-video-player');
     if (!playerEl) {
-        // Player not in DOM yet (SPA navigation in progress) – retry shortly
-        setTimeout(_attachAdClassObserver, 400);
+        if (!_adAttachTimer) {
+            _adAttachTimer = setTimeout(() => {
+                _adAttachTimer = null;
+                _attachAdClassObserver();
+            }, 400);
+        }
         return;
     }
 
-    // Already observing the same element — nothing to do
     if (_adClassObserver && _adClassObserver._el === playerEl) return;
+    if (_adClassObserver) _adClassObserver.disconnect();
 
-    if (_adClassObserver) { _adClassObserver.disconnect(); }
-
-    let _wasAdShowing = playerEl.classList.contains('ad-showing');
-
+    let wasAdShowing = playerEl.classList.contains('ad-showing');
     _adClassObserver = new MutationObserver(() => {
         if (!AD_BLOCKER_ENABLED || !EXTENSION_ENABLED) return;
         const isAdShowing = playerEl.classList.contains('ad-showing');
-        if (isAdShowing && !_wasAdShowing) {
-            _wasAdShowing = true;
+        if (isAdShowing && !wasAdShowing) {
+            wasAdShowing = true;
             _onAdStarted();
-        } else if (!isAdShowing && _wasAdShowing) {
-            _wasAdShowing = false;
+        } else if (!isAdShowing && wasAdShowing) {
+            wasAdShowing = false;
             _onAdEnded();
         } else if (isAdShowing) {
-            // Ad still active (e.g. skip button just appeared) — keep trying
             _onAdStarted();
         }
     });
 
-    _adClassObserver._el = playerEl; // tag so we can detect player element changes
-    _adClassObserver.observe(playerEl, {
-        attributes: true,
-        attributeFilter: ['class']
-    });
+    _adClassObserver._el = playerEl;
+    _adClassObserver.observe(playerEl, { attributes: true, attributeFilter: ['class'] });
+    if (wasAdShowing) _onAdStarted();
 }
 
-// ─── Fallback interval (safety net for edge cases & skip-button polling) ─────
-// Kept at a faster 250ms (was 700ms) purely as a safety net.
-// The MutationObserver above handles the real work instantly.
+// ─── Fallback interval ───────────────────────────────────────────────────────
 function startAdSkipper() {
-    // Always (re-)attach the class observer — important after SPA navigations
+    if (!AD_BLOCKER_ENABLED || !EXTENSION_ENABLED) return;
     _attachAdClassObserver();
-
     if (_adSkipInterval) return;
     _adSkipInterval = setInterval(_fallbackSkipCheck, 250);
 }
 
 function stopAdSkipper() {
     if (_adSkipInterval) { clearInterval(_adSkipInterval); _adSkipInterval = null; }
+    if (_adAttachTimer) { clearTimeout(_adAttachTimer); _adAttachTimer = null; }
     if (_adClassObserver) { _adClassObserver.disconnect(); _adClassObserver = null; }
+    _lastAdState = false;
+    _restoreAdMedia();
 }
 
 function _fallbackSkipCheck() {
     if (!AD_BLOCKER_ENABLED || !EXTENSION_ENABLED) return;
 
-    // Re-attach observer if player element changed after SPA navigation
+    if (_isShortsPage()) {
+        const activeRenderer = _getActiveShortRenderer();
+        if (activeRenderer) checkForAdAndSkip(activeRenderer);
+        return;
+    }
+
     const playerEl = document.querySelector('#movie_player, .html5-video-player');
-    if (playerEl && _adClassObserver && _adClassObserver._el !== playerEl) {
+    if (playerEl && (!_adClassObserver || _adClassObserver._el !== playerEl)) {
         _attachAdClassObserver();
     }
 
-    const adActive = document.querySelector(
-        '.ad-showing, .ytp-ad-player-overlay, .ytp-ad-simple-ad-badge'
-    );
-
-    if (adActive) {
-        _onAdStarted();
-    } else if (_lastAdState) {
-        _onAdEnded();
-    }
+    const adActive = playerEl && playerEl.classList.contains('ad-showing');
+    if (adActive) _onAdStarted();
+    else if (_lastAdState) _onAdEnded();
 }
 
 // ─── Master toggle ────────────────────────────────────────────────────────────
@@ -219,50 +336,92 @@ function applyAdBlocker() {
     } else {
         removeAdBlockCSS();
         stopAdSkipper();
-        if (_adMutedByUs) {
-            const video = document.querySelector('.html5-main-video, video.html5-main-video');
-            if (video && video.muted) video.muted = false;
-            _adMutedByUs = false;
-        }
+        _clearShortsAdState();
     }
 }
 
-// ─── Shorts feed ad navigation ────────────────────────────────────────────────
+// ─── Shorts feed navigation ──────────────────────────────────────────────────
 function navigateToNextShort() {
-    const nextBtn = document.querySelector(
-        'ytd-reel-video-renderer[is-active] .navigation-button.next-button button, ' +
-        '#navigation-button-down button, ' +
-        'ytd-shorts [aria-label*="ext"] button, ' +
-        '.ytd-shorts-player-controls button[aria-label*="ext"]'
-    );
-    if (nextBtn) { nextBtn.click(); return; }
+    const selectors = [
+        'ytd-reel-video-renderer[is-active] .navigation-button.next-button button',
+        '#navigation-button-down button',
+        'ytd-shorts button[aria-label*="Next" i]',
+        'ytd-shorts button[aria-label*="Sonraki" i]',
+        'ytd-shorts button[aria-label*="İleri" i]',
+        '.ytd-shorts-player-controls button[aria-label*="Next" i]'
+    ];
 
-    document.dispatchEvent(new KeyboardEvent('keydown', {
+    for (const selector of selectors) {
+        const button = document.querySelector(selector);
+        if (button && !button.disabled && !_isHiddenElement(button)) {
+            button.click();
+            return true;
+        }
+    }
+
+    const target = _getActiveShortRenderer() || document;
+    target.dispatchEvent(new KeyboardEvent('keydown', {
         key: 'ArrowDown', code: 'ArrowDown', keyCode: 40,
         bubbles: true, cancelable: true
     }));
+    return true;
+}
+
+function _scheduleShortsMediaRestore() {
+    if (_adMediaRestoreTimer) clearTimeout(_adMediaRestoreTimer);
+    _adMediaRestoreTimer = setTimeout(() => {
+        _adMediaRestoreTimer = null;
+        const active = _getActiveShortRenderer();
+        if (!active || !_hasShortsAdMarker(active)) _restoreAdMedia();
+    }, 650);
 }
 
 function checkForAdAndSkip(renderer) {
-    if (!AD_BLOCKER_ENABLED || !EXTENSION_ENABLED || !AUTO_SKIP_SHORTS_ADS) return false;
+    if (!renderer) return false;
 
-    const isAd = renderer.querySelector('ytd-ad-slot-renderer') ||
-        renderer.tagName.toLowerCase().includes('ad-slot');
-    if (!isAd) return false;
+    const enabled = AD_BLOCKER_ENABLED && EXTENSION_ENABLED &&
+        AUTO_SKIP_SHORTS_ADS && !IS_PREMIUM && _isShortsPage();
+    if (!enabled) {
+        renderer.removeAttribute('my-ad-detected');
+        return false;
+    }
 
-    const video = renderer.querySelector('video');
-    if (video && !video.muted) { video.muted = true; _adMutedByUs = true; }
+    const isAd = _hasShortsAdMarker(renderer);
+    if (!isAd) {
+        renderer.removeAttribute('my-ad-detected');
+        if (_adMutedByUs) _scheduleShortsMediaRestore();
+        return false;
+    }
+
+    renderer.setAttribute('my-ad-detected', 'true');
+    if (!_isActiveShortRenderer(renderer)) return true;
+
+    const video = renderer.querySelector('video.html5-main-video, video');
+    _muteVideoForAd(video);
 
     if (!_adNavPending) {
         _adNavPending = true;
-        setTimeout(() => {
-            _adMutedByUs = false;
-            navigateToNextShort();
-            safeStorageGet('adsBlockedCount', (res) => {
-                safeStorageSet({ adsBlockedCount: (res.adsBlockedCount || 0) + 1 });
-            });
-            setTimeout(() => { _adNavPending = false; }, 1500);
-        }, 80);
+        _adNavTimer = setTimeout(() => {
+            _adNavTimer = null;
+            const stillEnabled = AD_BLOCKER_ENABLED && EXTENSION_ENABLED &&
+                AUTO_SKIP_SHORTS_ADS && !IS_PREMIUM && _isShortsPage();
+            const active = _getActiveShortRenderer() || renderer;
+
+            if (stillEnabled && _hasShortsAdMarker(active)) {
+                const navigated = navigateToNextShort();
+                if (navigated) {
+                    safeStorageGet('adsBlockedCount', (res) => {
+                        safeStorageSet({ adsBlockedCount: (res.adsBlockedCount || 0) + 1 });
+                    });
+                    _scheduleShortsMediaRestore();
+                }
+            }
+
+            _adNavResetTimer = setTimeout(() => {
+                _adNavPending = false;
+                _adNavResetTimer = null;
+            }, 1200);
+        }, 100);
     }
 
     return true;

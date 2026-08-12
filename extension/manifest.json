@@ -41,7 +41,6 @@
         "js/notifications.js",
         "js/channel-blocker.js",
         "js/downloader.js",
-        "js/quality-lock.js",
         "js/content.js"
       ],
       "css": [

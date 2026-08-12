@@ -139,6 +139,42 @@
             transition: border-color 0.3s, background 0.3s;
         }
 
+        .tool-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 2px 0 22px;
+            padding: 9px 13px;
+            border: 1px solid var(--border-2);
+            border-radius: 8px;
+            color: var(--t2);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .tool-status.ready {
+            border-color: rgba(46, 204, 113, .35);
+            color: #8ee6ae;
+        }
+
+        .tool-status.warn,
+        .tool-status.error {
+            border-color: rgba(255, 180, 0, .35);
+            color: #ffd166;
+        }
+
+        .tool-status-dot {
+            width: 7px;
+            height: 7px;
+            flex: 0 0 7px;
+            border-radius: 50%;
+            background: var(--t3);
+        }
+
+        .tool-status.ready .tool-status-dot { background: var(--green); }
+        .tool-status.warn .tool-status-dot,
+        .tool-status.error .tool-status-dot { background: #ffb400; }
+
         .status-dot {
             width: 8px;
             height: 8px;
@@ -548,7 +584,7 @@
                         </svg>
                         <div>
                             <strong style="color:#f1f1f1;" data-i18n="setupPrereqLabel">Prerequisite:</strong>
-                            <a href="https://nodejs.org/" target="_blank">Node.js</a>
+                            <a href="https://nodejs.org/" target="_blank" rel="noopener noreferrer">Node.js</a>
                             <span data-i18n="setupPrereqDesc">must be installed on your computer.</span>
                         </div>
                     </div>
@@ -616,6 +652,11 @@
                 <div class="done-title" data-i18n="setupDoneTitle">You're all set!</div>
                 <div class="done-sub" data-i18n="setupDoneDesc">The companion app is connected. Download high-quality
                     YouTube videos directly from the player.</div>
+
+                <div class="tool-status" id="media-tools-status" aria-live="polite">
+                    <span class="tool-status-dot"></span>
+                    <span data-i18n="setupMediaToolsUnavailable">Media tools status is unavailable.</span>
+                </div>
 
                 <div class="divider"></div>
 

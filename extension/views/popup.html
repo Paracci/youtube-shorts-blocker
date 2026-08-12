@@ -137,6 +137,13 @@
                         </div>
                     </div>
 
+                    <div id="premium-checking" class="premium-banner" style="display:none;">
+                        <span class="premium-badge-icon">⏳</span>
+                        <div class="premium-text-wrap">
+                            <div class="premium-title" data-i18n="premiumChecking"></div>
+                        </div>
+                    </div>
+
                     <div class="card-row">
                         <div>
                             <div class="row-label" data-i18n="settingAdBlock">Block video ads</div>
@@ -161,23 +168,6 @@
                     </div>
 
                     <div class="risk-warning" data-i18n="warnAdBlock"></div>
-                </div>
-
-                <!-- Quality Lock -->
-                <div class="card">
-                    <h2 data-i18n="sectionQualityLock">Quality Lock</h2>
-                    <div class="card-row">
-                        <div>
-                            <div class="row-label" data-i18n="settingQualityLock">Force highest quality</div>
-                            <div class="row-sublabel" data-i18n="settingQualityLockSub">Always play at max resolution
-                            </div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="toggle-quality-lock" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="risk-warning" data-i18n="warnQualityLock"></div>
                 </div>
 
                 <!-- Downloader -->
@@ -280,7 +270,7 @@
                         <b style="color:var(--yt-text-primary);" data-i18n="blocklistNoteRemove">"Remove from list"</b>
                         <span data-i18n="blocklistNoteRemoveSub">only removes the entry here; YouTube's recommendation
                             filter stays active. To fully unblock a channel, visit your</span>
-                        <a href="https://myactivity.google.com/page?page=youtube_user_feedback" target="_blank"
+                        <a href="https://myactivity.google.com/page?page=youtube_user_feedback" target="_blank" rel="noopener noreferrer"
                             style="color:#f0a500;text-decoration:underline;" data-i18n="blocklistNoteLink">Google My
                             Activity → YouTube feedback</a>
                         page and delete the "Don't recommend" entries there.
@@ -332,6 +322,12 @@
                     </svg>
                     <span data-i18n="navHome">Home</span>
                 </button>
+                <button class="nav-item nav-item-external" id="nav-download" type="button">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                    </svg>
+                    <span data-i18n="navDownloader">Downloader</span>
+                </button>
                 <button class="nav-item" data-target="page-settings">
                     <svg viewBox="0 0 24 24">
                         <path
@@ -364,6 +360,7 @@
     </div>
 
     <script src="../js/i18n/translations.js"></script>
+    <script src="../js/download-policy.js"></script>
     <script src="../js/popup.js"></script>
 </body>
 

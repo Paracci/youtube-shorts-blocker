@@ -7,7 +7,6 @@
  * - channel-blocker.js 
  * - downloader.js
  * - premium-detector.js
- * - quality-lock.js
  * - shorts-hider.js
  * - etc.
  * 
@@ -53,20 +52,18 @@ let HIDE_SHORTS_HOMEPAGE = true;
 let BLOCKING_ENABLED = true;
 let DOWNLOADER_ENABLED = true;
 let AD_BLOCKER_ENABLED = true;
-let QUALITY_LOCK_ENABLED = true;   // ← new
 
 // Initialise i18n engine (translations.js is loaded before this file)
 i18n.init();
 
 safeStorageGet(
-    ['extensionEnabled', 'hideHomepageShorts', 'blockingEnabled', 'downloaderEnabled', 'adBlockerEnabled', 'qualityLockEnabled'],
+    ['extensionEnabled', 'hideHomepageShorts', 'blockingEnabled', 'downloaderEnabled', 'adBlockerEnabled'],
     (res) => {
         if (res.extensionEnabled !== undefined) EXTENSION_ENABLED = res.extensionEnabled;
         if (res.hideHomepageShorts !== undefined) HIDE_SHORTS_HOMEPAGE = res.hideHomepageShorts;
         if (res.blockingEnabled !== undefined) BLOCKING_ENABLED = res.blockingEnabled;
         if (res.downloaderEnabled !== undefined) DOWNLOADER_ENABLED = res.downloaderEnabled;
         if (res.adBlockerEnabled !== undefined) AD_BLOCKER_ENABLED = res.adBlockerEnabled;
-        if (res.qualityLockEnabled !== undefined) QUALITY_LOCK_ENABLED = res.qualityLockEnabled;
         applyHomepageVisibility();
         applyAdBlocker();
     }
@@ -126,10 +123,6 @@ chrome.runtime.onMessage.addListener((msg) => {
         applyAdBlocker();
     }
 
-    // ── Quality lock toggle ──────────────────────────────────────────────────
-    if (msg.action === 'toggle_quality_lock') {
-        QUALITY_LOCK_ENABLED = msg.enabled;
-    }
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -275,21 +268,10 @@ const scrollObserver = new IntersectionObserver((entries) => {
         if (!entry.isIntersecting) return;
         const renderer = entry.target;
         if (checkForAdAndSkip(renderer)) return;
-        forceHighestQuality();
         const btn = renderer.querySelector('.my-block-button');
         if (btn) checkAndResetButton(btn, renderer);
     });
 }, { threshold: 0.5 });
-
-// ─── Force quality ────────────────────────────────────────────────────────────
-function forceHighestQuality() {
-    if (!QUALITY_LOCK_ENABLED || !EXTENSION_ENABLED) return;
-    const player = document.getElementById('movie_player') ||
-        document.querySelector('.html5-video-player');
-    if (player && typeof player.setPlaybackQualityRange === 'function') {
-        player.setPlaybackQualityRange('hd2160');
-    }
-}
 
 // ─── Ad skip (Shorts feed) ────────────────────────────────────────────────────
 
@@ -1082,9 +1064,7 @@ function showDownloadModal(anchor, data, isShorts) {
         if (formats.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'yt-dl-empty';
-            const vid = getCurrentVideoId();
-            empty.innerHTML = i18n.t('dlModalNoStreams') +
-                (vid ? `<a class="yt-dl-fallback-link" href="https://y2mate.com/youtube/${vid}" target="_blank" rel="noopener">${i18n.t('dlModalWebService')}</a>` : '');
+            empty.textContent = i18n.t('dlModalNoStreams');
             modal.appendChild(empty);
         } else {
             formats.forEach(fmt => {
@@ -1139,11 +1119,7 @@ function showDownloadModal(anchor, data, isShorts) {
         if (formats.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'ytp-menuitem';
-            const vid = getCurrentVideoId();
-            empty.innerHTML = `<div class="ytp-menuitem-label" style="white-space:normal;line-height:1.5;">
-                ${i18n.t('dlModalNoStreams')}
-                ${vid ? `<a href="https://y2mate.com/youtube/${vid}" target="_blank" style="color:#3ea6ff;display:block;margin-top:4px;">${i18n.t('dlModalWebService')}</a>` : ''}
-            </div>`;
+            empty.textContent = i18n.t('dlModalNoStreams');
             menu.appendChild(empty);
         } else {
             formats.forEach(fmt => {

@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const extIdDisplay = document.getElementById('extension-id-display');
     const copyBtn = document.getElementById('copy-btn');
     const setupView = document.getElementById('setup-view');
+    const mediaToolsStatus = document.getElementById('media-tools-status');
 
     const extensionId = chrome.runtime.id;
     extIdDisplay.textContent = extensionId;
@@ -56,15 +57,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    function setMediaToolsStatus(response) {
+        if (!mediaToolsStatus) return;
+        const label = mediaToolsStatus.querySelector('[data-i18n]');
+        mediaToolsStatus.className = 'tool-status';
+
+        if (!response || response.status !== 'connected') {
+            mediaToolsStatus.classList.add('error');
+            if (label) label.textContent = i18n.t('setupMediaToolsUnavailable');
+            return;
+        }
+
+        if (response.ffmpegReady === false) {
+            mediaToolsStatus.classList.add('warn');
+            if (label) label.textContent = i18n.t('setupFfmpegMissing');
+            return;
+        }
+
+        mediaToolsStatus.classList.add('ready');
+        if (label) label.textContent = i18n.t('setupMediaToolsReady');
+    }
+
     // ── Connection check ──────────────────────────────────────────────────────
     function checkConnection() {
         setStatus('checking');
 
         chrome.runtime.sendMessage({ action: 'check_native_host_status' }, (response) => {
             if (chrome.runtime.lastError) {
+                setMediaToolsStatus(null);
                 setStatus('disconnected');
                 return;
             }
+            setMediaToolsStatus(response);
             if (response && response.status === 'connected') {
                 setStatus('connected');
             } else {
@@ -112,6 +136,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (data.status === 'info' || data.status === 'progress' || data.status === 'error_log') {
                 updateLogContainer.textContent += (data.data || data.message || '') + '\n';
                 updateLogContainer.scrollTop = updateLogContainer.scrollHeight;
+            } else if (data.status === 'error') {
+                updateLogContainer.textContent += '\n' + (data.message || i18n.t('setupUpdateError')) + '\n';
+                updateLogContainer.scrollTop = updateLogContainer.scrollHeight;
+                resetUpdateBtn();
             } else if (data.status === 'update_success') {
                 updateLogContainer.textContent += '\n' + i18n.t('setupUpdateDone') + '\n';
                 updateLogContainer.scrollTop = updateLogContainer.scrollHeight;

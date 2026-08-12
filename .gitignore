@@ -1,5 +1,9 @@
 # Native Host / yt-dlp generated files
 native-host/yt-dlp.exe
+native-host/ffmpeg/
+native-host/ffmpeg.download/
+native-host/*.download
+native-host/*.previous
 native-host/native-host.bat
 native-host/com.paracci.youtubedownloader.json
 native-host/do

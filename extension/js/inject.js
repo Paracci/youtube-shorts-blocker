@@ -1,71 +1,74 @@
 (function () {
-    // ── Re-entrant guard: if already injected, just re-run the check ──────────
-    // premium-detector.js removes the old <script> tag before re-injecting on
-    // SPA navigation, so this IIFE always runs fresh. The guard below prevents
-    // the extremely rare case where the script fires twice on the same document.
-    if (window.__ytPremiumDetectorRunning) return;
-    window.__ytPremiumDetectorRunning = true;
-    setTimeout(() => { window.__ytPremiumDetectorRunning = false; }, 6000);
+    const script = document.currentScript;
+    let nonce = '';
+    try {
+        nonce = new URL(script?.src || '', window.location.href).searchParams.get('nonce') || '';
+    } catch (_) { }
+    if (!nonce) return;
 
-    function check() {
+    // A newer navigation invalidates all older injected scripts. Old timers
+    // still wake up, but they stop before reading or posting stale results.
+    window.__ytPremiumDetectorNonce = nonce;
+
+    function isCurrent() {
+        return window.__ytPremiumDetectorNonce === nonce;
+    }
+
+    function post(isPremium) {
+        if (isCurrent()) window.postMessage({
+            type: 'YT_PREMIUM_STATUS',
+            nonce,
+            isPremium
+        }, window.location.origin);
+    }
+
+    function detect() {
+        if (!isCurrent()) return;
+
         try {
-            let isPremium = false;
+            let result = null;
+            const ytcfg = window.ytcfg;
+            const get = ytcfg && typeof ytcfg.get === 'function' ? ytcfg.get.bind(ytcfg) : null;
 
-            if (window.ytcfg && typeof window.ytcfg.get === 'function') {
-                const flags = window.ytcfg.get('EXPERIMENT_FLAGS') || {};
+            if (get) {
+                const explicitPremium = get('IS_YT_PREMIUM');
+                if (explicitPremium === true || explicitPremium === 1) result = true;
+                else if (explicitPremium === false || explicitPremium === 0) result = false;
 
-                // ── Signal 1: Primary flag (confirmed on real Premium account) ─
-                if (flags['PremiumClientSharedConfig__enable_att_for_get_download_action_on_web_client'] === true) {
-                    isPremium = true;
-                }
+                const flags = get('EXPERIMENT_FLAGS') || {};
+                const premiumFlag = flags.PremiumClientSharedConfig__enable_att_for_get_download_action_on_web_client;
+                if (premiumFlag === true) result = true;
 
-                // ── Signal 2: Count of PremiumClientSharedConfig__ keys ────────
-                // Free accounts have zero; Premium accounts have several.
-                if (!isPremium) {
-                    const premiumKeyCount = Object.keys(flags).filter(k =>
-                        k.startsWith('PremiumClientSharedConfig__')
-                    ).length;
-                    if (premiumKeyCount >= 2) isPremium = true;
-                }
+                // A logged-out account cannot have a Premium entitlement.
+                if (result === null && get('LOGGED_IN') === false) result = false;
 
-                // ── Signal 3: ytcfg top-level Premium fields ───────────────────
-                if (!isPremium) {
-                    const isYTPremium = window.ytcfg.get('IS_YT_PREMIUM');
-                    if (isYTPremium === true || isYTPremium === 1) isPremium = true;
-                }
-
-                // ── Signal 4: LOGGED_IN + purchase data in ytInitialData ───────
-                if (!isPremium && window.ytInitialData) {
-                    try {
-                        const header = window.ytInitialData?.header;
-                        const badge = JSON.stringify(header || '');
-                        if (badge.includes('premium') || badge.includes('Premium')) {
-                            isPremium = true;
-                        }
-                    } catch (_) { }
-                }
-
-                // ── Signal 5: DOM badge (most visible signal, last resort) ──────
-                if (!isPremium) {
-                    const badgeEl = document.querySelector(
-                        '#avatar-btn [aria-label*="Premium"], ' +
-                        'ytd-topbar-menu-button-renderer [aria-label*="Premium"], ' +
-                        '.ytd-premium-membership-banner-renderer'
-                    );
-                    if (badgeEl) isPremium = true;
+                // Positive-only fallbacks may confirm Premium, but never claim
+                // that a missing/ambiguous badge means a free account.
+                if (result !== true && window.ytInitialData) {
+                    const headerText = JSON.stringify(window.ytInitialData.header || '');
+                    if (/premium.{0,80}(account|member|subscription)|member.{0,80}premium/i.test(headerText)) {
+                        result = true;
+                    }
                 }
             }
 
-            window.postMessage({ type: 'YT_PREMIUM_STATUS', isPremium }, '*');
-        } catch (e) {
-            // On error, do NOT assume non-premium — send null so state.js keeps
-            // its cached value rather than overwriting it with false.
-            window.postMessage({ type: 'YT_PREMIUM_STATUS', isPremium: null }, '*');
+            if (result !== true) {
+                const badge = document.querySelector(
+                    '#avatar-btn [aria-label*="Premium" i], ' +
+                    'ytd-topbar-menu-button-renderer [aria-label*="Premium" i], ' +
+                    '.ytd-premium-membership-banner-renderer'
+                );
+                if (badge && !badge.closest('[hidden]')) result = true;
+            }
+
+            // null means unknown. The content script will remain fail-closed.
+            post(result);
+        } catch (_) {
+            post(null);
         }
     }
 
-    // Run immediately, then after YouTube's JS settles
-    check();
-    setTimeout(check, 1500);
-    setTimeout(check, 4000);
+    detect();
+    setTimeout(detect, 1500);
+    setTimeout(detect, 4000);
 })();

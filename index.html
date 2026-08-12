@@ -4,12 +4,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YouTube Shorts Blocker (v1.12.0) — Block Shorts. Download Videos. Own Your Watch Time.</title>
+  <title>YouTube Shorts Blocker (v1.13.0) — Block Shorts. Download Your Way.</title>
   <meta name="description"
-    content="A Chrome extension that blocks Shorts channels, hides the Shorts shelf, and downloads high-quality videos via yt-dlp — now with YouTube Premium compliance and safety-isolated automation.">
-  <meta property="og:title" content="YouTube Shorts Blocker (v1.12.0)">
+    content="A privacy-first Chrome extension that blocks Shorts channels, hides the Shorts shelf, and downloads public YouTube videos in six local output formats.">
+  <meta property="og:title" content="YouTube Shorts Blocker (v1.13.0)">
   <meta property="og:description"
-    content="Block Shorts channels, hide the Shorts shelf, and download videos in full quality. Premium compliant and 100% local.">
+    content="Block Shorts channels, hide the Shorts shelf, and download public YouTube videos in the format you choose. Premium-aware and local-first.">
   <meta property="og:type" content="website">
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><path fill=%22%23ff0000%22 d=%22M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z%22/></svg>">
@@ -17,6 +17,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap"
     rel="stylesheet">
+  <link rel="stylesheet" href="./landing-demo.css?v=20260812">
   <style>
     :root {
       --red: #ff0000;
@@ -29,13 +30,13 @@
       --green: #2ba640;
       --green-glow: rgba(43, 166, 64, 0.15);
       --yellow: #fbbc04;
-      --bg: #0a0a0a;
-      --bg2: #0f0f0f;
-      --bg3: #141414;
-      --bg4: #1a1a1a;
-      --bg5: #222;
-      --border: rgba(255, 255, 255, 0.07);
-      --border2: rgba(255, 255, 255, 0.12);
+      --bg: #0f0f0f;
+      --bg2: #141414;
+      --bg3: #161616;
+      --bg4: #1e1e1e;
+      --bg5: #242424;
+      --border: rgba(255, 255, 255, 0.08);
+      --border2: rgba(255, 255, 255, 0.14);
       --t1: #f1f1f1;
       --t2: #aaaaaa;
       --t3: #555;
@@ -72,7 +73,9 @@
     }
 
     body {
-      background: var(--bg);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(255, 0, 0, .06), transparent 32rem),
+        var(--bg);
       color: var(--t1);
       font-family: 'Outfit', sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -87,7 +90,7 @@
       background-image:
         linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-      background-size: 44px 44px;
+      background-size: 40px 40px;
       pointer-events: none;
       z-index: 0;
     }
@@ -99,7 +102,7 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 2px;
+      height: 3px;
       background: linear-gradient(90deg, transparent 0%, var(--red) 30%, var(--red) 70%, transparent 100%);
       z-index: 1000;
     }
@@ -114,7 +117,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 48px;
+      padding: 0 40px;
       height: 62px;
       border-bottom: 1px solid var(--border);
       background: rgba(10, 10, 10, 0.88);
@@ -130,6 +133,10 @@
       font-weight: 700;
       color: var(--t1);
       text-decoration: none;
+    }
+
+    .nav-logo-text {
+      display: inline;
     }
 
     .nav-logo-icon {
@@ -148,10 +155,10 @@
     .nav-link {
       color: var(--t2);
       text-decoration: none;
-      font-size: 13.5px;
+      font-size: 12px;
       font-weight: 500;
-      padding: 6px 14px;
-      border-radius: 999px;
+      padding: 8px 10px;
+      border-radius: 10px;
       transition: all .2s;
     }
 
@@ -163,10 +170,11 @@
     .nav-cta {
       background: var(--red);
       color: #fff !important;
-      padding: 7px 20px;
+      min-height: 36px;
+      padding: 0 15px;
       border-radius: 999px;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12px;
       text-decoration: none;
       transition: background .2s, box-shadow .2s;
       display: flex;
@@ -183,15 +191,15 @@
     section {
       position: relative;
       z-index: 1;
-      padding: 100px 48px;
-      max-width: 1200px;
+      padding: 88px 40px;
+      max-width: 1120px;
       margin: 0 auto;
     }
 
     .section-divider {
       height: 1px;
       background: linear-gradient(90deg, transparent, var(--border2), transparent);
-      margin: 0 48px;
+      margin: 0 40px;
       position: relative;
       z-index: 1;
     }
@@ -201,23 +209,33 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1.2px;
       text-transform: uppercase;
-      color: var(--red);
-      background: var(--red-glow);
-      border: 1px solid var(--red-border);
-      padding: 5px 13px;
-      border-radius: 999px;
-      margin-bottom: 20px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      margin-bottom: 18px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .9px;
+      color: var(--t3);
+      background: transparent;
+    }
+
+    .section-label::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 7px rgba(255, 0, 0, .55);
     }
 
     .section-title {
-      font-size: clamp(32px, 5vw, 52px);
-      font-weight: 900;
-      letter-spacing: -2px;
-      line-height: 1.05;
+      font-size: clamp(30px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -1.6px;
+      line-height: 1.08;
       margin-bottom: 18px;
     }
 
@@ -305,9 +323,9 @@
     }
 
     .hero-title {
-      font-size: clamp(40px, 6vw, 68px);
-      font-weight: 900;
-      letter-spacing: -3px;
+      font-size: clamp(40px, 6vw, 64px);
+      font-weight: 800;
+      letter-spacing: -2.4px;
       line-height: 1.0;
       margin-bottom: 22px;
     }
@@ -337,11 +355,12 @@
       gap: 8px;
       background: var(--red);
       color: #fff;
-      padding: 13px 26px;
+      min-height: 40px;
+      padding: 0 19px;
       border-radius: 999px;
       font-family: 'Outfit', sans-serif;
-      font-size: 14.5px;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 600;
       text-decoration: none;
       transition: background .2s, box-shadow .2s, transform .15s;
       border: none;
@@ -360,10 +379,11 @@
       gap: 8px;
       background: transparent;
       color: var(--t1);
-      padding: 12px 22px;
+      min-height: 36px;
+      padding: 0 14px;
       border-radius: 999px;
       font-family: 'Outfit', sans-serif;
-      font-size: 14px;
+      font-size: 12.5px;
       font-weight: 600;
       text-decoration: none;
       border: 1px solid var(--border2);
@@ -482,8 +502,8 @@
     .feature-card {
       background: var(--bg4);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px;
+      border-radius: 12px;
+      padding: 24px;
       transition: border-color .2s, background .2s, transform .2s;
     }
 
@@ -612,10 +632,10 @@
     }
 
     .privacy-card {
-      background: var(--bg4);
+      background: var(--bg3);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 28px;
+      border-radius: 12px;
+      padding: 24px;
       transition: border-color .2s, transform .2s;
     }
 
@@ -639,9 +659,9 @@
 
     /* ── INSTALL ── */
     .install-box {
-      background: var(--bg4);
+      background: var(--bg3);
       border: 1px solid var(--border);
-      border-radius: 20px;
+      border-radius: 18px;
       overflow: hidden;
       display: grid;
       grid-template-columns: 1fr 280px;
@@ -1267,8 +1287,8 @@
     .showcase-card {
       background: var(--bg3);
       border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 32px;
+      border-radius: 18px;
+      padding: 26px;
       position: relative;
       overflow: hidden;
       transition: border-color .3s, box-shadow .3s;
@@ -1459,93 +1479,12 @@
       color: #ff4444;
     }
 
-    /* ── DOWNLOAD MODAL DEMO ── */
-    .yt-dl-modal-demo {
-      background: #1f1f1f;
-      border: 1px solid rgba(255, 255, 255, .12);
-      border-radius: 14px;
-      padding: 6px;
-      width: 100%;
-      max-width: 320px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .03);
-      font-family: "YouTube Sans", "Roboto", sans-serif;
-    }
-
-    .yt-dl-header-demo {
-      padding: 8px 12px 6px;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: .6px;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, .45);
-      user-select: none;
-    }
-
-    .yt-dl-option-demo {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-      padding: 9px 12px;
-      border: none;
-      background: transparent;
-      border-radius: 9px;
-      cursor: pointer;
-      transition: background .14s;
-      color: #fff;
-      text-align: left;
-      font-family: inherit;
-    }
-
-    .yt-dl-option-demo:hover {
-      background: rgba(255, 255, 255, .1);
-    }
-
-    .yt-dl-quality-demo {
-      font-size: 14px;
-      font-weight: 500;
-      color: #fff;
-      flex: 1;
-      white-space: nowrap;
-    }
-
-    .yt-dl-badges-demo {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      flex-shrink: 0;
-    }
-
-    .yt-dl-badge-mime-demo {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      white-space: nowrap;
-      background: rgba(255, 255, 255, .1);
-      color: rgba(255, 255, 255, .65);
-    }
-
-    .yt-dl-badge-size-demo {
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      white-space: nowrap;
-      background: rgba(62, 166, 255, .15);
-      color: rgba(62, 166, 255, .85);
-    }
-
-    .yt-dl-arrow-demo {
-      opacity: .45;
-      flex-shrink: 0;
-      color: #fff;
-    }
-
     /* ── SETUP PAGE DEMO ── */
     .setup-demo {
-      background: #0f0f0f;
-      border: 1px solid rgba(255, 255, 255, .07);
-      border-radius: 20px;
-      padding: 32px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 28px;
       width: 440px;
       font-family: 'Outfit', -apple-system, sans-serif;
       position: relative;
@@ -1587,10 +1526,10 @@
     }
 
     .setup-card {
-      background: #161616;
-      border: 1px solid rgba(255, 255, 255, .07);
-      border-radius: 16px;
-      padding: 28px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
       text-align: center;
     }
 
@@ -1767,6 +1706,18 @@
         overflow-x: auto;
       }
 
+      .browser-chrome,
+      .popup-embed,
+      .setup-demo {
+        max-width: 100%;
+      }
+
+      .how-split-left {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
       section {
         padding: 70px 24px;
       }
@@ -1815,12 +1766,51 @@
         max-width: 100%;
       }
 
-      .yt-dl-modal-demo {
-        max-width: 100%;
-      }
-
       .setup-demo {
         width: 100%;
+      }
+    }
+
+    @media(max-width:600px) {
+      .top-nav {
+        padding: 0 14px;
+      }
+
+      .nav-logo {
+        gap: 0;
+        flex: 0 0 auto;
+      }
+
+      .nav-logo-text {
+        display: none;
+      }
+
+      .nav-logo-icon {
+        width: 22px;
+        height: 22px;
+      }
+
+      .nav-links {
+        gap: 0;
+        min-width: 0;
+      }
+
+      .nav-link {
+        font-size: 11px;
+        padding: 5px 6px;
+        white-space: nowrap;
+      }
+
+      .nav-links .nav-link:nth-of-type(4),
+      .nav-links .nav-link:nth-of-type(5) {
+        display: none;
+      }
+
+      .nav-cta {
+        gap: 4px;
+        padding: 6px 10px;
+        font-size: 11px;
+        white-space: nowrap;
       }
     }
   </style>
@@ -1835,14 +1825,15 @@
         <path
           d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" />
       </svg>
-      Shorts Blocker
+      <span class="nav-logo-text">Shorts Blocker</span>
     </a>
     <div class="nav-links">
       <a href="#features" class="nav-link">Features</a>
       <a href="#how-it-works" class="nav-link">How it works</a>
+      <a href="#download-demo" class="nav-link">Downloader</a>
       <a href="#privacy" class="nav-link">Privacy</a>
       <a href="#install" class="nav-link">Install</a>
-      <a href="https://github.com/Paracci/youtube-shorts-blocker" target="_blank" class="nav-cta">
+      <a href="https://github.com/Paracci/youtube-shorts-blocker" target="_blank" rel="noopener noreferrer" class="nav-cta">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
           <path
             d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.74-1.33-1.74-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1.01-.32 3.3 1.23A11.5 11.5 0 0 1 12 5.8c1.02.005 2.05.14 3.01.41 2.29-1.55 3.3-1.23 3.3-1.23.64 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.49 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.21.7.82.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z" />
@@ -1860,39 +1851,45 @@
       <div class="hero-content">
         <div class="hero-badge">
           <div class="hero-badge-dot"></div>
-          v1.12.0 · Chrome Extension
+          v1.13.0 · Chrome Extension
         </div>
         <h1 class="hero-title">
           Block<br>
           <span class="accent">Shorts.</span><br>
-          Own Your Feed.
+          Download Your Way.
         </h1>
         <p class="hero-sub">
-          Block Shorts channels with one tap, hide the Shorts shelf entirely, and download full-quality videos via
-          yt-dlp — all local, all private, zero telemetry.
+          Take back your feed, block unwanted Shorts channels, and download public YouTube videos in the format you
+          choose — all local, all private, zero telemetry.
         </p>
         <div class="hero-actions">
-          <a href="https://github.com/Paracci/youtube-shorts-blocker" target="_blank" class="btn-primary">
+          <a href="#download-demo" class="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+            </svg>
+            Try the downloader demo
+          </a>
+          <a href="https://github.com/Paracci/youtube-shorts-blocker" target="_blank" rel="noopener noreferrer"
+            class="btn-secondary">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path
                 d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.54-1.38-1.33-1.74-1.33-1.74-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1.01-.32 3.3 1.23A11.5 11.5 0 0 1 12 5.8c1.02.005 2.05.14 3.01.41 2.29-1.55 3.3-1.23 3.3-1.23.64 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.49 5.92.43.37.82 1.1.82 2.22v3.29c0 .32.21.7.82.58C20.56 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z" />
             </svg>
-            View on GitHub
+            Install from GitHub
           </a>
-          <a href="#how-it-works" class="btn-secondary">See how it works →</a>
         </div>
         <div class="hero-stats">
           <div>
-            <div class="hero-stat-val" style="color:var(--red);" id="heroBlocked">0</div>
-            <div class="hero-stat-label">Channels blocked</div>
-          </div>
-          <div>
-            <div class="hero-stat-val">11</div>
+            <div class="hero-stat-val" style="color:var(--red);">11</div>
             <div class="hero-stat-label">Languages</div>
           </div>
           <div>
-            <div class="hero-stat-val" style="color:var(--green);">yt-dlp</div>
-            <div class="hero-stat-label">Download engine</div>
+            <div class="hero-stat-val">6</div>
+            <div class="hero-stat-label">Output formats</div>
+          </div>
+          <div>
+            <div class="hero-stat-val" style="color:var(--green);">0</div>
+            <div class="hero-stat-label">Telemetry</div>
           </div>
         </div>
       </div>
@@ -1960,12 +1957,12 @@
                 <div class="card">
                   <div style="display:flex;align-items:center;">
                     <div class="stat-block">
-                      <div class="stat-val" id="heroStatBlocked">247</div>
+                      <div class="stat-val">247</div>
                       <div class="stat-label">Blocked</div>
                     </div>
                     <div class="stat-divider"></div>
                     <div class="stat-block">
-                      <div class="stat-val" id="heroStatHidden">1,843</div>
+                      <div class="stat-val">1,843</div>
                       <div class="stat-label">Hidden</div>
                     </div>
                   </div>
@@ -1975,9 +1972,9 @@
                   <div class="card-row" style="margin-bottom:10px;">
                     <div>
                       <div class="row-label">Native Downloader</div>
-                      <div class="row-sublabel">yt-dlp · high-quality videos</div>
+                      <div class="row-sublabel">yt-dlp + ffmpeg · six formats</div>
                     </div>
-                    <span class="badge connected">Connected</span>
+                    <span class="badge connected">Ready</span>
                   </div>
                   <button class="action-btn" style="width:100%;justify-content:center;">
                     Setup / Monitor
@@ -1993,6 +1990,12 @@
                     <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
                   </svg>
                   <span>Home</span>
+                </button>
+                <button class="nav-item">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                  </svg>
+                  <span>Downloader</span>
                 </button>
                 <button class="nav-item">
                   <svg viewBox="0 0 24 24">
@@ -2033,7 +2036,8 @@
   <section id="features">
     <div class="section-label">Features</div>
     <h2 class="section-title">Everything you need<br>to reclaim YouTube.</h2>
-    <p class="section-sub">Three powerful tools in one lightweight extension. No account, no data collection, no cloud.
+    <p class="section-sub">A focused toolkit for your feed, your downloads, and your privacy. No account, no data
+      collection, no cloud.
     </p>
     <div class="features-grid">
       <div class="feature-card">
@@ -2055,9 +2059,8 @@
           </svg>
         </div>
         <h3>Premium Compliance</h3>
-        <p>A hardened, multi-layered detection system using 5 independent signals disables all ad-blocking for YouTube
-          Premium subscribers — across page loads, SPA navigations, and popup interactions. No TOS violations, no
-          account bans.</p>
+        <p>Premium-dependent ad automation is fail-closed and remains off until a fresh account result is confirmed.
+          Premium subscribers stay protected across page loads, SPA navigations, and popup interactions.</p>
       </div>
       <div class="feature-card fade-up">
         <div class="feature-icon" style="background:rgba(43,166,64,0.1);border-color:rgba(43,166,64,0.3);">
@@ -2065,9 +2068,9 @@
             <path d="M12 3L4 9v12h16V9l-8-6zm0 12c-1.66 0-3-1.34-3-3s1.34-3 3-3 3-1.34 3-3-1.34-3-3-3z" />
           </svg>
         </div>
-        <h3>4K Quality Lock</h3>
-        <p>Force every video to play at the highest available resolution (2160p, 1440p) automatically. The extension
-          locks your preference via native player APIs.</p>
+        <h3>Ad-safe playback</h3>
+        <p>Explicit ad markers are handled without hiding the entire Shorts player, and playback state is restored after
+          navigation or when the feature is disabled.</p>
       </div>
       <div class="feature-card fade-up">
         <div class="feature-icon">
@@ -2088,19 +2091,19 @@
           </svg>
         </div>
         <h3>Native Downloader</h3>
-        <p>Download full-quality 4K/1080p videos or pure MP3s directly to your machine using the powerful yt-dlp engine
-          and our local companion bridge.</p>
+        <p>Open a dedicated downloader page, choose from six output formats and advanced quality profiles, then let the
+          verified yt-dlp + ffmpeg bridge save the result locally.</p>
       </div>
       <div class="feature-card fade-up">
-        <div class="feature-icon" style="background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.3);">
-          <svg viewBox="0 0 24 24" style="fill:#a855f7;">
+        <div class="feature-icon" style="background:rgba(62,166,255,.1);border-color:rgba(62,166,255,.3);">
+          <svg viewBox="0 0 24 24" style="fill:var(--blue);">
             <path
               d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-1.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z" />
           </svg>
         </div>
         <h3>Global i18n support</h3>
-        <p>Available in 11 languages including English, Türkçe, Deutsch, and more. Auto-detects your browser locale for
-          a native, zero-setup experience.</p>
+        <p>Available in 11 languages including English, Türkçe, Deutsch, and more. The popup, setup flow, and standalone
+          downloader share the same translation engine.</p>
       </div>
     </div>
   </section>
@@ -2110,9 +2113,9 @@
   <!-- HOW IT WORKS -->
   <section id="how-it-works">
     <div class="section-label">How it works</div>
-    <h2 class="section-title">Real UI.<br>Real code.</h2>
-    <p class="section-sub">Every element below is rendered from the actual extension source — the exact same HTML and
-      CSS that runs in Chrome.</p>
+    <h2 class="section-title">A clear path from<br>URL to file.</h2>
+    <p class="section-sub">The extension keeps the selection simple in Chrome while the native companion handles the
+      heavy media work locally and safely.</p>
 
     <div class="how-split">
       <!-- LEFT: Settings popup (live code replica) -->
@@ -2176,18 +2179,17 @@
                     Service. Use at your own risk.</div>
                 </div>
 
-                <!-- New Quality Lock section in Settings Mockup -->
+                <!-- Ad-safe playback section in Settings Mockup -->
                 <div class="card">
-                  <h2>Quality Lock</h2>
+                  <h2>Ad-safe playback</h2>
                   <div class="card-row">
                     <div>
-                      <div class="row-label">Force highest quality</div>
-                      <div class="row-sublabel">Always play at max resolution</div>
+                      <div class="row-label">Navigate explicit Shorts ads</div>
+                      <div class="row-sublabel">Restore media state after navigation</div>
                     </div>
                     <label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label>
                   </div>
-                  <div class="risk-warning">Uses non-public player APIs. May be identified as unusual behavior. Use at
-                    your own risk.</div>
+                  <div class="risk-warning">Premium-aware and fail-closed while account status is unknown.</div>
                 </div>
 
                 <div class="card">
@@ -2195,7 +2197,7 @@
                   <div class="card-row">
                     <div>
                       <div class="row-label">Show download button</div>
-                      <div class="row-sublabel">In video player controls</div>
+                      <div class="row-sublabel">In-player controls + standalone page</div>
                     </div>
                     <label class="toggle-switch"><input type="checkbox" checked><span class="slider"></span></label>
                   </div>
@@ -2244,6 +2246,11 @@
                     <path
                       d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a6.97 6.97 0 0 0-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58a.47.47 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.37 1.04.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.47.47 0 0 0-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
                   </svg><span>Settings</span>
+                </button>
+                <button class="nav-item">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                  </svg><span>Downloader</span>
                 </button>
                 <button class="nav-item">
                   <svg viewBox="0 0 24 24">
@@ -2299,29 +2306,32 @@
           <div class="step-num">04</div>
           <div class="step-body">
             <h4>Privacy-Focused Ad Blocking</h4>
-            <p>A hybrid engine uses CSS hiding for instant layout stabilization and a <code>MutationObserver</code> on
-              <span class="code-tag">#movie_player</span> that reacts in under 1ms when an ad starts — replacing the old
-              700ms polling loop. A 250ms fallback interval handles edge cases. All ad logic is fully disabled for
-              Premium subscribers before it ever runs.</p>
+            <p>Confirmed ad markers are handled with scoped observers and CSS. The player is never hidden wholesale, media
+              state is restored after navigation, and Premium-dependent automation stays off until account state is known.</p>
           </div>
         </div>
         <div class="step-row fade-up">
           <div class="step-num">05</div>
           <div class="step-body">
-            <h4>Native messaging bridge</h4>
-            <p>Download requests pass from the content script → background service worker → native Node.js host via
-              <span class="code-tag">chrome.runtime.connectNative</span>. yt-dlp then handles 4K acquisition on your
-              device.
-            </p>
+            <h4>1. Paste a public video URL</h4>
+            <p>The standalone Downloader accepts secure single-video links from YouTube and `youtu.be`. Playlist,
+              credential, search, channel, and non-YouTube URLs are rejected before any native work begins.</p>
           </div>
         </div>
         <div class="step-row fade-up">
-          <div class="step-num">05</div>
+          <div class="step-num">06</div>
           <div class="step-body">
-            <h4>i18n in 11 languages</h4>
-            <p>A lightweight i18n engine reads the browser locale (or your manual override) and applies translations to
-              every <span class="code-tag">data-i18n</span> attribute in the DOM — including dynamic strings from JS —
-              before rendering.</p>
+            <h4>2. Resolve safe formats</h4>
+            <p>The native host returns normalized resolution, FPS, codec, audio/video, container, and size metadata. The
+              page never receives signed <span class="code-tag">googlevideo.com</span> stream URLs.</p>
+          </div>
+        </div>
+        <div class="step-row fade-up">
+          <div class="step-num">07</div>
+          <div class="step-body">
+            <h4>3. Merge, convert, and save locally</h4>
+            <p>Approved selections become safe yt-dlp arguments; ffmpeg merges or converts the output into MP4, WebM, MKV,
+              MP3, M4A, or Opus inside your chosen download folder.</p>
           </div>
         </div>
       </div>
@@ -2330,12 +2340,12 @@
 
   <div class="section-divider"></div>
 
-  <!-- SHORTS BLOCK DEMO + DOWNLOAD MODAL -->
+  <!-- SHORTS BLOCK DEMO + STANDALONE DOWNLOADER -->
   <section>
-    <div class="section-label">Live UI Previews</div>
+    <div class="section-label">Interactive UI Previews</div>
     <h2 class="section-title">See it in action.</h2>
-    <p class="section-sub">Every component below is rendered from the actual extension source — the same HTML and CSS
-      that runs inside Chrome.</p>
+    <p class="section-sub">The block button mirrors the in-page extension control. The downloader preview is a safe,
+      local simulation of the standalone flow — no network request and no file download.</p>
 
     <div class="showcase-grid">
 
@@ -2408,70 +2418,128 @@
         </div>
       </div>
 
-      <!-- CARD 2: DOWNLOAD QUALITY MODAL -->
-      <div class="showcase-card fade-up">
+      <!-- CARD 2: STANDALONE DOWNLOADER PREVIEW -->
+      <div class="showcase-card full-width fade-up" id="download-demo">
         <div class="showcase-card-label">
           <span class="dot blue"></span>
-          style.css · .yt-dl-modal
+          download.html · standalone native downloader
         </div>
         <div class="showcase-card-body">
-          <div class="yt-dl-modal-demo">
-            <div class="yt-dl-header-demo">Select Quality</div>
-            <button class="yt-dl-option-demo">
-              <span class="yt-dl-quality-demo">2160p 4K</span>
-              <div class="yt-dl-badges-demo">
-                <span class="yt-dl-badge-mime-demo">mp4</span>
-                <span class="yt-dl-badge-size-demo">~1.2 GB</span>
-              </div>
-              <svg class="yt-dl-arrow-demo" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-              </svg>
-            </button>
-            <button class="yt-dl-option-demo">
-              <span class="yt-dl-quality-demo">1080p HD</span>
-              <div class="yt-dl-badges-demo">
-                <span class="yt-dl-badge-mime-demo">mp4</span>
-                <span class="yt-dl-badge-size-demo">~380 MB</span>
-              </div>
-              <svg class="yt-dl-arrow-demo" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-              </svg>
-            </button>
-            <button class="yt-dl-option-demo" style="background:rgba(255,255,255,.08);">
-              <span class="yt-dl-quality-demo">720p</span>
-              <div class="yt-dl-badges-demo">
-                <span class="yt-dl-badge-mime-demo">mp4</span>
-                <span class="yt-dl-badge-size-demo">~180 MB</span>
-              </div>
-              <svg class="yt-dl-arrow-demo" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-              </svg>
-            </button>
-            <button class="yt-dl-option-demo">
-              <span class="yt-dl-quality-demo">480p</span>
-              <div class="yt-dl-badges-demo">
-                <span class="yt-dl-badge-mime-demo">mp4</span>
-                <span class="yt-dl-badge-size-demo">~90 MB</span>
-              </div>
-              <svg class="yt-dl-arrow-demo" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-              </svg>
-            </button>
-            <button class="yt-dl-option-demo">
-              <span class="yt-dl-quality-demo">360p</span>
-              <div class="yt-dl-badges-demo">
-                <span class="yt-dl-badge-mime-demo">mp4</span>
-                <span class="yt-dl-badge-size-demo">~48 MB</span>
-              </div>
-              <svg class="yt-dl-arrow-demo" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-              </svg>
-            </button>
+          <div class="landing-download-demo" data-landing-download-demo data-demo-state="idle">
+            <div class="landing-download-demo__chrome">
+              <div class="landing-download-demo__dots" aria-hidden="true"><span></span><span></span><span></span></div>
+              <div class="landing-download-demo__address">extension://…/views/download.html</div>
+              <span class="landing-download-demo__preview-badge">INTERACTIVE PREVIEW</span>
+            </div>
+            <div class="landing-download-demo__body">
+              <header class="landing-download-demo__page-header">
+                <div class="landing-download-demo__brand-lockup">
+                  <span class="landing-download-demo__brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25-.42 7.81-.42c.86 0 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" /></svg>
+                  </span>
+                  <span><strong>Shorts Blocker</strong><small>Private YouTube downloader</small></span>
+                </div>
+                <span class="landing-download-demo__setup-link">Setup / Monitor</span>
+              </header>
+              <!-- Legacy sidebar markup retained only as a reference for the extension-style preview.
+              <aside class="landing-download-demo__sidebar" aria-label="Downloader preview navigation">
+                <div class="landing-download-demo__brand">
+                  <span class="landing-download-demo__brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-.91 1.54-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.77 1.77 1.77C5.75 19 12 19 12 19s6.25-.42 7.81-.42c.86 0 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2-3z" /></svg>
+                  </span>
+                  <span><strong>Shorts Blocker</strong><small>Private downloader</small></span>
+                </div>
+                <div class="landing-download-demo__side-nav">
+                  <span>⌂ <b>Home</b></span>
+                  <span class="is-active">↓ <b>Downloader</b></span>
+                  <span>⚙ <b>Setup / Monitor</b></span>
+                </div>
+                <div class="landing-download-demo__side-status">
+                  <span class="landing-download-demo__status-dot"></span>
+                  <span><small>Native host</small><strong>Required in extension</strong></span>
+                </div>
+                <div class="landing-download-demo__side-folder"><small>Save location</small><strong>Downloads</strong></div>
+              </aside>
+              -->
+              <main class="landing-download-demo__main">
+                <div class="landing-download-demo__heading">
+                  <div><span class="landing-download-demo__eyebrow">LOCAL DOWNLOADS</span><h3>Download a YouTube video</h3></div>
+                  <span class="landing-download-demo__demo-chip">DEMO ONLY</span>
+                </div>
+                <p class="landing-download-demo__intro">Paste a public YouTube video link and choose the format that fits you.</p>
+                <form id="landing-download-form" class="landing-download-demo__form" novalidate>
+                  <label class="sr-only" for="landing-demo-url">YouTube URL</label>
+                  <div class="landing-download-demo__input-wrap">
+                    <input id="landing-demo-url" type="url" value="https://www.youtube.com/watch?v=sample12345" autocomplete="off" spellcheck="false" aria-describedby="landing-demo-status">
+                    <button id="landing-demo-clear" type="button" aria-label="Clear URL">×</button>
+                  </div>
+                  <div class="landing-download-demo__form-actions">
+                    <button id="landing-demo-sample" class="landing-download-demo__text-button" type="button">Use sample</button>
+                    <button class="landing-download-demo__primary" type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm-6.7 3.2L3.84 5.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8z" /></svg><span>Get formats</span></button>
+                  </div>
+                </form>
+                <div id="landing-demo-status" class="landing-download-demo__status" role="status" aria-live="polite">Enter a public single-video URL to preview the format picker.</div>
+                <section id="landing-demo-results" class="landing-download-demo__results" hidden aria-live="polite">
+                  <div class="landing-download-demo__source">
+                    <div class="landing-download-demo__thumbnail" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-.91 1.54-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.77 1.77 1.77C5.75 19 12 19 12 19s6.25-.42 7.81-.42c.86 0 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" /></svg></div>
+                    <div><span class="landing-download-demo__eyebrow">SOURCE VIDEO</span><strong>A calmer way to watch</strong><small>08:42 · public single video</small></div>
+                    <span class="landing-download-demo__format-count">6 formats</span>
+                  </div>
+                  <div class="landing-download-demo__section-title"><span><small>QUICK CHOICES</small><strong>Recommended formats</strong></span><span class="landing-download-demo__availability">available qualities</span></div>
+                  <div class="landing-download-demo__profiles">
+                    <button type="button" data-demo-format="best-mp4"><strong>Best MP4</strong><small>quality + audio</small><span>↓</span></button>
+                    <button type="button" data-demo-format="2160p"><strong>2160p</strong><small>4K · MP4</small><span>↓</span></button>
+                    <button type="button" data-demo-format="1440p"><strong>1440p</strong><small>QHD · MP4</small><span>↓</span></button>
+                    <button type="button" data-demo-format="1080p"><strong>1080p</strong><small>HD · MP4</small><span>↓</span></button>
+                    <button type="button" data-demo-format="mp3"><strong>MP3</strong><small>audio only</small><span>↓</span></button>
+                    <button type="button" data-demo-format="m4a"><strong>M4A</strong><small>audio only</small><span>↓</span></button>
+                  </div>
+                  <div class="landing-download-demo__advanced">
+                    <div class="landing-download-demo__section-title"><span><small>FULL CONTROL</small><strong>Advanced formats</strong></span><button id="landing-demo-advanced-toggle" class="landing-download-demo__text-button" type="button" aria-expanded="false" aria-controls="landing-demo-advanced-panel">Show advanced</button></div>
+                    <div id="landing-demo-advanced-panel" hidden>
+                      <div class="landing-download-demo__table-wrap">
+                        <table>
+                          <thead><tr><th>Quality</th><th>Codec</th><th>Type</th><th>Size</th><th>Output</th><th><span class="sr-only">Action</span></th></tr></thead>
+                          <tbody>
+                            <tr><td data-label="Quality"><strong>2160p60</strong><small>60 FPS</small></td><td data-label="Codec">AV1</td><td data-label="Type">video-only</td><td data-label="Size">~1.2 GB</td><td data-label="Output"><b>WebM</b></td><td><button type="button" data-demo-format="advanced-2160">↓</button></td></tr>
+                            <tr><td data-label="Quality"><strong>1080p30</strong><small>30 FPS</small></td><td data-label="Codec">H.264 + AAC</td><td data-label="Type">video + audio</td><td data-label="Size">~380 MB</td><td data-label="Output"><b>MP4</b></td><td><button type="button" data-demo-format="advanced-1080">↓</button></td></tr>
+                            <tr><td data-label="Quality"><strong>Audio</strong><small>128 kbps</small></td><td data-label="Codec">Opus</td><td data-label="Type">audio-only</td><td data-label="Size">~8 MB</td><td data-label="Output"><b>Opus</b></td><td><button type="button" data-demo-format="advanced-opus">↓</button></td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="landing-download-demo__activity">
+                    <div class="landing-download-demo__section-title"><span><small>ACTIVITY</small><strong>Downloads</strong></span><span id="landing-demo-job-status" class="landing-download-demo__job-status">Ready</span></div>
+                    <div class="landing-download-demo__job">
+                      <div class="landing-download-demo__job-heading"><strong id="landing-demo-job-title">Choose a format to start</strong><span><button id="landing-demo-retry" type="button" hidden>Retry</button><button id="landing-demo-cancel" type="button" hidden>Cancel</button></span></div>
+                      <div class="landing-download-demo__progress"><span id="landing-demo-progress-bar"></span></div>
+                      <div class="landing-download-demo__job-meta"><span id="landing-demo-progress-value">0%</span><span id="landing-demo-speed">—</span><span id="landing-demo-eta">—</span></div>
+                      <div id="landing-demo-success" class="landing-download-demo__success" hidden>Saved to Downloads · demo complete</div>
+                    </div>
+                  </div>
+                </section>
+              </main>
+              <aside class="landing-download-demo__side-column" aria-label="Downloader preview status">
+                <section class="landing-download-demo__side-card">
+                  <div class="landing-download-demo__side-heading">
+                    <div><span class="landing-download-demo__eyebrow">NATIVE HOST</span><strong>Required for downloads</strong></div>
+                    <span class="landing-download-demo__host-dot"></span>
+                  </div>
+                  <p>Checking native host...</p>
+                  <button type="button">Open setup</button>
+                </section>
+                <section class="landing-download-demo__side-card">
+                  <span class="landing-download-demo__eyebrow">SAVE LOCATION</span>
+                  <strong>Download folder</strong>
+                  <div class="landing-download-demo__path">Default Downloads folder</div>
+                  <button type="button">Choose folder</button>
+                </section>
+              </aside>
+            </div>
+            <div class="landing-download-demo__disclaimer">Interactive preview — no file is downloaded.</div>
           </div>
-          <div class="showcase-info blue">
-            <span class="info-dot blue">●</span> yt-dlp fetches available streams and presents quality options. This
-            modal appears directly over the YouTube video player.
-          </div>
+          <div class="showcase-info blue"><span class="info-dot blue">●</span> Try the flow above: enter a YouTube-shaped URL, reveal advanced formats, and start a simulated local download. The real extension uses the same layout with the native host behind it.</div>
         </div>
       </div>
 
@@ -2493,12 +2561,16 @@
               </div>
               <div class="setup-card">
                 <div class="setup-card-title">Native Downloader Setup</div>
-                <div class="setup-card-sub">Connect Chrome to yt-dlp running on your machine for high-quality downloads.
+                <div class="setup-card-sub">Connect Chrome to yt-dlp and verified ffmpeg for high-quality local downloads.
                 </div>
-                <div style="display:flex;justify-content:center;margin-bottom:20px;">
+                <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
                   <div class="status-pill-demo">
                     <div class="status-dot-demo connected"></div>
-                    <span style="font-size:13px;font-weight:500;">Connected successfully!</span>
+                    <span style="font-size:13px;font-weight:500;">yt-dlp Ready</span>
+                  </div>
+                  <div class="status-pill-demo">
+                    <div class="status-dot-demo connected"></div>
+                    <span style="font-size:13px;font-weight:500;">ffmpeg Verified</span>
                   </div>
                 </div>
                 <div class="setup-steps-demo">
@@ -2537,8 +2609,8 @@
             </div>
           </div>
           <div class="showcase-info green">
-            <span class="info-dot green">●</span> The setup wizard guides you through connecting Chrome to yt-dlp via
-            Native Messaging — all running locally on your machine.
+            <span class="info-dot green">●</span> The setup wizard guides you through connecting Chrome to yt-dlp and
+            verifying ffmpeg via Native Messaging — all running locally on your machine.
           </div>
         </div>
       </div>
@@ -2572,11 +2644,11 @@
     <div
       style="margin-top:28px;padding:18px 22px;background:var(--bg4);border:1px solid var(--border);border-radius:12px;display:inline-flex;gap:20px;flex-wrap:wrap;align-items:center;">
       <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t3);">data-i18n keys</span>
-      <span style="font-size:12px;color:var(--t2);">nav · status · stats · settings · blocklist · setup · notifications
-        · modals</span>
+      <span style="font-size:12px;color:var(--t2);">nav · status · stats · settings · blocklist · downloader · setup ·
+        notifications · modals</span>
       <span
-        style="background:var(--red-glow);border:1px solid var(--red-border);color:var(--red);font-size:11px;padding:2px 9px;border-radius:999px;font-weight:600;">80+
-        strings</span>
+        style="background:var(--red-glow);border:1px solid var(--red-border);color:var(--red);font-size:11px;padding:2px 9px;border-radius:999px;font-weight:600;">200+
+        translated strings</span>
     </div>
   </section>
 
@@ -2595,8 +2667,8 @@
             d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
         </svg>
         <h3>No data collected</h3>
-        <p>Nothing you do on YouTube is sent anywhere. No analytics, no tracking pixels, no crash reports. Your watch
-          history and block decisions are entirely your own.</p>
+        <p>No analytics, tracking pixels, crash reports, cookies, or account tokens. The extension only contacts YouTube when
+          you actively ask it to resolve or download a video.</p>
       </div>
       <div class="privacy-card fade-up">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--blue)" style="margin-bottom:14px;display:block;">
@@ -2604,11 +2676,11 @@
             d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z" />
         </svg>
         <h3>Local storage only</h3>
-        <p>All settings, stats, blocked channel handles, and language preferences live exclusively in <span
-            class="code-tag">chrome.storage.local</span>. On your device. Under your control.</p>
+        <p>All settings, stats, blocked channel handles, language preferences, and download-folder choices live exclusively
+          in <span class="code-tag">chrome.storage.local</span>. On your device. Under your control.</p>
       </div>
       <div class="privacy-card fade-up">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="#a855f7" style="margin-bottom:14px;display:block;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--yellow)" style="margin-bottom:14px;display:block;">
           <path
             d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z" />
         </svg>
@@ -2624,9 +2696,9 @@
   <!-- INSTALL -->
   <section id="install" style="padding-bottom:80px;">
     <div class="section-label">Installation</div>
-    <h2 class="section-title">Up and running<br>in 60 seconds.</h2>
-    <p class="section-sub">Not on the Chrome Web Store — installed directly via Developer Mode. Takes less than a
-      minute. The yt-dlp downloader is optional.</p>
+    <h2 class="section-title">Install once.<br>Keep it local.</h2>
+    <p class="section-sub">The blocker works as an unpacked Chrome extension. The standalone Downloader adds a one-time
+      Windows native-host setup for yt-dlp and verified ffmpeg.</p>
 
     <div class="install-box fade-up">
       <div class="install-steps">
@@ -2645,7 +2717,7 @@
         </div>
         <div class="install-step">
           <div class="install-step-num">4</div>
-          <div class="install-step-text">Click <strong>Load unpacked</strong> and select the extracted folder</div>
+          <div class="install-step-text">Click <strong>Load unpacked</strong> and select the extracted <span class="code-tag">extension</span> folder</div>
         </div>
         <div class="install-step">
           <div class="install-step-num">5</div>
@@ -2654,17 +2726,17 @@
         <div
           style="margin-top:24px;padding:12px 14px;background:rgba(62,166,255,.05);border:1px solid rgba(62,166,255,.15);border-radius:10px;">
           <div style="font-size:12px;color:#aaa;line-height:1.7;">
-            <strong style="color:#3ea6ff;">Optional — Native Downloader:</strong><br>
+            <strong style="color:#3ea6ff;">For the standalone Downloader:</strong><br>
             Install Node.js, then run <span class="code-tag">install_host.bat</span> from the <strong
-              style="color:#f1f1f1;">native-host</strong> folder. The Setup page in the extension popup walks you
-            through it step by step.
+              style="color:#f1f1f1;">native-host</strong> folder. The Setup page verifies both yt-dlp and ffmpeg before
+            any native download begins.
           </div>
         </div>
       </div>
       <div class="install-cta">
         <h3>Free &amp; Open Source</h3>
         <p>MIT Licensed · No account required</p>
-        <a href="https://github.com/Paracci/youtube-shorts-blocker" target="_blank" class="btn-primary"
+        <a href="https://github.com/Paracci/youtube-shorts-blocker" target="_blank" rel="noopener noreferrer" class="btn-primary"
           style="font-size:14px;padding:13px 24px;margin-top:8px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path
@@ -2687,43 +2759,15 @@
       YouTube Shorts Blocker · Paracci Browser Tools
     </a>
     <div class="footer-links">
-      <a href="https://github.com/Paracci/youtube-shorts-blocker" target="_blank" class="footer-link">GitHub</a>
-      <a href="https://github.com/Paracci/youtube-shorts-blocker/blob/main/LICENSE" target="_blank"
+      <a href="https://github.com/Paracci/youtube-shorts-blocker" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
+      <a href="https://github.com/Paracci/youtube-shorts-blocker/blob/main/LICENSE" target="_blank" rel="noopener noreferrer"
         class="footer-link">MIT License</a>
-      <a href="https://github.com/paracci" target="_blank" class="footer-link">Paracci</a>
+      <a href="https://github.com/paracci" target="_blank" rel="noopener noreferrer" class="footer-link">Paracci</a>
     </div>
   </footer>
 
+  <script src="./landing-demo.js?v=20260812"></script>
   <script>
-    // Counter animation
-    function animateVal(el, end, dur) {
-      let start = null;
-      const step = (ts) => {
-        if (!start) start = ts;
-        const p = Math.min((ts - start) / dur, 1);
-        const ease = 1 - Math.pow(1 - p, 3);
-        el.textContent = Math.floor(ease * end);
-        if (p < 1) requestAnimationFrame(step);
-        else el.textContent = end;
-      };
-      requestAnimationFrame(step);
-    }
-
-    const blockedEl = document.getElementById('heroBlocked');
-    const heroStatBlocked = document.getElementById('heroStatBlocked');
-    const heroStatHidden = document.getElementById('heroStatHidden');
-
-    const counterObs = new IntersectionObserver((entries, obs) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) {
-          animateVal(blockedEl, 247, 1400);
-          animateVal(heroStatBlocked, 247, 1200);
-          obs.disconnect();
-        }
-      });
-    }, { threshold: 0.3 });
-    if (blockedEl) counterObs.observe(blockedEl);
-
     // Fade-up observer
     const fadeObs = new IntersectionObserver((entries) => {
       entries.forEach(e => {

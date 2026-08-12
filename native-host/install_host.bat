@@ -49,9 +49,9 @@ goto :main
 :set_lang_en
 set "T=YouTube Shorts Blocker - Native Host Setup"
 set "T1=Checking for yt-dlp.exe..."
-set "T2=yt-dlp.exe not found. Downloading latest version..."
+set "T2=yt-dlp.exe not found. The native host will download and verify it on first use."
 set "T3=yt-dlp.exe is ready."
-set "T4=Failed to download yt-dlp.exe. Please download it manually."
+set "T4=The native host will report any verified download failure in Chrome."
 set "T5=Enter the Extension ID shown on the setup page:"
 set "T6=(looks like: ceemcdspjoljphnaahlegionfifdppbm)"
 set "T7=Error: Extension ID cannot be blank."
@@ -66,9 +66,9 @@ exit /b 0
 :set_lang_tr
 set "T=YouTube Shorts Engelleyici - Yerel Host Kurulumu"
 set "T1=yt-dlp.exe kontrol ediliyor..."
-set "T2=yt-dlp.exe bulunamadi. En son surum indiriliyor..."
+set "T2=yt-dlp.exe bulunamadi. Yerel host ilk kullanimda indirip dogrulayacak."
 set "T3=yt-dlp.exe hazir."
-set "T4=yt-dlp.exe indirilemedi. Lutfen manuel olarak bu klasore koyun."
+set "T4=Dogrulanmis indirme hatasi Chrome icinde yerel host tarafindan bildirilecek."
 set "T5=Kurulum sayfasindaki Uzanti Kimligini girin:"
 set "T6=(ornek: ceemcdspjoljphnaahlegionfifdppbm)"
 set "T7=Hata: Uzanti Kimligi bos birakilamaz."
@@ -83,9 +83,9 @@ exit /b 0
 :set_lang_de
 set "T=YouTube Shorts Blocker - Native Host Installation"
 set "T1=Suche nach yt-dlp.exe..."
-set "T2=yt-dlp.exe nicht gefunden. Neueste Version wird heruntergeladen..."
+set "T2=yt-dlp.exe nicht gefunden. Der Native Host laedt und prueft sie bei der ersten Nutzung."
 set "T3=yt-dlp.exe ist bereit."
-set "T4=Download fehlgeschlagen. Bitte manuell in diesen Ordner legen."
+set "T4=Ein verifizierter Downloadfehler wird in Chrome angezeigt."
 set "T5=Erweiterungs-ID von der Einrichtungsseite eingeben:"
 set "T6=(Beispiel: ceemcdspjoljphnaahlegionfifdppbm)"
 set "T7=Fehler: Erweiterungs-ID darf nicht leer sein."
@@ -100,9 +100,9 @@ exit /b 0
 :set_lang_fr
 set "T=Bloqueur YouTube Shorts - Installation hote natif"
 set "T1=Recherche de yt-dlp.exe..."
-set "T2=yt-dlp.exe introuvable. Telechargement en cours..."
+set "T2=yt-dlp.exe introuvable. L hote natif le telechargera et le verifiera au premier usage."
 set "T3=yt-dlp.exe est pret."
-set "T4=Echec du telechargement. Placez-le manuellement dans ce dossier."
+set "T4=L echec d un telechargement verifie sera signale dans Chrome."
 set "T5=Entrez l ID extension de la page de configuration:"
 set "T6=(exemple: ceemcdspjoljphnaahlegionfifdppbm)"
 set "T7=Erreur: l ID extension ne peut pas etre vide."
@@ -117,9 +117,9 @@ exit /b 0
 :set_lang_es
 set "T=Bloqueador YouTube Shorts - Instalacion host nativo"
 set "T1=Buscando yt-dlp.exe..."
-set "T2=yt-dlp.exe no encontrado. Descargando ultima version..."
+set "T2=yt-dlp.exe no encontrado. El host nativo lo descargara y verificara al usarlo por primera vez."
 set "T3=yt-dlp.exe esta listo."
-set "T4=Error al descargar. Colocalo manualmente en esta carpeta."
+set "T4=Chrome mostrara cualquier error de descarga verificada."
 set "T5=Introduce el ID de extension de la pagina de configuracion:"
 set "T6=(ejemplo: ceemcdspjoljphnaahlegionfifdppbm)"
 set "T7=Error: el ID de extension no puede estar vacio."
@@ -134,9 +134,9 @@ exit /b 0
 :set_lang_pt
 set "T=Bloqueador YouTube Shorts - Instalacao host nativo"
 set "T1=Procurando yt-dlp.exe..."
-set "T2=yt-dlp.exe nao encontrado. Baixando versao mais recente..."
+set "T2=yt-dlp.exe nao encontrado. O host nativo baixara e verificara no primeiro uso."
 set "T3=yt-dlp.exe esta pronto."
-set "T4=Falha ao baixar. Coloque-o manualmente nesta pasta."
+set "T4=O Chrome mostrara qualquer falha de download verificado."
 set "T5=Digite o ID de extensao da pagina de configuracao:"
 set "T6=(exemplo: ceemcdspjoljphnaahlegionfifdppbm)"
 set "T7=Erro: o ID de extensao nao pode estar vazio."
@@ -151,9 +151,9 @@ exit /b 0
 :set_lang_it
 set "T=Blocca YouTube Shorts - Installazione host nativo"
 set "T1=Ricerca di yt-dlp.exe..."
-set "T2=yt-dlp.exe non trovato. Download ultima versione..."
+set "T2=yt-dlp.exe non trovato. L host nativo lo scarichera e verifichera al primo uso."
 set "T3=yt-dlp.exe e pronto."
-set "T4=Download non riuscito. Inseriscilo manualmente in questa cartella."
+set "T4=Chrome mostrera eventuali errori del download verificato."
 set "T5=Inserisci l ID estensione dalla pagina di configurazione:"
 set "T6=(esempio: ceemcdspjoljphnaahlegionfifdppbm)"
 set "T7=Errore: l ID estensione non puo essere vuoto."
@@ -168,9 +168,9 @@ exit /b 0
 :set_lang_ru
 set "T=YouTube Shorts Blocker - Ustanovka nativnogo hosta"
 set "T1=Poisk yt-dlp.exe..."
-set "T2=yt-dlp.exe ne najden. Zagruzka poslednej versii..."
+set "T2=yt-dlp.exe ne najden. Nativnyj host zagruzit i proverit ego pri pervom zapuske."
 set "T3=yt-dlp.exe gotov."
-set "T4=Zagruzka ne udalas. Pomestite fail vruchnuyu v etu papku."
+set "T4=Oshibka proverennoy zagruzki budet pokazana v Chrome."
 set "T5=Vvedite ID rasshireniya so stranitsy nastrojki:"
 set "T6=(primer: ceemcdspjoljphnaahlegionfifdppbm)"
 set "T7=Oshibka: ID rasshireniya ne mozhet byt pustym."
@@ -205,16 +205,8 @@ echo.
 
 if not exist "%DIR%\yt-dlp.exe" (
     echo   %YLW%  ^> %T2%%R%
-    echo.
-    curl -L --progress-bar "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe" -o "%DIR%\yt-dlp.exe"
-    if !errorlevel! equ 0 (
-        echo.
-        echo   %GRN%  [OK]  %T3%%R%
-    ) else (
-        echo.
-        echo   %RED%  [FAIL]  %T4%%R%
-        goto :end_fail
-    )
+    echo   %GRY%     The executable is fetched only by native-host.js, where the
+    echo   %GRY%     GitHub release digest is checked before installation.%R%
 ) else (
     echo   %GRN%  [OK]  %T3%%R%
 )

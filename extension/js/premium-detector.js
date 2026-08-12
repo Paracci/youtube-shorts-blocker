@@ -1,57 +1,59 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// js/premium-detector.js – Detects YouTube Premium status
+// premium-detector.js – Live YouTube Premium status bridge
 // ─────────────────────────────────────────────────────────────────────────────
 
 (function () {
     const SCRIPT_ID = 'yt-premium-detector-injection';
+    const MESSAGE_TYPE = 'YT_PREMIUM_STATUS';
+    let currentNonce = '';
 
-    /**
-     * Injects (or RE-injects) inject.js into the page context.
-     * Content scripts cannot access the page's 'window' directly, so we use
-     * a script tag. On SPA navigation we REMOVE the old tag first so the
-     * IIFE always executes fresh — previously this was skipped because the
-     * element still existed, meaning premium was never re-checked after nav.
-     */
+    function createNonce() {
+        try {
+            const bytes = new Uint8Array(16);
+            crypto.getRandomValues(bytes);
+            return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+        } catch (_) {
+            return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+        }
+    }
+
     function runDetection() {
-        if (!window.location.host.includes('youtube.com')) return;
+        if (!chrome.runtime?.id) return;
+        const hostname = window.location.hostname;
+        if (hostname !== 'youtube.com' && !hostname.endsWith('.youtube.com')) return;
 
-        // ── Remove stale tag so the script actually re-executes ───────────────
+        if (typeof beginPremiumCheck === 'function') beginPremiumCheck();
+
         const existing = document.getElementById(SCRIPT_ID);
         if (existing) existing.remove();
 
-        const script = document.createElement('script');
-        script.id = SCRIPT_ID;
-        script.src = chrome.runtime.getURL('js/inject.js');
-        (document.head || document.documentElement).appendChild(script);
+        currentNonce = createNonce();
+        try {
+            const script = document.createElement('script');
+            script.id = SCRIPT_ID;
+            script.src = `${chrome.runtime.getURL('js/inject.js')}?nonce=${encodeURIComponent(currentNonce)}`;
+            (document.head || document.documentElement).appendChild(script);
+        } catch (_) {
+            // An invalidated extension context leaves Premium status unknown;
+            // state.js intentionally keeps ad automation disabled in that case.
+        }
     }
 
-    // ── Listen for results from the injected page-context script ─────────────
     window.addEventListener('message', (event) => {
         if (event.source !== window) return;
-        if (event.data?.type !== 'YT_PREMIUM_STATUS') return;
+        const data = event.data;
+        if (!data || data.type !== MESSAGE_TYPE || data.nonce !== currentNonce) return;
+        if (typeof data.isPremium !== 'boolean') return;
 
-        const isPremium = event.data.isPremium;
-
-        // inject.js sends null on error — keep whatever is in storage/state.
-        if (isPremium === null || isPremium === undefined) return;
-
-        // Persist so popup + future page loads see the latest value.
-        chrome.storage.local.set({ isPremium });
-
-        // Update live state (state.js exposes this).
-        if (typeof setPremiumStatus === 'function') {
-            setPremiumStatus(isPremium);
-        }
+        if (chrome.runtime?.id) chrome.storage.local.set({ isPremium: data.isPremium });
+        if (typeof setPremiumStatus === 'function') setPremiumStatus(data.isPremium);
     });
 
-    // ── Boot ──────────────────────────────────────────────────────────────────
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', runDetection);
+        document.addEventListener('DOMContentLoaded', runDetection, { once: true });
     } else {
         runDetection();
     }
 
-    // Re-run on every YouTube SPA navigation (was broken before — old script
-    // element was never removed so inject.js never re-executed).
     document.addEventListener('yt-navigate-finish', runDetection);
 })();

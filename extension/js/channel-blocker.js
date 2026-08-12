@@ -1,53 +1,494 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // channel-blocker.js – Block button UI, channel extractors, Shorts feed loop,
-//                      quality-lock helper, and IntersectionObserver
+//                      and IntersectionObserver
 // Depends on: utils.js, state.js, ad-blocker.js, notifications.js
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Intersection Observer (lazy-check visible Shorts) ───────────────────────
-// Note: forceHighestQuality() is defined in quality-lock.js (loaded before this file)
+const observedShortRenderers = new Set();
+let shortsViewportCheckTimer = null;
+
+function scheduleShortsViewportCheck() {
+    if (!EXTENSION_ENABLED || !document.querySelector('ytd-reel-video-renderer') ||
+        shortsViewportCheckTimer !== null) return;
+
+    shortsViewportCheckTimer = setTimeout(() => {
+        shortsViewportCheckTimer = null;
+        if (EXTENSION_ENABLED && typeof runOptimizationCheck === 'function') {
+            runOptimizationCheck();
+        }
+    }, 80);
+}
+
 const scrollObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
         if (!entry.isIntersecting) return;
         const renderer = entry.target;
-        // If the element has been removed from the DOM, unobserve it
         if (!document.contains(renderer)) {
             scrollObserver.unobserve(renderer);
+            observedShortRenderers.delete(renderer);
             return;
         }
         if (checkForAdAndSkip(renderer)) return;
-        forceHighestQuality();
+        // A newly visible renderer may not have an extension button yet.
+        // Re-run discovery immediately instead of only resetting an existing
+        // button; this is what makes wheel/trackpad navigation self-sufficient.
+        scheduleShortsViewportCheck();
         const btn = renderer.querySelector('.my-block-button');
         if (btn) checkAndResetButton(btn, renderer);
     });
 }, { threshold: 0.5 });
 
+window.addEventListener('scroll', scheduleShortsViewportCheck, {
+    capture: true,
+    passive: true
+});
+document.addEventListener('scroll', scheduleShortsViewportCheck, {
+    capture: true,
+    passive: true
+});
+window.addEventListener('resize', scheduleShortsViewportCheck, { passive: true });
+document.addEventListener('yt-navigate-finish', scheduleShortsViewportCheck);
+
+function observeShortRenderer(renderer) {
+    if (observedShortRenderers.has(renderer)) return;
+    scrollObserver.observe(renderer);
+    observedShortRenderers.add(renderer);
+}
+
+function cleanupDetachedShortRenderers() {
+    for (const renderer of observedShortRenderers) {
+        if (!document.contains(renderer)) {
+            scrollObserver.unobserve(renderer);
+            observedShortRenderers.delete(renderer);
+        }
+    }
+}
+
+function clearShortRendererObservers() {
+    for (const renderer of observedShortRenderers) scrollObserver.unobserve(renderer);
+    observedShortRenderers.clear();
+}
+
 // ─── Video fingerprint (detects renderer reuse) ───────────────────────────────
 function getVideoFingerprint(renderer) {
-    const link = renderer.querySelector('a[href^="/shorts/"]');
-    if (link) return link.getAttribute('href');
+    const link = renderer.querySelector('a[href*="/shorts/"]');
+    if (link) {
+        try {
+            const url = new URL(link.getAttribute('href'), window.location.origin);
+            if (url.pathname.startsWith('/shorts/')) return url.pathname;
+        } catch (_) { }
+    }
+
+    const dataVideoId = renderer.getAttribute('data-video-id');
+    if (dataVideoId) return dataVideoId;
+
     const ch = renderer.querySelector('ytd-channel-name');
     const ti = renderer.querySelector('h2.title');
     if (ch && ti) return ch.textContent + ti.textContent;
+
     const vid = renderer.querySelector('video');
     if (vid && vid.src) return vid.src;
     return null;
 }
 
 // ─── Shorts feed loop ────────────────────────────────────────────────────────
+// Shorts action-container discovery. YouTube has changed this area repeatedly:
+// #button-bar was replaced by <reel-action-bar-view-model>. Known names are
+// high-confidence hints; semantic controls and a bounded fallback keep the
+// injector alive when the host is renamed again.
+const SHORTS_ACTION_CONTAINER_SELECTORS = [
+    { selector: 'reel-action-bar-view-model', base: 1200, source: 'reel-action-bar' },
+    { selector: '#button-bar', base: 1050, source: 'legacy-button-bar' },
+    { selector: '[id*="button-bar" i]', base: 900, source: 'button-bar-id' },
+    { selector: '[id*="action-bar" i]', base: 900, source: 'action-bar-id' },
+    { selector: '[class*="reel-action-bar" i]', base: 850, source: 'reel-action-class' },
+    { selector: '[class*="reelActionBar" i]', base: 850, source: 'reel-action-class' },
+    { selector: '[class*="action-bar" i]', base: 700, source: 'action-bar-class' },
+    { selector: '[class*="actionbar" i]', base: 700, source: 'action-bar-class' },
+    { selector: '[class*="actions-container" i]', base: 620, source: 'actions-container-class' },
+    { selector: '[class*="action-buttons" i]', base: 620, source: 'action-buttons-class' },
+    { selector: '#actions', base: 560, source: 'actions-id' },
+    { selector: '#action-buttons', base: 560, source: 'action-buttons-id' }
+];
+
+const SHORTS_ACTION_LABEL_PATTERN = /like|dislike|comment|share|remix|subscribe|music|audio|sound|save|more|not interested|beğen|yorum|paylaş|abone|müzik|ses|kaydet|daha|önerme/i;
+const SHORTS_PLAYER_SELECTOR = '#shorts-player, #player-container, .html5-video-player, .html5-video-container, .ytp-chrome-bottom, ytd-player';
+const SHORTS_ACTION_FALLBACK_CLASS = 'my-shorts-action-host--fallback';
+const shortsActionContainerCache = new WeakMap();
+const shortsActionRetryState = new WeakMap();
+const fallbackShortsHosts = new Set();
+const SHORTS_ACTION_RETRY_DELAYS = [120, 300, 700, 1500, 3000];
+let fallbackPositionTimer = null;
+let fallbackPositionListenersInstalled = false;
+
+function isShortsExtensionControl(element) {
+    return !!(element && element.closest &&
+        element.closest('.my-shorts-action-host, .my-block-button, .my-dl-btn-shorts'));
+}
+
+function getShortsInteractiveControls(container) {
+    return Array.from(container.querySelectorAll('button, [role="button"], a[role="button"]'))
+        .filter(element => !isShortsExtensionControl(element));
+}
+
+function getShortsElementIdentity(element) {
+    const className = typeof element.className === 'string' ? element.className : '';
+    return element.tagName + ' ' + (element.id || '') + ' ' + className;
+}
+
+function getShortsActionLabel(element) {
+    return [
+        element.getAttribute('aria-label'),
+        element.getAttribute('title'),
+        element.getAttribute('data-tooltip-title'),
+        element.textContent
+    ].filter(Boolean).join(' ').replace(/\s+/g, ' ');
+}
+
+function isShortsElementVisible(element, allowUnmeasured = false) {
+    if (!element || !element.isConnected) return false;
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.visibility === 'collapse' ||
+        style.opacity === '0') {
+        return false;
+    }
+    const rect = element.getBoundingClientRect();
+    return allowUnmeasured || (rect.width > 0 && rect.height > 0);
+}
+
+function isShortsActionIdentity(identity) {
+    return /reel-action-bar|action[-_]?bar|action[-_]?buttons|actions[-_]?container|button-bar|(^|[\s_-])actions([\s_-]|$)/i.test(identity);
+}
+
+function isShortsPlayerContainer(element) {
+    if (!element || !element.matches) return false;
+    return element.matches(SHORTS_PLAYER_SELECTOR) ||
+        !!element.closest(SHORTS_PLAYER_SELECTOR) ||
+        !!element.querySelector(SHORTS_PLAYER_SELECTOR);
+}
+
+function isUsableShortsActionContainer(element, renderer, allowUnmeasured = false) {
+    if (!element || element.nodeType !== Node.ELEMENT_NODE || !renderer ||
+        element === renderer || !renderer.contains(element) || !element.isConnected) {
+        return false;
+    }
+    if (element.matches('button, label, button-view-model, like-button-view-model, toggle-button-view-model')) {
+        return false;
+    }
+    if (element.classList.contains(SHORTS_ACTION_FALLBACK_CLASS)) {
+        return isShortsElementVisible(element, true);
+    }
+
+    const identity = getShortsElementIdentity(element);
+    if (isShortsPlayerContainer(element)) return false;
+    if (!isShortsElementVisible(element, allowUnmeasured && isShortsActionIdentity(identity))) return false;
+
+    const controls = getShortsInteractiveControls(element);
+    if (!controls.length && !isShortsActionIdentity(identity)) return false;
+    if (controls.length < 2 && !isShortsActionIdentity(identity)) return false;
+    return true;
+}
+
+function getShortsCandidateDepth(element, renderer) {
+    let depth = 0;
+    let current = element;
+    while (current && current !== renderer) {
+        depth++;
+        current = current.parentElement;
+    }
+    return depth;
+}
+
+function scoreShortsActionCandidate(element, entry, renderer) {
+    const identity = getShortsElementIdentity(element);
+    const identityLower = identity.toLocaleLowerCase();
+    const controls = getShortsInteractiveControls(element);
+    const visibleControls = controls.filter(control => isShortsElementVisible(control));
+    const semanticControls = controls.filter(control => SHORTS_ACTION_LABEL_PATTERN.test(getShortsActionLabel(control)));
+    const style = window.getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+    let score = entry.base;
+
+    if (identityLower.includes('reel-action-bar')) score += 1100;
+    else if (identityLower.includes('action-bar')) score += 650;
+    else if (identityLower.includes('action-buttons')) score += 500;
+    else if (identityLower.includes('button-bar')) score += 450;
+    if (element.id === 'actions' || element.id === 'action-buttons') score += 300;
+    if (element.children.length >= 2) score += 30;
+    if (controls.length >= 2) score += 100;
+    score += Math.min(visibleControls.length, 8) * 45;
+    score += Math.min(semanticControls.length, 6) * 25;
+    if (style.display === 'flex') score += 20;
+    if (style.flexDirection === 'column') score += 20;
+    if (rect.width > 0 && rect.width < 240) score += 25;
+
+    // A player/overlay root can contain many buttons but is not an action bar.
+    if (element.matches('ytd-reel-player-overlay-renderer, yt-reel-player-overlay-view-model')) {
+        score -= 900;
+    }
+    if (element.querySelector(SHORTS_PLAYER_SELECTOR)) score -= 700;
+    if (controls.length > 15) score -= Math.min((controls.length - 15) * 10, 120);
+    score -= Math.min(getShortsCandidateDepth(element, renderer), 8) * 3;
+    return score;
+}
+
+function discoverShortsActionContainer(renderer) {
+    if (!renderer || !renderer.isConnected) return null;
+    const candidates = new Map();
+    const register = (element, base, source) => {
+        if (!element || !renderer.contains(element) || element === renderer ||
+            isShortsExtensionControl(element)) return;
+        const previous = candidates.get(element);
+        if (!previous || base > previous.base) candidates.set(element, { base, source });
+    };
+
+    for (const definition of SHORTS_ACTION_CONTAINER_SELECTORS) {
+        let matches = [];
+        try {
+            matches = renderer.querySelectorAll(definition.selector);
+        } catch (_) {
+            continue;
+        }
+        matches.forEach(element => register(element, definition.base, definition.source));
+    }
+
+    // If the host is renamed, climb from visible, semantically-labelled
+    // buttons and score their shared ancestors.
+    const interactive = renderer.querySelectorAll('button, [role="button"], a[role="button"]');
+    interactive.forEach(control => {
+        if (isShortsExtensionControl(control) ||
+            !SHORTS_ACTION_LABEL_PATTERN.test(getShortsActionLabel(control))) return;
+        let ancestor = control.parentElement;
+        for (let depth = 0; ancestor && ancestor !== renderer && depth < 7; depth++) {
+            register(ancestor, Math.max(40, 140 - depth * 15), 'semantic-controls');
+            ancestor = ancestor.parentElement;
+        }
+    });
+
+    const ranked = Array.from(candidates, ([element, entry]) => ({
+        element,
+        entry,
+        score: scoreShortsActionCandidate(element, entry, renderer)
+    })).filter(candidate => {
+        const strongIdentity = isShortsActionIdentity(getShortsElementIdentity(candidate.element));
+        return candidate.score >= 240 &&
+            isUsableShortsActionContainer(candidate.element, renderer, strongIdentity);
+    }).sort((left, right) => {
+        if (right.score !== left.score) return right.score - left.score;
+        const leftControls = getShortsInteractiveControls(left.element).length;
+        const rightControls = getShortsInteractiveControls(right.element).length;
+        if (leftControls !== rightControls) return leftControls - rightControls;
+        return getShortsCandidateDepth(left.element, renderer) - getShortsCandidateDepth(right.element, renderer);
+    });
+
+    return ranked.length ? ranked[0].element : null;
+}
+
+function findShortsFallbackAnchor(renderer) {
+    const candidates = [
+        renderer.querySelector('ytd-reel-player-overlay-renderer'),
+        renderer.querySelector('yt-reel-player-overlay-view-model'),
+        renderer.querySelector('.short-video-container'),
+        renderer
+    ].filter(Boolean);
+    return candidates.find(element => isShortsElementVisible(element, true)) || renderer;
+}
+
+function getShortsFallbackMedia(renderer) {
+    return renderer.querySelector('.player-wrapper, video, .html5-video-player');
+}
+
+function positionShortsFallbackHost(host) {
+    if (!host || !host.isConnected || !host.__myShortsRenderer) return;
+    const renderer = host.__myShortsRenderer;
+    const anchor = host.__myShortsAnchor;
+    if (!anchor || !anchor.isConnected) return;
+
+    const anchorRect = anchor.getBoundingClientRect();
+    const media = getShortsFallbackMedia(renderer);
+    const mediaRect = media ? media.getBoundingClientRect() : null;
+    const hostRect = host.getBoundingClientRect();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    let desiredLeft = mediaRect ? mediaRect.right + 12 : anchorRect.right - hostRect.width - 12;
+    let desiredTop = mediaRect
+        ? mediaRect.top + mediaRect.height * 0.70
+        : anchorRect.top + anchorRect.height * 0.60;
+
+    if (desiredLeft + hostRect.width > viewportWidth - 12) {
+        desiredLeft = mediaRect ? mediaRect.left - hostRect.width - 12 : viewportWidth - hostRect.width - 12;
+    }
+    desiredLeft = Math.max(12, Math.min(desiredLeft, viewportWidth - hostRect.width - 12));
+    desiredTop = Math.max(12, Math.min(desiredTop, viewportHeight - hostRect.height - 12));
+
+    if (host.dataset.positionMode === 'fixed') {
+        host.style.left = Math.round(desiredLeft) + 'px';
+        host.style.top = Math.round(desiredTop) + 'px';
+    } else {
+        host.style.left = Math.round(desiredLeft - anchorRect.left) + 'px';
+        host.style.top = Math.round(desiredTop - anchorRect.top) + 'px';
+    }
+}
+
+function scheduleShortsFallbackPosition() {
+    if (fallbackPositionTimer !== null) return;
+    fallbackPositionTimer = setTimeout(() => {
+        fallbackPositionTimer = null;
+        for (const host of fallbackShortsHosts) {
+            if (!host.isConnected) {
+                fallbackShortsHosts.delete(host);
+                continue;
+            }
+            positionShortsFallbackHost(host);
+        }
+    }, 0);
+}
+
+function installShortsFallbackPositionListeners() {
+    if (fallbackPositionListenersInstalled) return;
+    fallbackPositionListenersInstalled = true;
+    window.addEventListener('resize', scheduleShortsFallbackPosition, { passive: true });
+    window.addEventListener('scroll', scheduleShortsFallbackPosition, { capture: true, passive: true });
+}
+
+function createShortsFallbackHost(renderer) {
+    const anchor = findShortsFallbackAnchor(renderer);
+    const host = document.createElement('div');
+    const positionedAnchor = window.getComputedStyle(anchor).position !== 'static';
+    host.className = 'my-shorts-action-host ' + SHORTS_ACTION_FALLBACK_CLASS;
+    host.setAttribute('data-shorts-action-host', 'fallback');
+    host.dataset.positionMode = positionedAnchor ? 'absolute' : 'fixed';
+    host.__myShortsRenderer = renderer;
+    host.__myShortsAnchor = anchor;
+    host.style.position = host.dataset.positionMode;
+    anchor.appendChild(host);
+    fallbackShortsHosts.add(host);
+    installShortsFallbackPositionListeners();
+    positionShortsFallbackHost(host);
+    return host;
+}
+
+function removeShortsFallbackHost(host) {
+    if (!host) return;
+    fallbackShortsHosts.delete(host);
+    host.remove();
+}
+
+function appendShortsControl(container, control) {
+    if (!container || !control || control.parentElement === container) return control;
+    const pivot = Array.from(container.children).find(child => {
+        const identity = getShortsElementIdentity(child);
+        return /pivot-button|music|audio|sound/i.test(identity);
+    });
+    if (pivot) container.insertBefore(control, pivot);
+    else container.appendChild(control);
+    if (container.classList.contains(SHORTS_ACTION_FALLBACK_CLASS)) {
+        scheduleShortsFallbackPosition();
+    }
+    return control;
+}
+
+function migrateShortsControls(from, to) {
+    if (!from || !to || from === to) return;
+    Array.from(from.querySelectorAll('.my-block-button, .my-dl-btn-shorts')).forEach(control => {
+        appendShortsControl(to, control);
+    });
+    if (from.classList.contains(SHORTS_ACTION_FALLBACK_CLASS)) removeShortsFallbackHost(from);
+}
+
+function cancelShortsActionRetry(renderer) {
+    const state = shortsActionRetryState.get(renderer);
+    if (state && state.timer) clearTimeout(state.timer);
+    shortsActionRetryState.delete(renderer);
+}
+
+function scheduleShortsActionRetry(renderer, finger) {
+    const previous = shortsActionRetryState.get(renderer);
+    if (previous && previous.finger === finger && previous.timer) return;
+    const attempt = previous && previous.finger === finger ? previous.attempt + 1 : 0;
+    if (attempt >= SHORTS_ACTION_RETRY_DELAYS.length) return;
+
+    const state = { finger, attempt, timer: null };
+    state.timer = setTimeout(() => {
+        state.timer = null;
+        if (shortsActionRetryState.get(renderer) !== state || !document.contains(renderer)) {
+            shortsActionRetryState.delete(renderer);
+            return;
+        }
+        const currentFinger = getVideoFingerprint(renderer);
+        if (finger && currentFinger && finger !== currentFinger) {
+            shortsActionRetryState.delete(renderer);
+            return;
+        }
+        runOptimizationCheck();
+    }, SHORTS_ACTION_RETRY_DELAYS[attempt]);
+    shortsActionRetryState.set(renderer, state);
+}
+
+function getShortsActionContainer(renderer, createFallback) {
+    const cached = shortsActionContainerCache.get(renderer);
+    const discovered = discoverShortsActionContainer(renderer);
+    if (discovered) {
+        if (cached && cached !== discovered && cached.classList.contains(SHORTS_ACTION_FALLBACK_CLASS)) {
+            migrateShortsControls(cached, discovered);
+        }
+        shortsActionContainerCache.set(renderer, discovered);
+        return discovered;
+    }
+
+    if (cached && cached.isConnected && renderer.contains(cached) &&
+        isUsableShortsActionContainer(cached, renderer, true)) {
+        if (cached.classList.contains(SHORTS_ACTION_FALLBACK_CLASS)) positionShortsFallbackHost(cached);
+        return cached;
+    }
+
+    if (!createFallback) return null;
+    const fallback = createShortsFallbackHost(renderer);
+    shortsActionContainerCache.set(renderer, fallback);
+    return fallback;
+}
+
 function runOptimizationCheck() {
-    document.querySelectorAll('ytd-reel-video-renderer').forEach(renderer => {
+    if (!EXTENSION_ENABLED) return;
+    cleanupDetachedShortRenderers();
+
+    const renderers = document.querySelectorAll('ytd-reel-video-renderer');
+    renderers.forEach(renderer => {
+        observeShortRenderer(renderer);
+        const isActive = typeof _isActiveShortRenderer === 'function'
+            ? _isActiveShortRenderer(renderer)
+            : renderer.hasAttribute('is-active');
+        const finger = getVideoFingerprint(renderer);
+        renderer.__my_last_finger = finger;
+
         if (checkForAdAndSkip(renderer)) return;
-        const bar = renderer.querySelector('#button-bar');
-        if (!bar) return;
+
+        const wantsControls = BLOCKING_ENABLED || DOWNLOADER_ENABLED;
+        const isInViewport = (() => {
+            const rect = renderer.getBoundingClientRect();
+            return rect.bottom > 0 && rect.right > 0 &&
+                rect.top < (window.innerHeight || document.documentElement.clientHeight) &&
+                rect.left < (window.innerWidth || document.documentElement.clientWidth);
+        })();
+        const bar = getShortsActionContainer(renderer, wantsControls && (isActive || isInViewport));
+        if (!bar) {
+            scheduleShortsActionRetry(renderer, finger);
+            return;
+        }
+        if (bar.classList.contains(SHORTS_ACTION_FALLBACK_CLASS)) {
+            positionShortsFallbackHost(bar);
+            scheduleShortsActionRetry(renderer, finger);
+        } else {
+            cancelShortsActionRetry(renderer);
+        }
 
         let btn = bar.querySelector('.my-block-button:not(.my-dl-btn-shorts)');
         if (!btn && BLOCKING_ENABLED && EXTENSION_ENABLED) {
             btn = createBlockButton(bar, renderer);
-            scrollObserver.observe(renderer);
         }
         if (btn) {
-            btn.style.display = BLOCKING_ENABLED && EXTENSION_ENABLED ? '' : 'none';
+            btn.style.display = (BLOCKING_ENABLED && EXTENSION_ENABLED) ? '' : 'none';
             checkAndResetButton(btn, renderer);
         }
 
@@ -55,7 +496,7 @@ function runOptimizationCheck() {
             createShortsDownloadButton(bar);
         }
         const dlBtn = bar.querySelector('.my-dl-btn-shorts');
-        if (dlBtn) dlBtn.style.display = DOWNLOADER_ENABLED && EXTENSION_ENABLED ? '' : 'none';
+        if (dlBtn) dlBtn.style.display = (DOWNLOADER_ENABLED && EXTENSION_ENABLED) ? '' : 'none';
     });
 }
 
@@ -75,7 +516,7 @@ function resetButtonToDefault(btn) {
     const t = btn.querySelector('.my-btn-text');
     if (t) t.textContent = i18n.t('btnBlock');
     const s = btn.querySelector('svg');
-    if (s) s.style.fill = 'white';
+    if (s) s.style.fill = '#f1f1f1';
 }
 
 // ─── Channel name & ID extractors ────────────────────────────────────────────
@@ -88,46 +529,50 @@ function extractChannelName(videoContext) {
         '#channel-name yt-formatted-string',
         '#channel-name',
         'ytd-channel-name',
-        'yt-dynamic-text-view-model',
+        '.ytp-title-channel-name',
+        'yt-dynamic-text-view-model'
     ];
-    const contexts = [videoContext];
-    const active = document.querySelector('ytd-reel-video-renderer[is-active]');
-    if (active && active !== videoContext) contexts.push(active);
 
-    for (const ctx of contexts) {
-        for (const sel of SELECTORS) {
-            const el = ctx.querySelector(sel);
-            const txt = el && el.textContent.trim();
-            if (txt) return txt;
-        }
+    for (const sel of SELECTORS) {
+        const el = videoContext.querySelector(sel);
+        const txt = el && el.textContent.trim();
+        if (txt) return txt;
     }
     return null;
 }
 
 function extractChannelId(videoContext) {
-    const contexts = [videoContext];
-    const active = document.querySelector('ytd-reel-video-renderer[is-active]');
-    if (active && active !== videoContext) contexts.push(active);
+    const idLink = videoContext.querySelector('a[href*="/channel/"]');
+    if (idLink) {
+        const m = (idLink.getAttribute('href') || '').match(/\/channel\/(UC[^/?#]+)/);
+        if (m) return m[1];
+    }
 
-    for (const ctx of contexts) {
-        const idLink = ctx.querySelector('a[href*="/channel/"]');
-        if (idLink) {
-            const m = idLink.getAttribute('href').match(/\/channel\/(UC[^/?#]+)/);
-            if (m) return m[1];
-        }
-        const handleLink = ctx.querySelector('a[href*="/@"]');
-        if (handleLink) {
-            const m = handleLink.getAttribute('href').match(/\/@([^/?#]+)/);
-            if (m) return '@' + m[1];
-        }
+    const handleLink = videoContext.querySelector('a[href*="/@"]');
+    if (handleLink) {
+        const m = (handleLink.getAttribute('href') || '').match(/\/@([^/?#]+)/);
+        if (m) return '@' + m[1];
     }
     return null;
 }
 
 // ─── Block button ─────────────────────────────────────────────────────────────
+function isDontRecommendItem(item, text, aria) {
+    const tooltip = item.getAttribute('data-tooltip-text') || item.getAttribute('title') || '';
+    const haystack = `${text} ${aria} ${tooltip}`.toLocaleLowerCase();
+    const patterns = [
+        "don't recommend", 'do not recommend', 'recommend this channel', 'recommend channel',
+        'bu kanalı önerme', 'kanalı önerme', 'nicht empfehlen', 'ne pas recommander',
+        'no recomendar', 'não recomendar', 'non consigliare', 'не рекомендовать',
+        'おすすめしない', '추천하지', '不推荐'
+    ];
+    return patterns.some(pattern => haystack.includes(pattern));
+}
+
 function createBlockButton(container, videoContext) {
     const btn = document.createElement('button');
     btn.className = 'my-block-button';
+    btn.dataset.shortsControl = 'block';
     btn.title = i18n.t('btnDontRecommend');
     btn.innerHTML = `
         <div class="my-btn-circle">
@@ -139,41 +584,56 @@ function createBlockButton(container, videoContext) {
 
     btn.addEventListener('click', async (e) => {
         e.stopPropagation(); e.preventDefault();
+        if (btn.dataset.blocking === 'true') return;
+        btn.dataset.blocking = 'true';
         btn.style.opacity = '0.5';
         btn.querySelector('.my-btn-text').textContent = i18n.t('btnBlocking');
 
         const channelName = extractChannelName(videoContext);
         const channelId = extractChannelId(videoContext);
-
         const menuBtn = videoContext.querySelector('ytd-menu-renderer button') ||
             Array.from(videoContext.querySelectorAll('button')).find(b => {
-                const l = b.getAttribute('aria-label');
-                return l && (l.includes('More actions') || l.includes('Diğer') || l.includes('işlemler'));
+                const label = b.getAttribute('aria-label') || '';
+                return /more actions|diğer|işlemler|menü/i.test(label);
             });
 
-        if (!menuBtn) { resetButtonToDefault(btn); return; }
+        if (!menuBtn) {
+            resetButtonToDefault(btn);
+            btn.dataset.blocking = 'false';
+            return;
+        }
 
-        // Hide the native popup visually so the user never sees it flash
         const hideStyle = document.createElement('style');
         hideStyle.textContent = `
-            ytd-menu-popup-renderer, tp-yt-paper-dialog, ytd-popup-container > * {
+            ytd-menu-popup-renderer, tp-yt-paper-dialog, ytd-popup-container > *, tp-yt-iron-dropdown {
                 visibility: hidden !important; pointer-events: none !important;
             }`;
         document.head.appendChild(hideStyle);
-        menuBtn.click();
-        await new Promise(r => setTimeout(r, 80));
-
         let found = false;
-        for (const item of document.querySelectorAll('ytd-menu-service-item-renderer')) {
-            const txt = item.textContent;
-            if (txt.includes('Bu kanalı önerme') || txt.includes('Kanalı önerme') ||
-                txt.includes("Don't recommend channel") || txt.includes('recommend this channel')) {
-                item.click();
-                found = true;
-                break;
+        try {
+            menuBtn.click();
+            // Retry because YouTube creates the popup asynchronously.
+            for (let i = 0; i < 20 && !found; i++) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                const items = document.querySelectorAll(
+                    'ytd-menu-service-item-renderer, yt-list-item-view-model, ' +
+                    'tp-yt-paper-item, [role="menuitem"], [role="listitem"]'
+                );
+                for (const item of items) {
+                    const text = (item.textContent || '').trim();
+                    const aria = (item.getAttribute('aria-label') || '').trim();
+                    if (isDontRecommendItem(item, text, aria)) {
+                        item.click();
+                        found = true;
+                        break;
+                    }
+                }
             }
+        } catch (error) {
+            console.warn('[ShortsBlocker] Could not inspect YouTube menu:', error);
+        } finally {
+            hideStyle.remove();
         }
-        hideStyle.remove();
 
         if (found) {
             btn.querySelector('.my-btn-text').textContent = i18n.t('btnBlocked');
@@ -183,17 +643,14 @@ function createBlockButton(container, videoContext) {
             btn.classList.add('blocked-state');
 
             safeStorageGet(['blockedChannels', 'blockedCount'], (res) => {
-                const list = res.blockedChannels || [];
+                const list = Array.isArray(res.blockedChannels) ? res.blockedChannels : [];
                 const alreadyInList = channelId ? list.some(c => c.id === channelId) : false;
-
                 if (channelId && !alreadyInList) {
                     list.push({ id: channelId, name: channelName || channelId, blockedAt: Date.now() });
                 }
-
-                const newCount = alreadyInList
-                    ? (res.blockedCount || 0)
-                    : (res.blockedCount || 0) + 1;
-
+                const newCount = channelId
+                    ? (alreadyInList ? (res.blockedCount || 0) : (res.blockedCount || 0) + 1)
+                    : (res.blockedCount || list.length);
                 safeStorageSet({ blockedChannels: list, blockedCount: newCount });
             });
 
@@ -208,8 +665,9 @@ function createBlockButton(container, videoContext) {
             document.body.click();
             resetButtonToDefault(btn);
         }
+        btn.dataset.blocking = 'false';
     });
 
-    container.appendChild(btn);
+    appendShortsControl(container, btn);
     return btn;
 }

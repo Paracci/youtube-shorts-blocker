@@ -17,32 +17,62 @@ body.my-hide-shorts-home ytd-rich-section-renderer:has(a[href^="/shorts/"]) {
 
 /* --- 2. SHORTS ACTION BAR BUTTONS (Block + Download share this base) --- */
 .my-block-button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex: 0 0 78px !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
     cursor: pointer;
-    margin-top: 4px;
-    margin-bottom: 12px;
-    border: none;
-    background: transparent;
-    padding: 0;
-    width: 100%;
-    font-family: inherit;
+    width: 48px !important;
+    height: 78px !important;
+    min-width: 48px !important;
+    min-height: 78px !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    padding: 0 0 8px !important;
+    font-family: Roboto, Arial, sans-serif !important;
+    font-size: 12px !important;
+    line-height: 18px !important;
+    color: #f1f1f1 !important;
+    overflow: visible !important;
     -webkit-tap-highlight-color: transparent;
+}
+
+/* Used only when YouTube renders an action group that cannot be identified
+ * yet. The host is positioned relative to the Shorts overlay and is migrated
+ * into YouTube's native action bar as soon as that bar appears. */
+.my-shorts-action-host--fallback {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+    min-width: 48px;
+    z-index: 2147483000 !important;
+    pointer-events: auto !important;
+    isolation: isolate;
+}
+
+.my-shorts-action-host--fallback .my-block-button {
+    width: 48px !important;
 }
 
 /* Circular icon container */
 .my-btn-circle {
-    width: 48px;
-    height: 48px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    box-sizing: border-box !important;
+    flex: 0 0 48px !important;
+    width: 48px !important;
+    height: 48px !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 24px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     transition: background-color 0.2s cubic-bezier(0.05, 0, 0, 1);
-    margin-bottom: 4px;
+    margin: 0 0 4px !important;
+    overflow: hidden !important;
 }
 
 .my-block-button:hover .my-btn-circle {
@@ -54,22 +84,29 @@ body.my-hide-shorts-home ytd-rich-section-renderer:has(a[href^="/shorts/"]) {
 }
 
 .my-btn-circle svg {
-    width: 24px;
-    height: 24px;
-    fill: white;
-    display: block;
+    width: 24px !important;
+    height: 24px !important;
+    fill: #f1f1f1 !important;
+    display: block !important;
 }
 
 .my-btn-text {
-    font-size: 12px;
-    line-height: 1.2;
-    font-weight: 400;
-    color: white;
-    text-align: center;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    display: block !important;
+    box-sizing: content-box !important;
+    font-family: Roboto, Arial, sans-serif !important;
+    font-size: 12px !important;
+    line-height: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    margin: 0 !important;
+    font-weight: 400 !important;
+    color: #f1f1f1 !important;
+    text-align: center !important;
+    text-shadow: none !important;
     max-width: 60px;
-    white-space: nowrap;
+    white-space: pre-wrap;
     overflow: hidden;
+    overflow-wrap: anywhere;
     text-overflow: ellipsis;
 }
 
@@ -121,36 +158,44 @@ body.my-hide-shorts-home ytd-rich-section-renderer:has(a[href^="/shorts/"]) {
 /* ═══════════════════════════════════════════════════════════════════════════
    YOUTUBE-STYLE TOOLTIP FOR NATIVE BUTTONS
    ═══════════════════════════════════════════════════════════════════════════ */
-.my-video-dl-btn[data-title] {
-    position: relative;
-}
-
-.my-video-dl-btn[data-title]:hover::after {
-    content: attr(data-title);
-    position: absolute;
-    bottom: calc(100% + 15px); /* Position it nicely above the button */
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(28, 28, 28, 0.9);
-    color: #eee;
-    padding: 6px 9px;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 500;
+/*
+ * The tooltip is mounted on document.body and positioned with fixed
+ * coordinates. Keeping it outside .ytp-right-controls prevents YouTube's
+ * player layers from clipping the label above the control bar.
+ */
+.my-video-dl-tooltip {
+    position: fixed;
+    z-index: 2147483647;
+    max-width: calc(100vw - 16px);
+    padding: 8px 10px;
+    border-radius: 2px;
+    background: rgba(28, 28, 28, 0.96);
+    color: #fff;
+    font-family: Roboto, Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
     white-space: nowrap;
-    opacity: 1;
     pointer-events: none;
-    z-index: 2500000;
-    font-family: inherit;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    /* Fade in securely */
-    animation: tooltippop 0.1s ease forwards;
-    animation-delay: 0.3s; /* small delay to replicate youtube perfectly */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
     opacity: 0;
+    transform: translate(-50%, 4px);
+    transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
-@keyframes tooltippop {
-    to { opacity: 1; }
+.my-video-dl-tooltip[hidden] {
+    display: none !important;
+}
+
+.my-video-dl-tooltip.is-visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .my-video-dl-tooltip {
+        transition: none;
+    }
 }
 
 /* Loading spinner – subtle pulse while fetching formats */
@@ -367,4 +412,862 @@ body.my-hide-shorts-home ytd-rich-section-renderer:has(a[href^="/shorts/"]) {
 .yt-dl-fallback-link:hover {
     color: #7bc4ff;
     text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   YOUTUBE DOWNLOAD NOTIFICATION CARDS
+   ═══════════════════════════════════════════════════════════════════════════ */
+#my-yt-notification-stack {
+    width: min(390px, calc(100vw - 32px));
+    max-width: 390px;
+    max-height: 70vh;
+}
+
+.yt-download-notification-panel {
+    box-sizing: border-box;
+    width: 100%;
+    max-height: min(70vh, 560px);
+    overflow: hidden;
+    pointer-events: auto;
+    color: #fff;
+    font-family: Roboto, Arial, sans-serif;
+}
+
+.yt-download-notification-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 0 4px 0 2px;
+}
+
+.yt-download-notification-panel__heading {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+}
+
+.yt-download-notification-panel__eyebrow {
+    color: rgba(255, 255, 255, .48);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .14em;
+}
+
+.yt-download-notification-panel__title {
+    overflow: hidden;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yt-download-notification-panel__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .12);
+    color: rgba(255, 255, 255, .78);
+    font-family: 'DM Mono', Consolas, monospace;
+    font-size: 10px;
+}
+
+.yt-download-notification-panel__clear,
+.yt-download-notification__action,
+.yt-download-notification__dismiss {
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+}
+
+.yt-download-notification-panel__clear {
+    flex: 0 0 auto;
+    padding: 5px 7px;
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(255, 255, 255, .58);
+    font-size: 11px;
+}
+
+.yt-download-notification-panel__clear:hover {
+    background: rgba(255, 255, 255, .1);
+    color: #fff;
+}
+
+.yt-download-notification-panel__list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: min(calc(70vh - 54px), 506px);
+    overflow-y: auto;
+    padding: 1px 3px 3px 1px;
+    scrollbar-color: rgba(255, 255, 255, .25) transparent;
+    scrollbar-width: thin;
+}
+
+.yt-download-notification-panel__live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.yt-download-notification {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 11px 10px 10px 11px;
+    border: 1px solid rgba(255, 255, 255, .11);
+    border-left: 3px solid #3ea6ff;
+    border-radius: 4px;
+    background: #212121;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .42);
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity .16s ease, transform .16s ease, border-color .16s ease;
+}
+
+.yt-download-notification.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.yt-download-notification[data-state='downloading'] {
+    border-left-color: #ff0000;
+}
+
+.yt-download-notification[data-state='cancelling'] {
+    border-left-color: #9aa0a6;
+}
+
+.yt-download-notification[data-state='success'] {
+    border-left-color: #2ba640;
+}
+
+.yt-download-notification[data-state='error'] {
+    border-left-color: #ff4e45;
+}
+
+.yt-download-notification[data-state='cancelled'] {
+    border-left-color: #9aa0a6;
+}
+
+.yt-download-notification__media {
+    position: relative;
+    flex: 0 0 56px;
+    width: 56px;
+    height: 32px;
+    margin-top: 2px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: #090909;
+}
+
+.yt-download-notification__thumbnail {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.yt-download-notification__fallback-icon {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+    color: #fff;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.yt-download-notification__content {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.yt-download-notification__top-row,
+.yt-download-notification__meta,
+.yt-download-notification__actions {
+    display: flex;
+    align-items: center;
+}
+
+.yt-download-notification__top-row {
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 20px;
+}
+
+.yt-download-notification__format {
+    max-width: calc(100% - 30px);
+    overflow: hidden;
+    color: rgba(255, 255, 255, .58);
+    font-family: 'DM Mono', Consolas, monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.yt-download-notification__dismiss {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(255, 255, 255, .55);
+    font-size: 20px;
+    font-weight: 300;
+    line-height: 20px;
+}
+
+.yt-download-notification__dismiss:hover {
+    background: rgba(255, 255, 255, .12);
+    color: #fff;
+}
+
+.yt-download-notification__title {
+    display: block;
+    overflow: hidden;
+    margin-top: 1px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yt-download-notification__status {
+    display: block;
+    overflow: hidden;
+    margin-top: 2px;
+    color: rgba(255, 255, 255, .68);
+    font-size: 11px;
+    line-height: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yt-download-notification[data-state='success'] .yt-download-notification__status {
+    color: #8ed99a;
+}
+
+.yt-download-notification[data-state='error'] .yt-download-notification__status {
+    color: #ffaaa5;
+}
+
+.yt-download-notification__progress {
+    width: 100%;
+    height: 4px;
+    margin-top: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .12);
+}
+
+.yt-download-notification__progress-bar {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: #ff0000;
+    transition: width .2s ease;
+}
+
+.yt-download-notification__progress-bar.is-indeterminate {
+    width: 38%;
+    background: #3ea6ff;
+    animation: yt-download-notification-indeterminate 1.25s ease-in-out infinite;
+}
+
+.yt-download-notification[data-state='success'] .yt-download-notification__progress-bar {
+    background: #2ba640;
+}
+
+.yt-download-notification[data-state='error'] .yt-download-notification__progress-bar {
+    background: #ff4e45;
+}
+
+.yt-download-notification[data-state='cancelled'] .yt-download-notification__progress-bar,
+.yt-download-notification[data-state='cancelling'] .yt-download-notification__progress-bar {
+    background: #9aa0a6;
+}
+
+@keyframes yt-download-notification-indeterminate {
+    0% { transform: translateX(-110%); }
+    55%, 100% { transform: translateX(285%); }
+}
+
+.yt-download-notification__meta {
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 5px;
+    color: rgba(255, 255, 255, .52);
+    font-family: 'DM Mono', Consolas, monospace;
+    font-size: 9px;
+    line-height: 13px;
+}
+
+.yt-download-notification__percent {
+    color: rgba(255, 255, 255, .82);
+}
+
+.yt-download-notification__speed,
+.yt-download-notification__eta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yt-download-notification__actions {
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.yt-download-notification__action {
+    min-height: 26px;
+    padding: 4px 9px;
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: 3px;
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.yt-download-notification__action:hover {
+    background: rgba(255, 255, 255, .16);
+}
+
+.yt-download-notification__action--folder {
+    border-color: rgba(43, 166, 64, .7);
+    background: rgba(43, 166, 64, .18);
+}
+
+.yt-download-notification__action--folder:hover {
+    background: rgba(43, 166, 64, .3);
+}
+
+.yt-download-notification__action:disabled {
+    cursor: wait;
+    opacity: .58;
+}
+
+.yt-download-notification__action[hidden],
+.yt-download-notification__dismiss[hidden],
+.yt-download-notification-panel__clear[hidden] {
+    display: none !important;
+}
+
+.yt-download-notification-panel__clear:focus-visible,
+.yt-download-notification__action:focus-visible,
+.yt-download-notification__dismiss:focus-visible {
+    outline: 2px solid #3ea6ff;
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    #my-yt-notification-stack {
+        top: 12px !important;
+        right: 12px !important;
+        left: 12px !important;
+        width: auto;
+        max-width: none;
+    }
+
+    .yt-download-notification-panel {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .yt-download-notification,
+    .yt-download-notification__progress-bar {
+        transition: none;
+    }
+
+    .yt-download-notification__progress-bar.is-indeterminate {
+        animation: none;
+        width: 55%;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   YOUTUBE DOWNLOAD NOTIFICATION SYSTEM — REFINED SURFACE
+   The download center follows YouTube's measured dark surfaces: one coherent
+   panel, restrained elevation, 12px shell radius, 8px card rhythm, and small
+   status accents instead of full-color toast backgrounds.
+   ═══════════════════════════════════════════════════════════════════════════ */
+#my-yt-notification-stack {
+    top: 72px !important;
+    right: 24px !important;
+    width: min(400px, calc(100vw - 32px)) !important;
+    max-width: 400px !important;
+    max-height: calc(100vh - 96px) !important;
+    gap: 12px !important;
+}
+
+.yt-download-notification-panel {
+    width: 100%;
+    max-height: min(70vh, 620px);
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 12px;
+    background: #0f0f0f;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .52);
+    color: #f1f1f1;
+    font-family: 'Roboto', Arial, sans-serif;
+}
+
+.yt-download-notification-panel__header {
+    box-sizing: border-box;
+    min-height: 58px;
+    margin: 0;
+    padding: 0 14px 0 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+    background: #212121;
+}
+
+.yt-download-notification-panel__heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.yt-download-notification-panel__heading-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.yt-download-notification-panel__eyebrow {
+    overflow: hidden;
+    color: #aaa;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .08em;
+    line-height: 14px;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.yt-download-notification-panel__title {
+    overflow: hidden;
+    color: #f1f1f1;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yt-download-notification-panel__count {
+    flex: 0 0 auto;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    border: 1px solid rgba(255, 255, 255, .14);
+    border-radius: 11px;
+    background: #2f2f2f;
+    color: #f1f1f1;
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 22px;
+    text-align: center;
+}
+
+.yt-download-notification-panel__clear {
+    flex: 0 0 auto;
+    min-height: 32px;
+    padding: 0 11px;
+    border: 0;
+    border-radius: 16px;
+    background: transparent;
+    color: #aaa;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 32px;
+    white-space: nowrap;
+}
+
+.yt-download-notification-panel__clear:hover {
+    background: #3f3f3f;
+    color: #fff;
+}
+
+.yt-download-notification-panel__list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-sizing: border-box;
+    max-height: min(calc(70vh - 58px), 562px);
+    overflow-y: auto;
+    padding: 8px;
+    background: #0f0f0f;
+    scrollbar-color: #606060 transparent;
+    scrollbar-width: thin;
+}
+
+.yt-download-notification {
+    display: flex;
+    gap: 12px;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-left: 3px solid #3ea6ff;
+    border-radius: 8px;
+    background: #212121;
+    box-shadow: none;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity .16s ease, transform .16s ease, border-color .16s ease, background-color .16s ease;
+}
+
+.yt-download-notification.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.yt-download-notification[data-state='preparing'] {
+    border-left-color: #3ea6ff;
+}
+
+.yt-download-notification[data-state='downloading'] {
+    border-left-color: #ff0033;
+}
+
+.yt-download-notification[data-state='cancelling'],
+.yt-download-notification[data-state='cancelled'] {
+    border-left-color: #909090;
+}
+
+.yt-download-notification[data-state='success'] {
+    border-left-color: #2ba640;
+}
+
+.yt-download-notification[data-state='error'] {
+    border-left-color: #ff4e45;
+}
+
+.yt-download-notification__media {
+    flex: 0 0 72px;
+    width: 72px;
+    height: 41px;
+    margin-top: 1px;
+    border-radius: 4px;
+    background: #181818;
+}
+
+.yt-download-notification__thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.yt-download-notification__fallback-icon {
+    color: #aaa;
+    font-size: 20px;
+}
+
+.yt-download-notification__content {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.yt-download-notification__top-row {
+    min-height: 24px;
+    gap: 8px;
+}
+
+.yt-download-notification__format {
+    max-width: calc(100% - 36px);
+    padding: 3px 6px;
+    border-radius: 3px;
+    background: #3f3f3f;
+    color: #f1f1f1;
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .02em;
+    line-height: 14px;
+    text-transform: none;
+}
+
+.yt-download-notification__dismiss {
+    width: 32px;
+    height: 32px;
+    margin: -4px -4px 0 0;
+    border-radius: 16px;
+    background: transparent;
+    color: #aaa;
+    font-size: 20px;
+    line-height: 30px;
+}
+
+.yt-download-notification__dismiss:hover {
+    background: #3f3f3f;
+    color: #fff;
+}
+
+.yt-download-notification__title {
+    display: -webkit-box;
+    max-width: 100%;
+    margin-top: 2px;
+    overflow: hidden;
+    color: #f1f1f1;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 19px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    text-overflow: ellipsis;
+}
+
+.yt-download-notification__status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin-top: 5px;
+    color: #aaa;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.yt-download-notification__status-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yt-download-notification__status-dot {
+    flex: 0 0 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #3ea6ff;
+}
+
+.yt-download-notification[data-state='downloading'] .yt-download-notification__status-dot {
+    background: #ff0033;
+}
+
+.yt-download-notification[data-state='cancelling'] .yt-download-notification__status-dot,
+.yt-download-notification[data-state='cancelled'] .yt-download-notification__status-dot {
+    background: #909090;
+}
+
+.yt-download-notification[data-state='success'] .yt-download-notification__status-dot {
+    background: #2ba640;
+}
+
+.yt-download-notification[data-state='error'] .yt-download-notification__status-dot {
+    background: #ff4e45;
+}
+
+.yt-download-notification[data-state='success'] .yt-download-notification__status {
+    color: #a1d8a8;
+}
+
+.yt-download-notification[data-state='error'] .yt-download-notification__status {
+    color: #ffaaa5;
+}
+
+.yt-download-notification__progress {
+    height: 3px;
+    margin-top: 10px;
+    border-radius: 2px;
+    background: #3f3f3f;
+}
+
+.yt-download-notification__progress-bar {
+    height: 100%;
+    border-radius: inherit;
+    background: #3ea6ff;
+    transition: width .2s ease;
+}
+
+.yt-download-notification[data-state='downloading'] .yt-download-notification__progress-bar {
+    background: #ff0033;
+}
+
+.yt-download-notification[data-state='success'] .yt-download-notification__progress-bar {
+    background: #2ba640;
+}
+
+.yt-download-notification[data-state='error'] .yt-download-notification__progress-bar {
+    background: #ff4e45;
+}
+
+.yt-download-notification[data-state='cancelling'] .yt-download-notification__progress-bar,
+.yt-download-notification[data-state='cancelled'] .yt-download-notification__progress-bar {
+    background: #909090;
+}
+
+.yt-download-notification__progress-bar.is-indeterminate {
+    width: 34%;
+    background: #3ea6ff;
+}
+
+.yt-download-notification__meta {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    margin-top: 7px;
+    color: #aaa;
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 11px;
+    line-height: 16px;
+}
+
+.yt-download-notification__percent {
+    color: #f1f1f1;
+    font-weight: 500;
+}
+
+.yt-download-notification__speed,
+.yt-download-notification__eta {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.yt-download-notification__speed::before,
+.yt-download-notification__eta::before {
+    content: attr(data-label) '  ';
+    color: #717171;
+    font-size: 10px;
+}
+
+.yt-download-notification__eta {
+    text-align: right;
+}
+
+.yt-download-notification__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, .1);
+}
+
+.yt-download-notification__action {
+    min-height: 32px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 16px;
+    background: transparent;
+    color: #f1f1f1;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 32px;
+}
+
+.yt-download-notification__action:hover {
+    background: #3f3f3f;
+}
+
+.yt-download-notification__action--folder,
+.yt-download-notification__action--retry {
+    color: #3ea6ff;
+}
+
+.yt-download-notification__action--folder:hover,
+.yt-download-notification__action--retry:hover {
+    background: rgba(62, 166, 255, .14);
+}
+
+.yt-download-notification__action:disabled {
+    cursor: wait;
+    color: #717171;
+    opacity: 1;
+}
+
+.yt-download-notification-panel__clear:focus-visible,
+.yt-download-notification__action:focus-visible,
+.yt-download-notification__dismiss:focus-visible {
+    outline: 2px solid #3ea6ff;
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    #my-yt-notification-stack {
+        top: 12px !important;
+        right: 12px !important;
+        left: 12px !important;
+        width: auto !important;
+        max-width: none !important;
+        max-height: calc(100vh - 24px) !important;
+    }
+
+    .yt-download-notification-panel {
+        max-height: calc(100vh - 24px);
+        border-radius: 10px;
+    }
+
+    .yt-download-notification-panel__header {
+        min-height: 54px;
+        padding-right: 10px;
+        padding-left: 14px;
+    }
+
+    .yt-download-notification-panel__list {
+        max-height: calc(100vh - 78px);
+    }
+
+    .yt-download-notification {
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .yt-download-notification__media {
+        flex-basis: 64px;
+        width: 64px;
+        height: 36px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .yt-download-notification,
+    .yt-download-notification__progress-bar {
+        transition: none;
+    }
+
+    .yt-download-notification__progress-bar.is-indeterminate {
+        width: 50%;
+        animation: none;
+    }
 }
