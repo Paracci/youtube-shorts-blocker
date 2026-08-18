@@ -17,10 +17,14 @@ let AD_BLOCKER_ENABLED = false;
 let AUTO_SKIP_SHORTS_ADS = false;
 let IS_PREMIUM = null;
 let _awaitingPremiumCheck = true;
+const stateDeveloperLogger = typeof DeveloperLogger !== 'undefined'
+    ? DeveloperLogger.create('content', 'state')
+    : null;
 
 function hideInjectedControls() {
     document.querySelectorAll('.my-block-button, .my-video-dl-btn, .my-dl-btn-shorts')
         .forEach(button => { button.style.display = 'none'; });
+    if (typeof restoreChannelFilter === 'function') restoreChannelFilter();
 }
 
 i18n.init();
@@ -29,6 +33,7 @@ safeStorageGet(
     ['extensionEnabled', 'hideHomepageShorts', 'blockingEnabled',
         'downloaderEnabled', 'adBlockerEnabled', 'isPremium', 'autoSkipShortsAds'],
     (res) => {
+        stateDeveloperLogger?.debug('state.loaded', 'Content settings loaded.');
         if (res.extensionEnabled !== undefined) EXTENSION_ENABLED = res.extensionEnabled;
         if (res.hideHomepageShorts !== undefined) HIDE_SHORTS_HOMEPAGE = res.hideHomepageShorts;
         if (res.blockingEnabled !== undefined) BLOCKING_ENABLED = res.blockingEnabled;
@@ -45,6 +50,7 @@ safeStorageGet(
 
         if (typeof applyHomepageVisibility === 'function') applyHomepageVisibility();
         if (typeof applyAdBlocker === 'function') applyAdBlocker();
+        if (typeof applyChannelFilter === 'function') applyChannelFilter();
         if (!EXTENSION_ENABLED) hideInjectedControls();
     }
 );
@@ -54,15 +60,18 @@ safeStorageGet(
 setTimeout(() => {
     if (!_awaitingPremiumCheck) return;
     console.warn('[ShortsBlocker] Premium status is unknown; ad features remain disabled.');
+    stateDeveloperLogger?.warn('premium.status_unknown', 'Premium status remained unknown; ad automation stays disabled.');
 }, 6000);
 
 // ─── Popup → content-script toggle messages ───────────────────────────────────
 chrome.runtime.onMessage.addListener((msg) => {
     if (msg.action === 'toggle_extension') {
+        stateDeveloperLogger?.info('settings.extension_enabled', `Extension enabled: ${!!msg.enabled}.`);
         EXTENSION_ENABLED = !!msg.enabled;
         if (!EXTENSION_ENABLED) hideInjectedControls();
         if (typeof applyAdBlocker === 'function') applyAdBlocker();
         if (typeof applyHomepageVisibility === 'function') applyHomepageVisibility();
+        if (typeof applyChannelFilter === 'function') applyChannelFilter();
         if (msg.enabled) {
             if (typeof runOptimizationCheck === 'function') runOptimizationCheck();
             if (typeof initVideoDownloadButton === 'function') initVideoDownloadButton();
@@ -70,11 +79,13 @@ chrome.runtime.onMessage.addListener((msg) => {
     }
 
     if (msg.action === 'toggle_hide_shorts') {
+        stateDeveloperLogger?.info('settings.hide_shorts', `Homepage Shorts hiding enabled: ${!!msg.enabled}.`);
         HIDE_SHORTS_HOMEPAGE = !!msg.enabled;
         if (typeof applyHomepageVisibility === 'function') applyHomepageVisibility();
     }
 
     if (msg.action === 'toggle_blocking') {
+        stateDeveloperLogger?.info('settings.blocking_enabled', `Channel blocking enabled: ${!!msg.enabled}.`);
         BLOCKING_ENABLED = !!msg.enabled;
         document.querySelectorAll('.my-block-button').forEach(button => {
             if (!button.classList.contains('my-dl-btn-shorts')) {
@@ -84,10 +95,12 @@ chrome.runtime.onMessage.addListener((msg) => {
         if (!msg.enabled && typeof clearShortRendererObservers === 'function') {
             clearShortRendererObservers();
         }
+        if (typeof applyChannelFilter === 'function') applyChannelFilter();
         if (msg.enabled && typeof runOptimizationCheck === 'function') runOptimizationCheck();
     }
 
     if (msg.action === 'toggle_downloader') {
+        stateDeveloperLogger?.info('settings.downloader_enabled', `Downloader enabled: ${!!msg.enabled}.`);
         DOWNLOADER_ENABLED = !!msg.enabled;
         document.querySelectorAll('.my-dl-btn-shorts').forEach(button => {
             button.style.display = msg.enabled && EXTENSION_ENABLED ? '' : 'none';
@@ -123,17 +136,21 @@ chrome.runtime.onMessage.addListener((msg) => {
 // result is not valid for the new route, so ad automation is paused while the
 // fresh page-context script evaluates the current account state.
 function beginPremiumCheck() {
+    stateDeveloperLogger?.debug('premium.check_started', 'Fresh Premium status check started.');
+    const preservePlaybackRecovery = { preservePlaybackRecovery: true };
     IS_PREMIUM = null;
     _awaitingPremiumCheck = true;
     AD_BLOCKER_ENABLED = false;
     AUTO_SKIP_SHORTS_ADS = false;
-    if (typeof resetShortsAdHandling === 'function') resetShortsAdHandling();
-    if (typeof applyAdBlocker === 'function') applyAdBlocker();
+    if (typeof resetShortsAdHandling === 'function') resetShortsAdHandling(preservePlaybackRecovery);
+    if (typeof applyAdBlocker === 'function') applyAdBlocker(preservePlaybackRecovery);
 }
 
 // ─── Live Premium result from premium-detector.js ─────────────────────────────
 function setPremiumStatus(val) {
     if (typeof val !== 'boolean') return;
+
+    stateDeveloperLogger?.info('premium.status_received', `Premium status received: ${val}.`);
 
     const changed = IS_PREMIUM !== val || _awaitingPremiumCheck;
     IS_PREMIUM = val;
@@ -142,6 +159,10 @@ function setPremiumStatus(val) {
     AD_BLOCKER_ENABLED = val ? false : AD_BLOCKER_PREFERENCE;
     AUTO_SKIP_SHORTS_ADS = val ? false : AUTO_SKIP_SHORTS_PREFERENCE;
 
-    if (val && typeof resetShortsAdHandling === 'function') resetShortsAdHandling();
-    if (changed && typeof applyAdBlocker === 'function') applyAdBlocker();
+    if (val && typeof resetShortsAdHandling === 'function') {
+        resetShortsAdHandling({ preservePlaybackRecovery: true });
+    }
+    if (changed && typeof applyAdBlocker === 'function') {
+        applyAdBlocker({ preservePlaybackRecovery: val === true });
+    }
 }

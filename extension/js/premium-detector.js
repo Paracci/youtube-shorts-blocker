@@ -5,6 +5,9 @@
 (function () {
     const SCRIPT_ID = 'yt-premium-detector-injection';
     const MESSAGE_TYPE = 'YT_PREMIUM_STATUS';
+    const premiumDeveloperLogger = typeof DeveloperLogger !== 'undefined'
+        ? DeveloperLogger.create('content', 'premium-detector')
+        : null;
     let currentNonce = '';
 
     function createNonce() {
@@ -23,6 +26,7 @@
         if (hostname !== 'youtube.com' && !hostname.endsWith('.youtube.com')) return;
 
         if (typeof beginPremiumCheck === 'function') beginPremiumCheck();
+        premiumDeveloperLogger?.debug('premium.bridge_started', 'Starting page-context Premium detection.');
 
         const existing = document.getElementById(SCRIPT_ID);
         if (existing) existing.remove();
@@ -34,6 +38,7 @@
             script.src = `${chrome.runtime.getURL('js/inject.js')}?nonce=${encodeURIComponent(currentNonce)}`;
             (document.head || document.documentElement).appendChild(script);
         } catch (_) {
+            premiumDeveloperLogger?.error('premium.bridge_injection_failed', 'Could not inject Premium detector script.');
             // An invalidated extension context leaves Premium status unknown;
             // state.js intentionally keeps ad automation disabled in that case.
         }
@@ -44,6 +49,8 @@
         const data = event.data;
         if (!data || data.type !== MESSAGE_TYPE || data.nonce !== currentNonce) return;
         if (typeof data.isPremium !== 'boolean') return;
+
+        premiumDeveloperLogger?.info('premium.bridge_result', `Page-context Premium result: ${data.isPremium}.`);
 
         if (chrome.runtime?.id) chrome.storage.local.set({ isPremium: data.isPremium });
         if (typeof setPremiumStatus === 'function') setPremiumStatus(data.isPremium);

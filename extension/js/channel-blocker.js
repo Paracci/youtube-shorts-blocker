@@ -1,8 +1,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // channel-blocker.js – Block button UI, channel extractors, Shorts feed loop,
 //                      and IntersectionObserver
-// Depends on: utils.js, state.js, ad-blocker.js, notifications.js
+// Depends on: utils.js, state.js, shorts-transition.js, ad-blocker.js,
+//             channel-filter.js, notifications.js
 // ─────────────────────────────────────────────────────────────────────────────
+
+const channelBlockerDeveloperLogger = typeof DeveloperLogger !== 'undefined'
+    ? DeveloperLogger.create('content', 'channel-blocker')
+    : null;
 
 // ─── Intersection Observer (lazy-check visible Shorts) ───────────────────────
 const observedShortRenderers = new Set();
@@ -311,13 +316,20 @@ function positionShortsFallbackHost(host) {
     const hostRect = host.getBoundingClientRect();
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-    let desiredLeft = mediaRect ? mediaRect.right + 12 : anchorRect.right - hostRect.width - 12;
+    const hasStableMedia = !!mediaRect && mediaRect.width > 120 && mediaRect.height > 120;
+    if (!hasStableMedia || hostRect.width <= 0 || hostRect.height <= 0 ||
+        anchorRect.width <= 0 || anchorRect.height <= 0) {
+        host.dataset.positionReady = 'false';
+        return;
+    }
+
+    let desiredLeft = mediaRect.right + 12;
     let desiredTop = mediaRect
-        ? mediaRect.top + mediaRect.height * 0.70
+        ? mediaRect.top + mediaRect.height * 0.78
         : anchorRect.top + anchorRect.height * 0.60;
 
     if (desiredLeft + hostRect.width > viewportWidth - 12) {
-        desiredLeft = mediaRect ? mediaRect.left - hostRect.width - 12 : viewportWidth - hostRect.width - 12;
+        desiredLeft = mediaRect.left - hostRect.width - 12;
     }
     desiredLeft = Math.max(12, Math.min(desiredLeft, viewportWidth - hostRect.width - 12));
     desiredTop = Math.max(12, Math.min(desiredTop, viewportHeight - hostRect.height - 12));
@@ -329,6 +341,7 @@ function positionShortsFallbackHost(host) {
         host.style.left = Math.round(desiredLeft - anchorRect.left) + 'px';
         host.style.top = Math.round(desiredTop - anchorRect.top) + 'px';
     }
+    host.dataset.positionReady = 'true';
 }
 
 function scheduleShortsFallbackPosition() {
@@ -358,6 +371,7 @@ function createShortsFallbackHost(renderer) {
     const positionedAnchor = window.getComputedStyle(anchor).position !== 'static';
     host.className = 'my-shorts-action-host ' + SHORTS_ACTION_FALLBACK_CLASS;
     host.setAttribute('data-shorts-action-host', 'fallback');
+    host.dataset.positionReady = 'false';
     host.dataset.positionMode = positionedAnchor ? 'absolute' : 'fixed';
     host.__myShortsRenderer = renderer;
     host.__myShortsAnchor = anchor;
@@ -451,6 +465,7 @@ function getShortsActionContainer(renderer, createFallback) {
 
 function runOptimizationCheck() {
     if (!EXTENSION_ENABLED) return;
+    if (typeof applyChannelFilter === 'function') applyChannelFilter();
     cleanupDetachedShortRenderers();
 
     const renderers = document.querySelectorAll('ytd-reel-video-renderer');
@@ -463,6 +478,10 @@ function runOptimizationCheck() {
         renderer.__my_last_finger = finger;
 
         if (checkForAdAndSkip(renderer)) return;
+        if (renderer.classList.contains('my-channel-filtered')) {
+            cancelShortsActionRetry(renderer);
+            return;
+        }
 
         const wantsControls = BLOCKING_ENABLED || DOWNLOADER_ENABLED;
         const isInViewport = (() => {
@@ -489,7 +508,11 @@ function runOptimizationCheck() {
         }
         if (btn) {
             btn.style.display = (BLOCKING_ENABLED && EXTENSION_ENABLED) ? '' : 'none';
-            checkAndResetButton(btn, renderer);
+            if (typeof isChannelLocallyBlocked === 'function' && isChannelLocallyBlocked(renderer)) {
+                setButtonBlocked(btn);
+            } else {
+                checkAndResetButton(btn, renderer);
+            }
         }
 
         if (!bar.querySelector('.my-dl-btn-shorts') && DOWNLOADER_ENABLED && EXTENSION_ENABLED) {
@@ -519,8 +542,23 @@ function resetButtonToDefault(btn) {
     if (s) s.style.fill = '#f1f1f1';
 }
 
+function setButtonBlocked(btn) {
+    btn.classList.add('blocked-state');
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'none';
+    const text = btn.querySelector('.my-btn-text');
+    if (text) text.textContent = i18n.t('btnBlocked');
+    const icon = btn.querySelector('svg');
+    if (icon) icon.style.fill = '#ff4444';
+}
+
 // ─── Channel name & ID extractors ────────────────────────────────────────────
 function extractChannelName(videoContext) {
+    if (typeof resolveChannelIdentity === 'function') {
+        const identity = resolveChannelIdentity(videoContext);
+        if (identity?.name) return identity.name;
+    }
+
     const SELECTORS = [
         'ytd-reel-player-header-renderer ytd-channel-name yt-formatted-string',
         'ytd-reel-player-header-renderer #channel-name yt-formatted-string',
@@ -542,6 +580,11 @@ function extractChannelName(videoContext) {
 }
 
 function extractChannelId(videoContext) {
+    if (typeof resolveChannelIdentity === 'function') {
+        const identity = resolveChannelIdentity(videoContext);
+        if (identity?.id) return identity.id;
+    }
+
     const idLink = videoContext.querySelector('a[href*="/channel/"]');
     if (idLink) {
         const m = (idLink.getAttribute('href') || '').match(/\/channel\/(UC[^/?#]+)/);
@@ -569,6 +612,190 @@ function isDontRecommendItem(item, text, aria) {
     return patterns.some(pattern => haystack.includes(pattern));
 }
 
+function findYouTubeMenuButton(videoContext) {
+    if (!videoContext || typeof videoContext.querySelectorAll !== 'function') return null;
+    return videoContext.querySelector('ytd-menu-renderer button') ||
+        Array.from(videoContext.querySelectorAll('button')).find(button => {
+            const label = button.getAttribute('aria-label') || '';
+            return /more actions|diğer|işlemler|menü/i.test(label);
+        }) || null;
+}
+
+function isVisibleYouTubeElement(element) {
+    if (!element || !element.isConnected) return false;
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+}
+
+// Account-level recommendation feedback is not available while signed out.
+// Fail closed when the account state is unknown so the local filter never
+// opens a YouTube menu, injects temporary popup styles, or interferes with
+// Shorts navigation in that state.
+function isYouTubeSignedIn() {
+    const signInSelectors = [
+        'a[href*="ServiceLogin"]',
+        'a[href*="accounts.google.com"]',
+        'ytd-masthead #sign-in-button',
+        'ytd-masthead ytd-button-renderer a[aria-label*="sign in" i]',
+        'ytd-masthead ytd-button-renderer a[aria-label*="oturum aç" i]'
+    ];
+    try {
+        const signedOut = document.querySelectorAll(signInSelectors.join(','));
+        if (Array.from(signedOut).some(isVisibleYouTubeElement)) return false;
+
+        const accountSelectors = [
+            'ytd-topbar-menu-button-renderer #avatar-btn',
+            'ytd-masthead #avatar-btn',
+            '#avatar-btn',
+            'button[aria-label*="account" i]',
+            'button[aria-label*="hesap" i]'
+        ];
+        const accountControls = document.querySelectorAll(accountSelectors.join(','));
+        return Array.from(accountControls).some(isVisibleYouTubeElement);
+    } catch (_) {
+        return false;
+    }
+}
+
+function getBlockContextFingerprint(videoContext) {
+    return (typeof getChannelFilterVideoKey === 'function'
+        ? getChannelFilterVideoKey(videoContext)
+        : '') || getVideoFingerprint(videoContext) || '';
+}
+
+function isBlockContextCurrent(videoContext, expectedFingerprint) {
+    if (!videoContext || !document.contains(videoContext)) return false;
+    if (!expectedFingerprint) return true;
+    return getBlockContextFingerprint(videoContext) === expectedFingerprint;
+}
+
+async function tryYouTubeRecommendationSync(videoContext) {
+    if (!isYouTubeSignedIn()) return 'unavailable';
+
+    const menuBtn = findYouTubeMenuButton(videoContext);
+    if (!menuBtn) return 'unavailable';
+
+    const initialVideoKey = getBlockContextFingerprint(videoContext);
+    let hideStyle = null;
+    let found = false;
+    let menuOpened = false;
+    try {
+        if (!isBlockContextCurrent(videoContext, initialVideoKey)) return 'unavailable';
+        hideStyle = document.createElement('style');
+        hideStyle.textContent = `
+            ytd-menu-popup-renderer, tp-yt-paper-dialog, ytd-popup-container > *, tp-yt-iron-dropdown {
+                visibility: hidden !important; pointer-events: none !important;
+            }`;
+        document.head?.appendChild(hideStyle);
+        menuBtn.click();
+        menuOpened = true;
+        // Keep the YouTube account attempt bounded. The local filter must not
+        // wait on a missing menu item, which is common while signed out.
+        for (let i = 0; i < 18 && !found; i++) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            if (!isBlockContextCurrent(videoContext, initialVideoKey)) break;
+
+            const items = document.querySelectorAll(
+                'ytd-menu-service-item-renderer, yt-list-item-view-model, ' +
+                'tp-yt-paper-item, [role="menuitem"], [role="listitem"]'
+            );
+            for (const item of items) {
+                const text = (item.textContent || '').trim();
+                const aria = (item.getAttribute('aria-label') || '').trim();
+                if (isDontRecommendItem(item, text, aria)) {
+                    item.click();
+                    found = true;
+                    break;
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('[ShortsBlocker] Could not inspect YouTube menu:', error);
+        channelBlockerDeveloperLogger?.warn('channel.menu_inspection_failed', 'Could not inspect YouTube menu.', error?.message || String(error));
+    } finally {
+        hideStyle?.remove?.();
+        if (!found && menuOpened && isBlockContextCurrent(videoContext, initialVideoKey)) {
+            document.body?.click?.();
+        }
+    }
+
+    return found ? 'synced' : 'unavailable';
+}
+
+async function handleLocalBlockButton(btn, videoContext) {
+    const initialVideoKey = getBlockContextFingerprint(videoContext);
+    const identity = typeof resolveChannelIdentity === 'function'
+        ? resolveChannelIdentity(videoContext)
+        : null;
+    if (!identity) {
+        showYouTubeNotification(
+            i18n.t('notifChannelIdentityUnavailable'),
+            i18n.t('notifChannelIdentityUnavailable'),
+            null,
+            'error'
+        );
+        if (isBlockContextCurrent(videoContext, initialVideoKey)) {
+            resetButtonToDefault(btn);
+            btn.dataset.blocking = 'false';
+        }
+        return;
+    }
+
+    const localResult = typeof addBlockedChannelLocally === 'function'
+        ? await addBlockedChannelLocally(identity)
+        : { ok: false, reason: 'filter_unavailable' };
+    if (!localResult.ok) {
+        const messageKey = localResult.reason === 'identity_unavailable'
+            ? 'notifChannelIdentityUnavailable'
+            : 'notifChannelStorageError';
+        showYouTubeNotification(
+            i18n.t(messageKey),
+            i18n.t(messageKey),
+            null,
+            'error'
+        );
+        if (isBlockContextCurrent(videoContext, initialVideoKey)) {
+            resetButtonToDefault(btn);
+            btn.dataset.blocking = 'false';
+        }
+        return;
+    }
+
+    const contextIsCurrent = isBlockContextCurrent(videoContext, initialVideoKey);
+    if (contextIsCurrent) setButtonBlocked(btn);
+    const label = identity.name ? `"${identity.name}"` : 'Channel';
+    const notification = showYouTubeNotification(
+        label,
+        i18n.t('notifLocalChannelBlocked'),
+        null,
+        'success'
+    );
+
+    // Start the account-level attempt before the renderer is hidden. The
+    // local filter remains the source of truth if YouTube has no menu item.
+    const syncPromise = contextIsCurrent
+        ? tryYouTubeRecommendationSync(videoContext)
+        : Promise.resolve('unavailable');
+    if (typeof applyChannelFilter === 'function') applyChannelFilter();
+
+    const syncResult = await syncPromise;
+    if (notification?.setState) {
+        notification.setState(
+            syncResult === 'synced' ? 'synced' : 'unavailable',
+            i18n.t(syncResult === 'synced'
+                ? 'notifYouTubeSyncApplied'
+                : 'notifYouTubeSyncUnavailable')
+        );
+    } else if (notification?.update) {
+        notification.update(i18n.t(syncResult === 'synced'
+            ? 'notifYouTubeSyncApplied'
+            : 'notifYouTubeSyncUnavailable'));
+    }
+    if (isBlockContextCurrent(videoContext, initialVideoKey)) btn.dataset.blocking = 'false';
+}
+
 function createBlockButton(container, videoContext) {
     const btn = document.createElement('button');
     btn.className = 'my-block-button';
@@ -589,83 +816,8 @@ function createBlockButton(container, videoContext) {
         btn.style.opacity = '0.5';
         btn.querySelector('.my-btn-text').textContent = i18n.t('btnBlocking');
 
-        const channelName = extractChannelName(videoContext);
-        const channelId = extractChannelId(videoContext);
-        const menuBtn = videoContext.querySelector('ytd-menu-renderer button') ||
-            Array.from(videoContext.querySelectorAll('button')).find(b => {
-                const label = b.getAttribute('aria-label') || '';
-                return /more actions|diğer|işlemler|menü/i.test(label);
-            });
-
-        if (!menuBtn) {
-            resetButtonToDefault(btn);
-            btn.dataset.blocking = 'false';
-            return;
-        }
-
-        const hideStyle = document.createElement('style');
-        hideStyle.textContent = `
-            ytd-menu-popup-renderer, tp-yt-paper-dialog, ytd-popup-container > *, tp-yt-iron-dropdown {
-                visibility: hidden !important; pointer-events: none !important;
-            }`;
-        document.head.appendChild(hideStyle);
-        let found = false;
-        try {
-            menuBtn.click();
-            // Retry because YouTube creates the popup asynchronously.
-            for (let i = 0; i < 20 && !found; i++) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                const items = document.querySelectorAll(
-                    'ytd-menu-service-item-renderer, yt-list-item-view-model, ' +
-                    'tp-yt-paper-item, [role="menuitem"], [role="listitem"]'
-                );
-                for (const item of items) {
-                    const text = (item.textContent || '').trim();
-                    const aria = (item.getAttribute('aria-label') || '').trim();
-                    if (isDontRecommendItem(item, text, aria)) {
-                        item.click();
-                        found = true;
-                        break;
-                    }
-                }
-            }
-        } catch (error) {
-            console.warn('[ShortsBlocker] Could not inspect YouTube menu:', error);
-        } finally {
-            hideStyle.remove();
-        }
-
-        if (found) {
-            btn.querySelector('.my-btn-text').textContent = i18n.t('btnBlocked');
-            btn.querySelector('svg').style.fill = '#ff4444';
-            btn.style.opacity = '1';
-            btn.style.pointerEvents = 'none';
-            btn.classList.add('blocked-state');
-
-            safeStorageGet(['blockedChannels', 'blockedCount'], (res) => {
-                const list = Array.isArray(res.blockedChannels) ? res.blockedChannels : [];
-                const alreadyInList = channelId ? list.some(c => c.id === channelId) : false;
-                if (channelId && !alreadyInList) {
-                    list.push({ id: channelId, name: channelName || channelId, blockedAt: Date.now() });
-                }
-                const newCount = channelId
-                    ? (alreadyInList ? (res.blockedCount || 0) : (res.blockedCount || 0) + 1)
-                    : (res.blockedCount || list.length);
-                safeStorageSet({ blockedChannels: list, blockedCount: newCount });
-            });
-
-            const label = channelName ? `"${channelName}"` : 'Channel';
-            showYouTubeNotification(
-                `${label} ${i18n.t('notifWillNotRecommend')}`,
-                i18n.t('notifChannelBlocked'),
-                null,
-                'success'
-            );
-        } else {
-            document.body.click();
-            resetButtonToDefault(btn);
-        }
-        btn.dataset.blocking = 'false';
+        await handleLocalBlockButton(btn, videoContext);
+        return;
     });
 
     appendShortsControl(container, btn);

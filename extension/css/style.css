@@ -15,6 +15,40 @@ body.my-hide-shorts-home ytd-rich-section-renderer:has(a[href^="/shorts/"]) {
     display: none !important;
 }
 
+/* --- 1.6. LOCAL CHANNEL FILTER ------------------------------------------- */
+/* Recommendation cards can be removed from the layout safely. The active
+ * Shorts renderer is kept in the DOM until navigation completes so YouTube
+ * does not freeze the recycled player node. */
+.my-channel-filtered {
+    display: none !important;
+}
+
+ytd-reel-video-renderer.my-channel-filtered--active {
+    display: block !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* Confirmed Shorts ads keep the recycled player alive while their media and
+ * ad overlay are hidden until YouTube finishes the skip transition. */
+ytd-reel-video-renderer.my-shorts-excluded--active {
+    display: block !important;
+}
+
+/* Hide media only while the confirmed ad renderer is the active player. Once
+ * YouTube recycles it or the user scrolls back, the video must be visible
+ * again; a stale renderer-wide rule can freeze the next Short permanently. */
+ytd-reel-video-renderer.my-shorts-excluded--active[my-ad-detected="true"] video,
+ytd-reel-video-renderer.my-shorts-excluded--active[my-ad-detected="true"] .ytp-ad-player-overlay,
+ytd-reel-video-renderer.my-shorts-excluded--active[my-ad-detected="true"] .ytp-ad-overlay-container,
+ytd-reel-video-renderer.my-shorts-excluded--active[my-ad-detected="true"] .ytp-ad-image-overlay,
+ytd-reel-video-renderer.my-shorts-excluded--active[my-ad-detected="true"] .ytp-ad-text-overlay {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
 /* --- 2. SHORTS ACTION BAR BUTTONS (Block + Download share this base) --- */
 .my-block-button {
     box-sizing: border-box !important;
@@ -53,6 +87,20 @@ body.my-hide-shorts-home ytd-rich-section-renderer:has(a[href^="/shorts/"]) {
     z-index: 2147483000 !important;
     pointer-events: auto !important;
     isolation: isolate;
+}
+
+/* Never flash a fallback at the document's default/left position while the
+ * Shorts player is still measuring its media surface. The host becomes
+ * visible only after JavaScript has calculated a stable right-side position. */
+.my-shorts-action-host--fallback:not([data-position-ready="true"]) {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.my-shorts-action-host--fallback[data-position-ready="true"] {
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .my-shorts-action-host--fallback .my-block-button {
@@ -757,15 +805,6 @@ body.my-hide-shorts-home ytd-rich-section-renderer:has(a[href^="/shorts/"]) {
     background: rgba(255, 255, 255, .16);
 }
 
-.yt-download-notification__action--folder {
-    border-color: rgba(43, 166, 64, .7);
-    background: rgba(43, 166, 64, .18);
-}
-
-.yt-download-notification__action--folder:hover {
-    background: rgba(43, 166, 64, .3);
-}
-
 .yt-download-notification__action:disabled {
     cursor: wait;
     opacity: .58;
@@ -1200,12 +1239,10 @@ body.my-hide-shorts-home ytd-rich-section-renderer:has(a[href^="/shorts/"]) {
     background: #3f3f3f;
 }
 
-.yt-download-notification__action--folder,
 .yt-download-notification__action--retry {
     color: #3ea6ff;
 }
 
-.yt-download-notification__action--folder:hover,
 .yt-download-notification__action--retry:hover {
     background: rgba(62, 166, 255, .14);
 }

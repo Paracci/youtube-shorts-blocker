@@ -130,7 +130,6 @@ function loadDownloader({ fetchImpl, documentOverride } = {}) {
                     notification.progress = progress;
                 },
                 remove() {},
-                showAction() { notification.actionVisible = true; },
                 showRetry() { notification.retryVisible = true; },
                 isVisible() { return true; }
             };

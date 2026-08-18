@@ -4,6 +4,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 let debounceTimer = null;
+const contentDeveloperLogger = typeof DeveloperLogger !== 'undefined'
+    ? DeveloperLogger.create('content', 'content')
+    : null;
+
+try {
+    window.addEventListener('error', event => {
+        const message = event?.message || event?.error?.message || 'Unhandled content-script error.';
+        contentDeveloperLogger?.error('content.unhandled_error', message);
+    });
+    window.addEventListener('unhandledrejection', event => {
+        contentDeveloperLogger?.error('content.unhandled_rejection', event?.reason?.message || String(event?.reason || 'Unhandled rejection.'));
+    });
+} catch (_) { }
 
 function triggerGlobalOptimization() {
     if (!EXTENSION_ENABLED) return;
@@ -15,11 +28,22 @@ function triggerGlobalOptimization() {
         if (typeof runOptimizationCheck === 'function') runOptimizationCheck();
         if (typeof applyHomepageVisibility === 'function') applyHomepageVisibility();
         if (typeof initVideoDownloadButton === 'function') initVideoDownloadButton();
-    }, 300);
+    // YouTube builds the Shorts action bar in several small DOM batches. A
+    // short debounce keeps discovery responsive without competing with that
+    // render work or making buttons visibly late.
+    }, 100);
 }
 
 const RELEVANT_DOM_SELECTOR = [
     'ytd-reel-video-renderer',
+    'ytd-rich-item-renderer',
+    'ytd-video-renderer',
+    'ytd-grid-video-renderer',
+    'ytd-compact-video-renderer',
+    'ytd-playlist-video-renderer',
+    'ytd-video-with-context-renderer',
+    'ytd-rich-grid-media',
+    'yt-lockup-view-model',
     'ytd-rich-section-renderer',
     'ytd-rich-shelf-renderer',
     'ytd-reel-player-overlay-renderer',
@@ -58,10 +82,14 @@ function relevantAttributeTarget(target) {
             return false;
         }
         if (target.matches(RELEVANT_DOM_SELECTOR)) return true;
-        const renderer = target.closest('ytd-reel-video-renderer');
+        const renderer = target.closest(
+            'ytd-reel-video-renderer, ytd-rich-item-renderer, ytd-video-renderer, ' +
+            'ytd-grid-video-renderer, ytd-compact-video-renderer, ytd-playlist-video-renderer, ' +
+            'ytd-video-with-context-renderer, ytd-rich-grid-media, yt-lockup-view-model'
+        );
         if (renderer) {
-            // Player controls update classes frequently; action/overlay changes
-            // are the mutations that can invalidate button placement.
+            // Player controls update classes frequently; renderer metadata and
+            // channel links are the mutations that can invalidate filtering.
             if (target.closest('#shorts-player, #player-container, .html5-video-player, ytd-player')) {
                 return false;
             }
@@ -79,7 +107,12 @@ const globalObserver = new MutationObserver((mutations) => {
     if (!EXTENSION_ENABLED) return;
 
     const shouldTrigger = mutations.some(mutation => {
-        if (mutation.type === 'attributes') return relevantAttributeTarget(mutation.target);
+        if (mutation.type === 'attributes') {
+            if (mutation.attributeName === 'class' &&
+                (mutation.target.classList?.contains('my-channel-filtered') ||
+                    mutation.target.classList?.contains('my-shorts-excluded'))) return false;
+            return relevantAttributeTarget(mutation.target);
+        }
         for (const node of mutation.addedNodes) {
             if (containsRelevantElement(node)) return true;
         }
@@ -96,17 +129,27 @@ function initOrchestrator() {
         return;
     }
 
+    contentDeveloperLogger?.info('content.orchestrator_started', 'YouTube content orchestrator started.', '', {
+        route: location.pathname.slice(0, 80)
+    });
+
     globalObserver.observe(root, {
         childList: true,
         subtree: true,
         attributes: true,
         attributeFilter: [
-            'href', 'is-active', 'is-ads-overlay', 'data-video-id', 'hidden',
+            'href', 'is-active', 'is-ads-overlay', 'data-video-id',
+            'data-channel-id', 'data-owner-channel-id', 'data-owner-id', 'channel-id', 'hidden',
             'class', 'aria-label', 'role', 'style'
         ]
     });
 
-    document.addEventListener('yt-navigate-finish', triggerGlobalOptimization);
+    document.addEventListener('yt-navigate-finish', () => {
+        contentDeveloperLogger?.debug('content.navigation', 'YouTube SPA navigation completed.', '', {
+            route: location.pathname.slice(0, 80)
+        });
+        triggerGlobalOptimization();
+    });
     if (typeof initVideoDownloadButton === 'function') initVideoDownloadButton();
     triggerGlobalOptimization();
 }

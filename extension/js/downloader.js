@@ -1,4 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
+
+const downloaderDeveloperLogger = typeof DeveloperLogger !== 'undefined'
+    ? DeveloperLogger.create('content', 'downloader')
+    : null;
 // downloader.js – Video format fetching, download triggering, modal UI,
 //                 Shorts download button, and video-player download button
 // Depends on: utils.js, state.js, notifications.js
@@ -481,35 +485,6 @@ function formatDownloadEta(seconds) {
     return `${minutes}m ${String(remainder).padStart(2, '0')}s`;
 }
 
-function openDownloadFolderFromNotification(button) {
-    if (!button) return;
-    button.disabled = true;
-
-    const resetButton = () => {
-        button.disabled = false;
-    };
-
-    try {
-        chrome.runtime.sendMessage({ action: 'open_download_folder' }, (response) => {
-            if (chrome.runtime.lastError || !response || response.status !== 'ok') {
-                resetButton();
-                showYouTubeNotification('', i18n.t('downloadOpenFolderError'), null, 'error');
-                return;
-            }
-
-            button.textContent = i18n.t('downloadFolderOpened');
-            button.style.borderColor = 'rgba(123, 220, 137, .7)';
-            button.style.background = 'rgba(43, 166, 64, .22)';
-            // Keep the action reusable. Opening the folder is independent from
-            // the completed download, so one notification can open it again.
-            resetButton();
-        });
-    } catch (_) {
-        resetButton();
-        showYouTubeNotification('', i18n.t('downloadOpenFolderError'), null, 'error');
-    }
-}
-
 function registerNativeDownloadToast(downloadId, videoId, toast) {
     if (!downloadId || !toast) return;
     activeNativeDownloadToasts.set(String(downloadId), { videoId: String(videoId || ''), toast });
@@ -540,11 +515,13 @@ function sendNativeDownloadCancel(downloadId, videoId, toast) {
             videoId
         }, (response) => {
             if (chrome.runtime.lastError || !response || response.status !== 'cancel_requested') {
+                downloaderDeveloperLogger?.error('download.cancel_failed', 'Native download cancellation failed.', chrome.runtime.lastError?.message || response?.status || '', { downloadId, videoId });
                 toast.setState('error', i18n.t('notifDownloadFailed'));
                 toast.showRetry?.();
             }
         });
     } catch (_) {
+        downloaderDeveloperLogger?.error('download.cancel_dispatch_failed', 'Native download cancellation could not be dispatched.', '', { downloadId, videoId });
         toast.setState('error', i18n.t('notifDownloadFailed'));
         toast.showRetry?.();
     }
@@ -589,6 +566,7 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
     const videoId = getCurrentVideoId();
     const downloadId = createDownloadId();
     const qualityHeight = _formatHeight(fmt);
+    downloaderDeveloperLogger?.info('download.started', 'Player download started.', '', { videoId, downloadId });
 
     // Prefer H.264 over WebM for muxed streams (wider compatibility)
     let actualFmt = fmt;
@@ -628,8 +606,6 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
             kind: 'download',
             downloadId,
             formatLabel: getDownloadFormatLabel(fmt, fmt.type === 'audio' ? 'mp3' : 'mp4'),
-            actionLabel: i18n.t('downloadOpenFolder'),
-            onAction: openDownloadFolderFromNotification,
             onCancel: (id, card) => sendNativeDownloadCancel(id, videoId, card),
             onRetry: () => { void triggerDownload(fmt, rawFilename, allFormats); }
         });
@@ -640,13 +616,16 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
             qualityHeight, isAudioOnly: fmt.type === 'audio', isVideoAudio: fmt.type === 'video_audio'
         }).then((response) => {
             if (response && response.status === 'sent_to_native') {
+                downloaderDeveloperLogger?.debug('download.native_accepted', 'Native player download accepted.', '', { videoId, downloadId });
                 toast.setState('downloading', i18n.t('notifDownloadingBg'), { percent: 0 });
             } else {
+                downloaderDeveloperLogger?.error('download.native_rejected', 'Native player download was rejected.', response?.status || '', { videoId, downloadId });
                 takeNativeDownloadToast(downloadId, videoId);
                 toast.setState('error', i18n.t('alertNativeNotFound'));
                 toast.showRetry?.();
             }
         }).catch(() => {
+            downloaderDeveloperLogger?.error('download.native_dispatch_failed', 'Native player download dispatch failed.', '', { videoId, downloadId });
             takeNativeDownloadToast(downloadId, videoId);
             toast.setState('error', i18n.t('alertNativeNotFound'));
             toast.showRetry?.();
@@ -665,8 +644,6 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
         kind: 'download',
         downloadId,
         formatLabel: getDownloadFormatLabel(actualFmt),
-        actionLabel: i18n.t('downloadOpenFolder'),
-        onAction: openDownloadFolderFromNotification,
         onCancel: () => controller?.abort(),
         onRetry: () => { void triggerDownload(fmt, rawFilename, allFormats); }
     });
@@ -687,10 +664,13 @@ async function triggerDownload(fmt, rawFilename, allFormats = []) {
         setTimeout(() => { a.remove(); URL.revokeObjectURL(blobUrl); }, 5000);
 
         toast.success(i18n.t('notifDownloadComplete'), { percent: 100 });
+        downloaderDeveloperLogger?.info('download.direct_completed', 'Direct browser download completed.', '', { videoId, downloadId });
     } catch (err) {
         if (controller?.signal.aborted || err?.name === 'AbortError') {
+            downloaderDeveloperLogger?.info('download.direct_cancelled', 'Direct browser download cancelled.', '', { videoId, downloadId });
             toast.setState('cancelled', i18n.t('downloadCancelled'));
         } else {
+            downloaderDeveloperLogger?.error('download.direct_failed', 'Direct browser download failed.', err?.message || String(err), { videoId, downloadId });
             toast.setState('error', i18n.t('notifDownloadFailed'));
             toast.showRetry?.();
         }
@@ -718,12 +698,14 @@ chrome.runtime.onMessage.addListener((msg) => {
         if (!entry) return;
 
         if (msg.status === 'success') {
+            downloaderDeveloperLogger?.info('download.native_completed', 'Native player download completed.', '', { videoId: msg.videoId, downloadId: msg.downloadId });
             entry.toast.success(i18n.t('notifDownloadComplete'), { percent: 100 });
-            entry.toast.showAction?.();
         } else if (msg.status === 'cancelled') {
+            downloaderDeveloperLogger?.info('download.native_cancelled', 'Native player download cancelled.', '', { videoId: msg.videoId, downloadId: msg.downloadId });
             entry.toast.setState('cancelled', i18n.t('downloadCancelled'));
             entry.toast.showRetry?.();
         } else {
+            downloaderDeveloperLogger?.error('download.native_failed', 'Native player download failed.', msg.message || '', { videoId: msg.videoId, downloadId: msg.downloadId });
             entry.toast.setState('error', i18n.t('notifDownloadFailed'));
             entry.toast.showRetry?.();
         }

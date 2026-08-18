@@ -17,7 +17,7 @@ function loadPolicy() {
     return context.globalThis.DownloadPolicy;
 }
 
-function makeDownloadHarness() {
+function makeDownloadHarness({ developerMode = false } = {}) {
     const document = new FakeDocument();
     const root = document.body;
     const ids = [
@@ -28,19 +28,18 @@ function makeDownloadHarness() {
         ['format-count', 'span'], ['presets-section', 'section'], ['preset-grid', 'div'],
         ['advanced-section', 'section'], ['advanced-toggle', 'button'], ['advanced-panel', 'div'],
         ['format-table-body', 'tbody'], ['advanced-empty', 'p'], ['jobs-section', 'aside'], ['jobs-panel', 'section'],
-        ['jobs-panel-toggle', 'button'], ['jobs-open-folder', 'button'], ['jobs-panel-body', 'div'],
+        ['jobs-panel-toggle', 'button'], ['jobs-panel-body', 'div'],
         ['jobs-list', 'div'], ['jobs-indicator', 'button'], ['jobs-indicator-format', 'span'],
         ['jobs-indicator-status', 'span'], ['jobs-indicator-count', 'span'], ['jobs-count', 'span'],
-        ['jobs-live-status', 'div']
+        ['jobs-live-status', 'div'], ['developer-mode-toggle', 'input'], ['developer-section', 'section'],
+        ['developer-log-count', 'span'], ['clear-developer-logs', 'button'], ['developer-log-list', 'div'],
+        ['developer-log-empty', 'p']
     ];
     const elements = {};
     ids.forEach(([id, tagName]) => {
         elements[id] = addElement(document, root, id, tagName, id === 'jobs-section' ? 'hidden' : '');
     });
     elements['jobs-panel-toggle'].setAttribute('data-i18n-title', 'downloadJobsCollapse');
-    const folderLabel = addElement(document, elements['jobs-open-folder'], 'jobs-open-folder-label', 'span');
-    folderLabel.setAttribute('data-i18n', 'downloadOpenFolder');
-    folderLabel.textContent = 'Open folder';
     elements['video-url'].value = 'https://www.youtube.com/watch?v=abc12345678';
     elements['media-card'].className = 'hidden';
     elements['presets-section'].className = 'hidden';
@@ -48,6 +47,9 @@ function makeDownloadHarness() {
     elements['advanced-panel'].hidden = true;
     elements['jobs-panel'].hidden = false;
     elements['jobs-indicator'].hidden = true;
+    elements['developer-section'].className = 'hidden';
+    elements['developer-section'].hidden = true;
+    elements['developer-log-empty'].hidden = false;
 
     const portListeners = [];
     const sent = [];
@@ -62,19 +64,19 @@ function makeDownloadHarness() {
         }
     };
     const timeouts = [];
+    const storedValues = [];
     const storage = {
         get(key, callback) {
             if (key === 'userLang') callback({ userLang: 'en' });
-            else callback({ downloadPath: 'C:\\Users\\Test\\Downloads' });
+            else callback({ downloadPath: 'C:\\Users\\Test\\Downloads', developerMode });
         },
-        set(_value, callback) { callback?.(); }
+        set(value, callback) { storedValues.push(value); callback?.(); }
     };
     const chrome = {
         runtime: {
             connect() { return port; },
             sendMessage(message, callback) {
                 if (message.action === 'check_native_host_status') callback({ status: 'connected', ffmpegReady: true });
-                else if (message.action === 'open_download_folder') callback({ status: 'ok', path: 'C:\\Users\\Test\\Downloads' });
                 else callback({ status: 'ok' });
             },
             getURL(value) { return value; },
@@ -84,7 +86,6 @@ function makeDownloadHarness() {
         tabs: { query(_query, callback) { callback([]); }, create() {} }
     };
     const labels = {
-        downloadOpenFolder: 'Open folder', downloadFolderOpened: 'Folder opened', downloadOpenFolderError: 'Could not open folder',
         downloadJobsTitle: 'Downloads', downloadJobsActive: 'Active downloads', downloadJobsCollapse: 'Minimize downloads',
         downloadJobsExpand: 'Show download activity', downloadFormat: 'Format', downloadDownload: 'Download',
         downloadPreparing: 'Preparing…', downloadInProgress: 'Downloading…', downloadComplete: 'Download complete',
@@ -100,7 +101,12 @@ function makeDownloadHarness() {
         downloadPathDefault: 'Default Downloads', downloadPathError: 'Folder error', downloadPathSaved: 'Folder saved', downloadPathCancelled: 'Cancelled',
         downloadPasteUnavailable: 'Paste unavailable', downloadCurrentTabInvalid: 'Invalid current tab', downloadPlaylistRejected: 'Playlist rejected',
         downloadYouTubeOnly: 'YouTube only', downloadHttpsRequired: 'HTTPS required', downloadInvalidUrl: 'Invalid URL', downloadCancelling: 'Cancelling…',
-        downloadResolveFailed: 'Resolve failed', downloadFormatsFound: 'formats'
+        downloadResolveFailed: 'Resolve failed', downloadFormatsFound: 'formats',
+        downloadDeveloperMode: 'Developer mode', downloadDeveloperLogsClear: 'Clear',
+        downloadDeveloperLogsEyebrow: 'DEVELOPER MODE', downloadDeveloperLogsTitle: 'Diagnostic logs',
+        downloadDeveloperLogsHint: 'Detailed output', downloadDeveloperLogsEmpty: 'No logs',
+        downloadDeveloperModeOn: 'Developer mode enabled.',
+        downloadDeveloperResolveStart: 'Requesting metadata.'
     };
     const i18n = { async init() {}, applyToDOM() {}, t(key) { return labels[key] || key; } };
     const window = {
@@ -129,7 +135,7 @@ function makeDownloadHarness() {
     vm.runInNewContext(pageSource, context, { filename: 'download-page.js' });
     document.dispatchDOMContentLoaded();
 
-    return { document, elements, port, sent, timeouts };
+    return { document, elements, port, sent, timeouts, storedValues };
 }
 
 function emitFormats(harness) {
@@ -166,9 +172,52 @@ test('download page resolves formats and renders the fixed activity panel', asyn
     assert.equal(harness.elements['jobs-list'].querySelector('.job-format').textContent, 'MP4');
     assert.equal(harness.elements['jobs-list'].querySelector('.job-status').textContent, 'Preparing…');
 
-    harness.elements['jobs-open-folder'].click();
-    assert.equal(harness.elements['jobs-open-folder'].classList.contains('is-success'), true);
-    assert.equal(harness.elements['jobs-live-status'].textContent, 'Folder opened');
+});
+
+test('developer mode shows detailed native diagnostics and can be disabled', async () => {
+    const harness = makeDownloadHarness({ developerMode: true });
+    await new Promise(resolve => setImmediate(resolve));
+
+    assert.equal(harness.elements['developer-mode-toggle'].checked, true);
+    assert.equal(harness.elements['developer-section'].classList.contains('hidden'), false);
+
+    harness.elements['url-form'].dispatchEvent({ type: 'submit', preventDefault() {} });
+    emitFormats(harness);
+    harness.elements['preset-grid'].children[0].click();
+    const job = harness.sent.filter(message => message.action === 'start_download')[0];
+
+    harness.port.emit({
+        action: 'download_page_log',
+        requestId: job.requestId,
+        jobId: job.jobId,
+        level: 'warn',
+        stream: 'stderr',
+        message: 'ERROR: Sign in to confirm you are not a bot.\nPlease retry.'
+    });
+    harness.port.emit({
+        action: 'download_page_result',
+        requestId: job.requestId,
+        jobId: job.jobId,
+        status: 'error',
+        message: 'yt-dlp exited with code 1.',
+        details: 'ERROR: Sign in to confirm you are not a bot.'
+    });
+
+    assert.equal(harness.elements['developer-log-count'].textContent, '5');
+    assert.equal(harness.elements['developer-log-list'].children.length, 5);
+    assert.match(harness.elements['developer-log-list'].textContent, /Sign in to confirm/);
+
+    harness.elements['clear-developer-logs'].click();
+    assert.equal(harness.elements['developer-log-count'].textContent, '0');
+    assert.equal(harness.elements['developer-log-empty'].hidden, false);
+
+    harness.elements['developer-mode-toggle'].checked = false;
+    harness.elements['developer-mode-toggle'].dispatchEvent({
+        type: 'change',
+        target: harness.elements['developer-mode-toggle']
+    });
+    assert.equal(harness.storedValues.at(-1).developerMode, false);
+    assert.equal(harness.elements['developer-section'].classList.contains('hidden'), true);
 });
 
 test('download page keeps job states independent and supports collapse/expand', async () => {

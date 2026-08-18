@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Shorts Blocker — Developer Console</title>
+    <link rel="stylesheet" href="../css/developer.css">
+</head>
+
+<body>
+    <div class="developer-shell">
+        <header class="page-brand">
+            <div class="brand-lockup">
+                <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                        d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25-.42 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" />
+                </svg>
+                <div>
+                    <div class="brand-name" data-i18n="appName">Shorts Blocker</div>
+                    <div class="brand-kicker" data-i18n="developerConsoleEyebrow">Developer Console</div>
+                </div>
+            </div>
+            <div class="page-brand-actions">
+                <a class="header-link" href="download.html" data-i18n="navDownloader">Downloader</a>
+                <a class="header-link" href="setup.html" data-i18n="btnSetupMonitor">Setup / Monitor</a>
+            </div>
+        </header>
+
+        <main class="developer-layout">
+            <section class="intro-card developer-intro" aria-labelledby="developer-page-title">
+                <div class="eyebrow" data-i18n="developerConsoleEyebrow">DEVELOPER CONSOLE</div>
+                <h1 id="developer-page-title" data-i18n="developerConsoleTitle">Extension diagnostics</h1>
+                <p class="intro-copy" data-i18n="developerConsoleSubtitle">
+                    Local logs from every extension surface, kept for this browser session.
+                </p>
+                <div class="intro-status">
+                    <span class="status-dot active" aria-hidden="true"></span>
+                    <span data-i18n="developerSessionReady">Session buffer ready</span>
+                </div>
+            </section>
+
+            <aside class="developer-side-column">
+                <section class="side-card developer-mode-card" aria-labelledby="developer-mode-title">
+                    <div class="side-card-heading">
+                        <div>
+                            <div class="eyebrow" data-i18n="sectionDeveloper">DEVELOPER TOOLS</div>
+                            <h2 id="developer-mode-title" data-i18n="settingDeveloperMode">Developer mode</h2>
+                        </div>
+                        <span class="side-card-mark" aria-hidden="true">●</span>
+                    </div>
+                    <p class="side-status" data-i18n="settingDeveloperModeSub">
+                        Collects local diagnostics from every extension surface for this browser session.
+                    </p>
+                    <label class="dev-mode-control" for="developer-mode-toggle">
+                        <span class="dev-mode-label" data-i18n="settingDeveloperMode">Developer mode</span>
+                        <input id="developer-mode-toggle" type="checkbox">
+                        <span class="dev-mode-switch" aria-hidden="true"></span>
+                    </label>
+                </section>
+
+                <section class="side-card session-card" aria-labelledby="developer-session-title">
+                    <div class="eyebrow" data-i18n="developerConsoleEyebrow">DEVELOPER CONSOLE</div>
+                    <h2 id="developer-session-title" data-i18n="developerSessionTitle">Session status</h2>
+                    <div class="console-status" id="developer-status" role="status" data-i18n="developerConnecting">
+                        Connecting to diagnostic store…
+                    </div>
+                    <div class="developer-count-grid">
+                        <div class="developer-count">
+                            <strong id="developer-visible-count">0</strong>
+                            <span data-i18n="developerVisibleCount">Visible</span>
+                        </div>
+                        <div class="developer-count">
+                            <strong id="developer-total-count">0</strong>
+                            <span data-i18n="developerTotalCount">Total</span>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+
+            <section class="console-card" aria-labelledby="developer-console-title">
+                <div class="console-heading">
+                    <div>
+                        <div class="eyebrow" data-i18n="developerConsoleEyebrow">DEVELOPER CONSOLE</div>
+                        <h2 id="developer-console-title" data-i18n="developerConsoleTitle">Extension diagnostics</h2>
+                    </div>
+                    <span class="console-badge" data-i18n="developerSessionReady">Local session</span>
+                </div>
+
+                <div class="toolbar">
+                    <label class="search-field">
+                        <span class="sr-only" data-i18n="developerSearchLabel">Search logs</span>
+                        <input id="developer-search" type="search" data-i18n-placeholder="developerSearchPlaceholder"
+                            placeholder="Search logs…" autocomplete="off">
+                    </label>
+                    <label class="select-field">
+                        <span class="sr-only" data-i18n="developerScopeLabel">Scope</span>
+                        <select id="developer-scope-filter" aria-label="Scope">
+                            <option value="" data-i18n="developerAllScopes">All scopes</option>
+                        </select>
+                    </label>
+                    <label class="select-field">
+                        <span class="sr-only" data-i18n="developerModuleLabel">Module</span>
+                        <select id="developer-module-filter" aria-label="Module">
+                            <option value="" data-i18n="developerAllModules">All modules</option>
+                        </select>
+                    </label>
+                    <label class="select-field">
+                        <span class="sr-only" data-i18n="developerLevelLabel">Level</span>
+                        <select id="developer-level-filter" aria-label="Level">
+                            <option value="" data-i18n="developerAllLevels">All levels</option>
+                            <option value="debug">DEBUG</option>
+                            <option value="info">INFO</option>
+                            <option value="warn">WARN</option>
+                            <option value="error">ERROR</option>
+                        </select>
+                    </label>
+                    <button id="copy-developer-logs" class="outline-button" type="button" data-i18n="developerCopy">
+                        Copy visible
+                    </button>
+                    <button id="clear-developer-logs" class="outline-button danger" type="button"
+                        data-i18n="downloadDeveloperLogsClear">Clear</button>
+                </div>
+
+                <div class="console-meta">
+                    <span data-i18n="developerConsoleSubtitle">
+                        Local logs from every extension surface, kept for this browser session.
+                    </span>
+                    <span class="console-meta-mark" aria-hidden="true"></span>
+                </div>
+
+                <div class="log-wrap">
+                    <div id="developer-log-list" class="log-list" role="log" aria-live="polite"></div>
+                    <div id="developer-log-empty" class="log-empty" data-i18n="downloadDeveloperLogsEmpty">
+                        No diagnostic logs yet.
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <p class="privacy-note" data-i18n="developerPrivacyNote">
+            Logs stay on this device for the current browser session. Sensitive URLs, tokens, cookies, paths, and page
+            markup are redacted.
+        </p>
+    </div>
+
+    <script src="../js/i18n/translations.js"></script>
+    <script src="../js/developer-logger.js"></script>
+    <script src="../js/developer-page.js"></script>
+</body>
+
+</html>

@@ -109,27 +109,3 @@ test('native host rejects invalid resolve requests before yt-dlp access', async 
     assert.equal(response.errorCode, 'invalid_url');
     assert.equal(response.requestId, 'short');
 });
-
-test('native host rejects unsafe folder paths before opening Explorer', async t => {
-    const child = spawn(process.execPath, [hostPath], {
-        cwd: path.dirname(hostPath),
-        stdio: ['pipe', 'pipe', 'pipe'],
-        windowsHide: true
-    });
-    t.after(() => {
-        if (!child.killed) child.kill();
-    });
-
-    const reader = frameReader(child.stdout);
-    await reader.next();
-    child.stdin.write(encodeNativeMessage({
-        action: 'open_download_folder',
-        requestId: 'folder-test',
-        path: 'relative\\folder'
-    }));
-    const response = await reader.next();
-    assert.equal(response.action, 'open_download_folder_result');
-    assert.equal(response.status, 'error');
-    assert.match(response.message, /absolute|path/i);
-    assert.equal(response.requestId, 'folder-test');
-});

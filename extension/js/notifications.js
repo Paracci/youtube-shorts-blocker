@@ -9,6 +9,9 @@ const DOWNLOAD_NOTIFICATION_STATES = new Set([
     'preparing', 'downloading', 'cancelling', 'success', 'error', 'cancelled'
 ]);
 const activeDownloadNotifications = new Map();
+const notificationDeveloperLogger = typeof DeveloperLogger !== 'undefined'
+    ? DeveloperLogger.create('content', 'notifications')
+    : null;
 
 function notificationText(key, fallback) {
     try {
@@ -139,13 +142,14 @@ function showDownloadNotification(title, message, videoId, state = 'preparing', 
     const downloadId = String(options.downloadId || createDownloadNotificationId());
     if (activeDownloadNotifications.has(downloadId)) return activeDownloadNotifications.get(downloadId);
 
+    notificationDeveloperLogger?.debug('notification.created', 'Download notification created.', '', { downloadId, videoId });
+
     const panel = ensureDownloadNotificationPanel();
     const list = panel.querySelector('[data-download-list]');
     const card = createNotificationElement('article', 'yt-download-notification');
     const initialState = DOWNLOAD_NOTIFICATION_STATES.has(state) ? state : 'preparing';
     let currentState = initialState;
     let removed = false;
-    let actionVisible = false;
 
     card.dataset.downloadId = downloadId;
     card.dataset.state = currentState;
@@ -214,19 +218,16 @@ function showDownloadNotification(title, message, videoId, state = 'preparing', 
     const cancelButton = createNotificationElement('button', 'yt-download-notification__action yt-download-notification__action--cancel');
     cancelButton.type = 'button';
     cancelButton.textContent = notificationText('downloadCancel', 'Cancel');
-    const folderButton = createNotificationElement('button', 'yt-download-notification__action yt-download-notification__action--folder');
-    folderButton.type = 'button';
-    folderButton.textContent = String(options.actionLabel || notificationText('downloadOpenFolder', 'Open folder'));
     const retryButton = createNotificationElement('button', 'yt-download-notification__action yt-download-notification__action--retry');
     retryButton.type = 'button';
     retryButton.textContent = notificationText('downloadRetry', 'Retry');
-    actions.append(cancelButton, folderButton, retryButton);
+    actions.append(cancelButton, retryButton);
 
     content.append(topRow, titleElement, status, progressTrack, meta, actions);
     card.append(media, content);
     list.prepend(card);
 
-    const parts = { card, statusText, statusDot, progressBar, percent, speed, eta, cancelButton, folderButton, retryButton };
+    const parts = { card, statusText, statusDot, progressBar, percent, speed, eta, cancelButton, retryButton };
     const initialProgress = options.progress || {};
 
     const api = {
@@ -250,21 +251,18 @@ function showDownloadNotification(title, message, videoId, state = 'preparing', 
 
             cancelButton.hidden = !options.onCancel || !isDownloadNotificationActive(normalizedState);
             cancelButton.disabled = normalizedState === 'cancelling';
-            folderButton.hidden = !options.onAction || !actionVisible || normalizedState !== 'success';
             retryButton.hidden = !options.onRetry || !['error', 'cancelled'].includes(normalizedState);
             if (previousState !== normalizedState) {
+                if (isDownloadNotificationFinished(normalizedState)) {
+                    const level = normalizedState === 'error' ? 'error' : 'info';
+                    notificationDeveloperLogger?.log(level, 'notification.state_changed', `Download notification state: ${normalizedState}.`, '', { downloadId, videoId });
+                }
                 announceDownloadNotification(`${titleElement.textContent}: ${statusText.textContent}`);
             }
             updateDownloadNotificationPanel();
         },
         success(nextMessage, progress = {}) {
-            actionVisible = true;
             api.setState('success', nextMessage || notificationText('downloadComplete', 'Download complete'), progress);
-            if (options.onAction) folderButton.hidden = false;
-        },
-        showAction() {
-            actionVisible = true;
-            folderButton.hidden = !options.onAction || currentState !== 'success';
         },
         showRetry() {
             retryButton.hidden = !options.onRetry || !['error', 'cancelled'].includes(currentState);
@@ -283,18 +281,12 @@ function showDownloadNotification(title, message, videoId, state = 'preparing', 
     };
 
     cancelButton.hidden = !options.onCancel || !isDownloadNotificationActive(currentState);
-    folderButton.hidden = true;
     retryButton.hidden = !options.onRetry || !['error', 'cancelled'].includes(currentState);
     cancelButton.addEventListener('click', () => {
         if (cancelButton.disabled || removed) return;
         cancelButton.disabled = true;
         api.setState('cancelling', notificationText('downloadCancelling', 'Cancelling…'), initialProgress);
         options.onCancel?.(downloadId, api);
-    });
-    folderButton.addEventListener('click', event => {
-        event.preventDefault();
-        event.stopPropagation();
-        options.onAction?.(folderButton, card, downloadId);
     });
     retryButton.addEventListener('click', event => {
         event.preventDefault();
@@ -332,10 +324,10 @@ function showYouTubeNotification(title, message, videoId, state = 'success', opt
         return showDownloadNotification(title, message, videoId, state, options);
     }
 
+    let currentState = state;
     let bgColor = '#212121';
     let iconHTML = '';
-    let duration = state === 'preparing' ? 30000 :
-        (typeof options.onAction === 'function' ? 7000 : 4000);
+    let duration = state === 'preparing' ? 30000 : 4000;
 
     if (state === 'error') {
         bgColor = '#cc0000'; duration = 6000;
@@ -363,6 +355,10 @@ function showYouTubeNotification(title, message, videoId, state = 'success', opt
         : iconHTML;
 
     const toast = document.createElement('div');
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.setAttribute('aria-atomic', 'true');
+    toast.dataset.state = currentState;
     toast.style.cssText = `
         position: relative; pointer-events: auto;
         background-color: ${bgColor}; color: #fff;
@@ -373,28 +369,34 @@ function showYouTubeNotification(title, message, videoId, state = 'success', opt
         transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     `;
 
-    const actionLabel = typeof options.actionLabel === 'string'
-        ? options.actionLabel
-        : 'Open folder';
     toast.innerHTML = `
         ${thumbHtml}
         <div data-toast-content style="display:flex;flex-direction:column;min-width:0;overflow:hidden;">
             <span data-toast-message style="font-weight:500;margin-bottom:2px;">${escapeHtml(message)}</span>
             ${title ? `<span style="font-size:12px;opacity:0.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(title)}</span>` : ''}
-            ${typeof options.onAction === 'function'
-                ? `<button type="button" data-toast-action hidden style="align-self:flex-start;margin-top:8px;padding:6px 10px;border:1px solid rgba(255,255,255,.34);border-radius:5px;color:#fff;background:rgba(255,255,255,.1);cursor:pointer;font:inherit;font-size:12px;font-weight:500;">${escapeHtml(actionLabel)}</button>`
-                : ''}
         </div>
     `;
 
-    const actionButton = toast.querySelector('[data-toast-action]');
-    if (actionButton) {
-        actionButton.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            options.onAction(actionButton, toast);
-        });
-    }
+    const applyPresentation = nextState => {
+        currentState = String(nextState || 'info');
+        let nextColor = '#212121';
+        let path = 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z';
+        if (currentState === 'error') {
+            nextColor = '#cc0000';
+        } else if (currentState === 'success' || currentState === 'synced') {
+            nextColor = '#2e7d32';
+            path = 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z';
+        } else if (currentState === 'unavailable') {
+            nextColor = '#3f3f3f';
+        }
+        toast.dataset.state = currentState;
+        toast.style.backgroundColor = nextColor;
+        const svg = toast.querySelector('svg');
+        if (svg) {
+            svg.style.fill = '#ffffff';
+            svg.innerHTML = `<path d="${path}"/>`;
+        }
+    };
 
     const stack = getNotificationStack();
     stack.appendChild(toast);
@@ -417,25 +419,23 @@ function showYouTubeNotification(title, message, videoId, state = 'success', opt
     };
     if (duration > 0) setTimeout(hide, duration);
 
-    return {
+    const api = {
         isVisible: () => !removed && toast.isConnected,
         remove: hide,
         update: (nextMessage) => {
             const messageEl = toast.querySelector('[data-toast-message]');
             if (messageEl) messageEl.textContent = String(nextMessage ?? '');
         },
-        showAction: () => {
-            if (actionButton) actionButton.hidden = false;
+        setState: (nextState, nextMessage) => {
+            if (nextMessage !== undefined) {
+                const messageEl = toast.querySelector('[data-toast-message]');
+                if (messageEl) messageEl.textContent = String(nextMessage ?? '');
+            }
+            applyPresentation(nextState);
         },
         success: (nextMessage) => {
-            const messageEl = toast.querySelector('[data-toast-message]');
-            if (messageEl) messageEl.textContent = String(nextMessage ?? '');
-            toast.style.backgroundColor = '#2e7d32';
-            const svg = toast.querySelector('svg');
-            if (svg) {
-                svg.style.fill = '#ffffff';
-                svg.innerHTML = `<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>`;
-            }
+            api.setState('success', nextMessage);
         }
     };
+    return api;
 }

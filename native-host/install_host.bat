@@ -236,7 +236,9 @@ echo.
 :: ============================================================================
 echo   %CYN%[3/3]%R%  %T8%
 
-set "MANIFEST=%DIR%\com.paracci.youtubedownloader.json"
+set "RUNTIME_DIR=%LOCALAPPDATA%\Paracci\YouTube Shorts Blocker\NativeMessagingHosts"
+if not exist "%RUNTIME_DIR%\" mkdir "%RUNTIME_DIR%" >nul 2>&1
+set "MANIFEST=%RUNTIME_DIR%\com.paracci.youtubedownloader.json"
 set "REG_KEY=HKCU\Software\Google\Chrome\NativeMessagingHosts\com.paracci.youtubedownloader"
 set "MANIFEST_FWD=%MANIFEST:\=/%"
 set "HOST_JSON=%DIR:\=\\%\\\\native-host.bat"

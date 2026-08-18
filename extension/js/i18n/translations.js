@@ -32,15 +32,17 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Settings',
         sectionShorts: 'Shorts Blocking',
-        settingBlockAuto: 'Enable channel blocking buttons',
-        settingBlockAutoSub: 'Adds interactive Block button to every Short',
+        settingBlockAuto: 'Enable local channel filtering',
+        settingBlockAutoSub: 'Adds a Block button and hides saved channels from recommendations',
         settingHideHome: 'Hide Shorts from homepage',
         settingHideHomeSub: 'Removes Shorts shelf from feed',
-        settingAutoSkipAds: 'Auto-scroll Shorts ads',
-        settingAutoSkipAdsSub: 'Automatically skip to the next video when an ad is detected (High Risk)',
+        settingAutoSkipAds: 'Hide and auto-skip Shorts ads',
+        settingAutoSkipAdsSub: 'Hides detected Shorts ads and moves to the next video (marker-based; some ads may not be detected)',
         sectionDownloader: 'Downloader',
         settingShowDlBtn: 'Show download button',
         settingShowDlBtnSub: 'In video player controls',
+        settingDeveloperMode: 'Developer mode',
+        settingDeveloperModeSub: 'Shows detailed downloader diagnostics and enables future developer tools',
         btnReset: 'Reset Statistics',
 
         sectionAdBlock: 'Ad Blocker',
@@ -65,9 +67,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: 'Blocked Channels',
-        blocklistNote: 'Blocking sends YouTube\'s own "Don\'t recommend channel" signal — this list just tracks it.',
+        blocklistNote: 'Blocked channels are hidden locally from Shorts and recommendations. YouTube\'s own "Don\'t recommend channel" signal is attempted when available.',
         blocklistNoteRemove: '"Remove from list"',
-        blocklistNoteRemoveSub: 'only removes the entry here; YouTube\'s recommendation filter stays active. To fully unblock a channel, visit your',
+        blocklistNoteRemoveSub: 'removes the local filter immediately. A previously sent YouTube signal may remain; to clear it, visit your',
         blocklistNoteLink: 'Google My Activity → YouTube feedback',
         blocklistEmpty: 'No channels blocked yet. Use the Block button on any Short.',
         removeFromList: 'Remove from list',
@@ -135,6 +137,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: 'Channel blocked',
         notifWillNotRecommend: 'will no longer be recommended',
+        notifLocalChannelBlocked: 'Channel hidden locally',
+        notifYouTubeSyncApplied: 'YouTube recommendation sync applied',
+        notifYouTubeSyncUnavailable: 'Local block active; YouTube sync unavailable',
+        notifChannelIdentityUnavailable: 'This channel could not be identified safely',
+        notifChannelStorageError: 'Could not save the local channel filter',
+        notifChannelFilterDisabled: 'Local channel filtering disabled',
         notifPreparing: 'Preparing download...',
         notifDownloading: 'Downloading… please wait',
         notifDownloadComplete: 'Download Complete',
@@ -183,15 +191,17 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Ayarlar',
         sectionShorts: 'Shorts Engelleme',
-        settingBlockAuto: 'Kanal engelleme butonlarını aktif et',
-        settingBlockAutoSub: "Her Short'a interaktif Engelle butonu ekler",
+        settingBlockAuto: 'Yerel kanal filtrelemeyi etkinleştir',
+        settingBlockAutoSub: 'Engelle butonu ekler ve kaydedilen kanalları önerilerden gizler',
         settingHideHome: "Ana sayfadan Shorts'u gizle",
         settingHideHomeSub: 'Akıştan Shorts rafını kaldırır',
-        settingAutoSkipAds: 'Shorts reklamlarını otomatik geç',
-        settingAutoSkipAdsSub: 'Reklam algılandığında otomatik olarak sonraki videoya geçer (Yüksek Risk)',
+        settingAutoSkipAds: 'Shorts reklamlarını gizle ve otomatik geç',
+        settingAutoSkipAdsSub: 'Algılanan Shorts reklamlarını gizler ve sonraki videoya geçer (işaret tabanlı; bazı reklamlar algılanamayabilir)',
         sectionDownloader: 'İndirici',
         settingShowDlBtn: 'İndirme butonu göster',
         settingShowDlBtnSub: 'Video oynatıcı kontrollerinde',
+        settingDeveloperMode: 'Geliştirici modu',
+        settingDeveloperModeSub: 'Ayrıntılı indirme tanılarını gösterir ve gelecekteki geliştirici araçlarını etkinleştirir',
         btnReset: 'İstatistikleri Sıfırla',
 
         sectionAdBlock: 'Reklam Engelleyici',
@@ -216,9 +226,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: 'Engellenen Kanallar',
-        blocklistNote: 'Engelleme, YouTube\'un kendi "Bu kanalı önerme" sinyalini gönderir — bu liste yalnızca takip eder.',
+        blocklistNote: 'Engellenen kanallar Shorts ve önerilerden yerel olarak gizlenir. YouTube\'un kendi "Bu kanalı önerme" sinyali kullanılabilir olduğunda denenir.',
         blocklistNoteRemove: '"Listeden kaldır"',
-        blocklistNoteRemoveSub: "yalnızca buradaki kaydı kaldırır; YouTube'un öneri filtresi aktif kalır. Bir kanalı tamamen engellemek için",
+        blocklistNoteRemoveSub: "yerel filtreyi hemen kaldırır. Daha önce gönderilen YouTube sinyali kalabilir; temizlemek için",
         blocklistNoteLink: 'Google Etkinliğim → YouTube geri bildirimi',
         blocklistEmpty: "Henüz hiçbir kanal engellenmedi. Herhangi bir Short'taki Engelle butonunu kullanın.",
         removeFromList: 'Listeden kaldır',
@@ -286,6 +296,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: 'Kanal engellendi',
         notifWillNotRecommend: 'artık önerilmeyecek',
+        notifLocalChannelBlocked: 'Kanal yerel olarak gizlendi',
+        notifYouTubeSyncApplied: 'YouTube öneri senkronizasyonu uygulandı',
+        notifYouTubeSyncUnavailable: 'Yerel engel aktif; YouTube senkronizasyonu kullanılamıyor',
+        notifChannelIdentityUnavailable: 'Bu kanal güvenli biçimde tanımlanamadı',
+        notifChannelStorageError: 'Yerel kanal filtresi kaydedilemedi',
+        notifChannelFilterDisabled: 'Yerel kanal filtreleme devre dışı',
         notifPreparing: 'İndirme hazırlanıyor...',
         notifDownloading: 'İndiriliyor… lütfen bekleyin',
         notifDownloadComplete: 'İndirme Tamamlandı',
@@ -334,12 +350,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Einstellungen',
         sectionShorts: 'Shorts blockieren',
-        settingBlockAuto: 'Kanal-Blockier-Buttons aktivieren',
-        settingBlockAutoSub: 'Fügt jedem Short einen interaktiven Blockieren-Button hinzu',
+        settingBlockAuto: 'Lokale Kanälefilterung aktivieren',
+        settingBlockAutoSub: 'Fügt einen Sperrbutton hinzu und blendet gespeicherte Kanäle aus Empfehlungen aus',
         settingHideHome: 'Shorts von der Startseite ausblenden',
         settingHideHomeSub: 'Entfernt Shorts-Regal aus dem Feed',
-        settingAutoSkipAds: 'Shorts-Ads automatisch überspringen',
-        settingAutoSkipAdsSub: 'Springt automatisch zum nächsten Video, wenn eine Anzeige erkannt wird (Hohes Risiko)',
+        settingAutoSkipAds: 'Shorts-Werbung ausblenden und automatisch überspringen',
+        settingAutoSkipAdsSub: 'Blendet erkannte Shorts-Werbung aus und wechselt zum nächsten Video (markerbasiert; manche Werbung wird möglicherweise nicht erkannt)',
         sectionDownloader: 'Downloader',
         settingShowDlBtn: 'Download-Schaltfläche anzeigen',
         settingShowDlBtnSub: 'In den Videoplayer-Steuerelementen',
@@ -367,9 +383,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: 'Gesperrte Kanäle',
-        blocklistNote: 'Das Blockieren sendet das YouTube-eigene Signal „Kanal nicht empfehlen" — diese Liste verfolgt es nur.',
+        blocklistNote: 'Gesperrte Kanäle werden lokal aus Shorts und Empfehlungen ausgeblendet. Die YouTube-Kontosynchronisierung wird versucht, wenn sie verfügbar ist.',
         blocklistNoteRemove: '„Aus Liste entfernen"',
-        blocklistNoteRemoveSub: 'entfernt nur den Eintrag hier; YouTubes Empfehlungsfilter bleibt aktiv. Um einen Kanal vollständig freizugeben, besuchen Sie',
+        blocklistNoteRemoveSub: 'stellt den lokalen Filter sofort wieder her. Ein vorheriges YouTube-Signal kann bestehen bleiben; für weitere Kontrollen besuchen Sie',
         blocklistNoteLink: 'Google Meine Aktivitäten → YouTube-Feedback',
         blocklistEmpty: 'Noch keine Kanäle gesperrt. Verwenden Sie die Blockieren-Schaltfläche bei einem Short.',
         removeFromList: 'Aus Liste entfernen',
@@ -437,6 +453,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: 'Kanal gesperrt',
         notifWillNotRecommend: 'wird nicht mehr empfohlen',
+        notifLocalChannelBlocked: 'Kanal lokal ausgeblendet',
+        notifYouTubeSyncApplied: 'YouTube-Empfehlungssynchronisierung angewendet',
+        notifYouTubeSyncUnavailable: 'Lokale Sperre aktiv; YouTube-Synchronisierung nicht verfügbar',
+        notifChannelIdentityUnavailable: 'Dieser Kanal konnte nicht sicher identifiziert werden',
+        notifChannelStorageError: 'Lokaler Kanalsfilter konnte nicht gespeichert werden',
+        notifChannelFilterDisabled: 'Lokale Kanälefilterung deaktiviert',
         notifPreparing: 'Download wird vorbereitet...',
         notifDownloading: 'Wird heruntergeladen… bitte warten',
         notifDownloadComplete: 'Download abgeschlossen',
@@ -485,12 +507,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Paramètres',
         sectionShorts: 'Blocage des Shorts',
-        settingBlockAuto: 'Activer les boutons de blocage de chaîne',
-        settingBlockAutoSub: 'Ajoute un bouton Bloquer interactif à chaque Short',
+        settingBlockAuto: 'Activer le filtrage local des chaînes',
+        settingBlockAutoSub: 'Ajoute un bouton Bloquer et masque les chaînes enregistrées des recommandations',
         settingHideHome: "Masquer les Shorts de la page d'accueil",
         settingHideHomeSub: 'Supprime le rayon Shorts du fil',
-        settingAutoSkipAds: 'Passage auto des pubs Shorts',
-        settingAutoSkipAdsSub: 'Passe automatiquement à la vidéo suivante si une pub est détectée (Risque élevé)',
+        settingAutoSkipAds: 'Masquer et passer automatiquement les pubs Shorts',
+        settingAutoSkipAdsSub: 'Masque les pubs Shorts détectées et passe à la vidéo suivante (marqueurs uniquement ; certaines pubs peuvent ne pas être détectées)',
         sectionDownloader: 'Téléchargeur',
         settingShowDlBtn: 'Afficher le bouton de téléchargement',
         settingShowDlBtnSub: 'Dans les contrôles du lecteur vidéo',
@@ -518,9 +540,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: 'Chaînes bloquées',
-        blocklistNote: 'Le blocage envoie le signal YouTube "Ne pas recommander la chaîne" — cette liste ne fait que le suivre.',
+        blocklistNote: 'Les chaînes bloquées sont masquées localement des Shorts et des recommandations. La synchronisation du compte YouTube est tentée si elle est disponible.',
         blocklistNoteRemove: '"Retirer de la liste"',
-        blocklistNoteRemoveSub: "ne supprime que l'entrée ici ; le filtre de recommandation YouTube reste actif. Pour débloquer complètement une chaîne, visitez",
+        blocklistNoteRemoveSub: "la suppression réactive immédiatement le filtre local. Un signal YouTube précédent peut rester actif ; pour le gérer, visitez",
         blocklistNoteLink: 'Google Mon Activité → Retours YouTube',
         blocklistEmpty: "Aucune chaîne bloquée pour l'instant. Utilisez le bouton Bloquer sur n'importe quel Short.",
         removeFromList: 'Retirer de la liste',
@@ -588,6 +610,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: 'Chaîne bloquée',
         notifWillNotRecommend: 'ne sera plus recommandée',
+        notifLocalChannelBlocked: 'Chaîne masquée localement',
+        notifYouTubeSyncApplied: 'Synchronisation des recommandations YouTube appliquée',
+        notifYouTubeSyncUnavailable: 'Blocage local actif ; synchronisation YouTube indisponible',
+        notifChannelIdentityUnavailable: 'Cette chaîne n’a pas pu être identifiée de manière sûre',
+        notifChannelStorageError: 'Impossible d’enregistrer le filtre local des chaînes',
+        notifChannelFilterDisabled: 'Filtrage local des chaînes désactivé',
         notifPreparing: 'Préparation du téléchargement...',
         notifDownloading: 'Téléchargement… veuillez patienter',
         notifDownloadComplete: 'Téléchargement terminé',
@@ -636,12 +664,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Ajustes',
         sectionShorts: 'Bloqueo de Shorts',
-        settingBlockAuto: 'Activar botones de bloqueo de canal',
-        settingBlockAutoSub: 'Añade un botón Bloquear interactivo a cada Short',
+        settingBlockAuto: 'Activar el filtrado local de canales',
+        settingBlockAutoSub: 'Añade un botón Bloquear y oculta los canales guardados de las recomendaciones',
         settingHideHome: 'Ocultar Shorts de la página de inicio',
         settingHideHomeSub: 'Elimina la sección Shorts del feed',
-        settingAutoSkipAds: 'Auto-desplazar anuncios en Shorts',
-        settingAutoSkipAdsSub: 'Pasa automáticamente al siguiente vídeo si se detecta un anuncio (Riesgo alto)',
+        settingAutoSkipAds: 'Ocultar y omitir automáticamente anuncios de Shorts',
+        settingAutoSkipAdsSub: 'Oculta los anuncios detectados y pasa al siguiente vídeo (basado en marcadores; algunos anuncios pueden no detectarse)',
         sectionDownloader: 'Descargador',
         settingShowDlBtn: 'Mostrar botón de descarga',
         settingShowDlBtnSub: 'En los controles del reproductor de vídeo',
@@ -669,9 +697,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: 'Canales bloqueados',
-        blocklistNote: 'Bloquear envía la señal propia de YouTube "No recomendar canal" — esta lista solo lo rastrea.',
+        blocklistNote: 'Los canales bloqueados se ocultan localmente de Shorts y recomendaciones. La sincronización con la cuenta de YouTube se intenta cuando está disponible.',
         blocklistNoteRemove: '"Eliminar de la lista"',
-        blocklistNoteRemoveSub: 'solo elimina la entrada aquí; el filtro de recomendaciones de YouTube sigue activo. Para desbloquear completamente un canal, visita',
+        blocklistNoteRemoveSub: 'al eliminar la entrada se restaura inmediatamente el filtro local. Una señal anterior de YouTube puede permanecer; para gestionarla, visita',
         blocklistNoteLink: 'Google Mi Actividad → Comentarios de YouTube',
         blocklistEmpty: 'Ningún canal bloqueado aún. Usa el botón Bloquear en cualquier Short.',
         removeFromList: 'Eliminar de la lista',
@@ -739,6 +767,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: 'Canal bloqueado',
         notifWillNotRecommend: 'ya no será recomendado',
+        notifLocalChannelBlocked: 'Canal oculto localmente',
+        notifYouTubeSyncApplied: 'Sincronización de recomendaciones de YouTube aplicada',
+        notifYouTubeSyncUnavailable: 'Bloqueo local activo; sincronización de YouTube no disponible',
+        notifChannelIdentityUnavailable: 'No se pudo identificar este canal de forma segura',
+        notifChannelStorageError: 'No se pudo guardar el filtro local del canal',
+        notifChannelFilterDisabled: 'Filtrado local de canales desactivado',
         notifPreparing: 'Preparando descarga...',
         notifDownloading: 'Descargando… por favor espera',
         notifDownloadComplete: 'Descarga completada',
@@ -787,12 +821,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Configurações',
         sectionShorts: 'Bloqueio de Shorts',
-        settingBlockAuto: 'Ativar botões de bloqueio de canal',
-        settingBlockAutoSub: 'Adiciona um botão de Bloqueio interativo a cada Short',
+        settingBlockAuto: 'Ativar filtragem local de canais',
+        settingBlockAutoSub: 'Adiciona um botão Bloquear e oculta canais guardados das recomendações',
         settingHideHome: 'Ocultar Shorts da página inicial',
         settingHideHomeSub: 'Remove a seção Shorts do feed',
-        settingAutoSkipAds: 'Auto-deslizar anúncios em Shorts',
-        settingAutoSkipAdsSub: 'Pula automaticamente para o próximo vídeo quando um anúncio é detectado (Risco Alto)',
+        settingAutoSkipAds: 'Ocultar e pular automaticamente anúncios dos Shorts',
+        settingAutoSkipAdsSub: 'Oculta anúncios detectados e passa para o próximo vídeo (baseado em marcadores; alguns anúncios podem não ser detectados)',
         sectionDownloader: 'Baixador',
         settingShowDlBtn: 'Mostrar botão de download',
         settingShowDlBtnSub: 'Nos controles do reprodutor de vídeo',
@@ -820,9 +854,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: 'Canais bloqueados',
-        blocklistNote: 'Bloquear envia o sinal do próprio YouTube "Não recomendar canal" — esta lista apenas rastreia.',
+        blocklistNote: 'Os canais bloqueados são ocultados localmente dos Shorts e das recomendações. A sincronização com a conta do YouTube é tentada quando disponível.',
         blocklistNoteRemove: '"Remover da lista"',
-        blocklistNoteRemoveSub: 'apenas remove a entrada aqui; o filtro de recomendações do YouTube permanece ativo. Para desbloquear completamente um canal, visite',
+        blocklistNoteRemoveSub: 'remover a entrada restaura imediatamente o filtro local. Um sinal anterior do YouTube pode permanecer; para o gerir, visite',
         blocklistNoteLink: 'Google Minha Atividade → Feedback do YouTube',
         blocklistEmpty: 'Nenhum canal bloqueado ainda. Use o botão Bloquear em qualquer Short.',
         removeFromList: 'Remover da lista',
@@ -890,6 +924,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: 'Canal bloqueado',
         notifWillNotRecommend: 'não será mais recomendado',
+        notifLocalChannelBlocked: 'Canal ocultado localmente',
+        notifYouTubeSyncApplied: 'Sincronização das recomendações do YouTube aplicada',
+        notifYouTubeSyncUnavailable: 'Bloqueio local ativo; sincronização do YouTube indisponível',
+        notifChannelIdentityUnavailable: 'Não foi possível identificar este canal com segurança',
+        notifChannelStorageError: 'Não foi possível guardar o filtro local do canal',
+        notifChannelFilterDisabled: 'Filtragem local de canais desativada',
         notifPreparing: 'Preparando download...',
         notifDownloading: 'Baixando… por favor aguarde',
         notifDownloadComplete: 'Download concluído',
@@ -938,12 +978,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Impostazioni',
         sectionShorts: 'Blocco Shorts',
-        settingBlockAuto: 'Attiva pulsanti di blocco canale',
-        settingBlockAutoSub: 'Aggiunge un pulsante Blocca interattivo a ogni Short',
+        settingBlockAuto: 'Attiva il filtro locale dei canali',
+        settingBlockAutoSub: 'Aggiunge un pulsante Blocca e nasconde i canali salvati dai consigli',
         settingHideHome: 'Nascondi Shorts dalla home page',
         settingHideHomeSub: 'Rimuove lo scaffale Shorts dal feed',
-        settingAutoSkipAds: 'Auto-scorrimento annunci Shorts',
-        settingAutoSkipAdsSub: 'Passa automaticamente al video successivo se viene rilevato un annuncio (Rischio Elevato)',
+        settingAutoSkipAds: 'Nascondi e salta automaticamente gli annunci Shorts',
+        settingAutoSkipAdsSub: 'Nasconde gli annunci Shorts rilevati e passa al video successivo (basato su marcatori; alcuni annunci potrebbero non essere rilevati)',
         sectionDownloader: 'Downloader',
         settingShowDlBtn: 'Mostra pulsante di download',
         settingShowDlBtnSub: 'Nei controlli del player video',
@@ -971,9 +1011,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: 'Canali bloccati',
-        blocklistNote: 'Il blocco invia il segnale YouTube "Non consigliare canale" — questa lista lo traccia soltanto.',
+        blocklistNote: 'I canali bloccati vengono nascosti localmente da Shorts e consigli. La sincronizzazione dell’account YouTube viene tentata quando disponibile.',
         blocklistNoteRemove: '"Rimuovi dalla lista"',
-        blocklistNoteRemoveSub: 'rimuove solo la voce qui; il filtro dei consigli di YouTube resta attivo. Per sbloccare completamente un canale, visita',
+        blocklistNoteRemoveSub: 'la rimozione ripristina subito il filtro locale. Un segnale YouTube precedente potrebbe restare attivo; per gestirlo, visita',
         blocklistNoteLink: 'Google La mia attività → Feedback YouTube',
         blocklistEmpty: 'Nessun canale bloccato ancora. Usa il pulsante Blocca su qualsiasi Short.',
         removeFromList: 'Rimuovi dalla lista',
@@ -1041,6 +1081,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: 'Canale bloccato',
         notifWillNotRecommend: 'non sarà più consigliato',
+        notifLocalChannelBlocked: 'Canale nascosto localmente',
+        notifYouTubeSyncApplied: 'Sincronizzazione dei consigli YouTube applicata',
+        notifYouTubeSyncUnavailable: 'Blocco locale attivo; sincronizzazione YouTube non disponibile',
+        notifChannelIdentityUnavailable: 'Impossibile identificare il canale in modo sicuro',
+        notifChannelStorageError: 'Impossibile salvare il filtro locale del canale',
+        notifChannelFilterDisabled: 'Filtro locale dei canali disattivato',
         notifPreparing: 'Preparazione download...',
         notifDownloading: 'Download in corso… attendi',
         notifDownloadComplete: 'Download completato',
@@ -1089,12 +1135,12 @@ const TRANSLATIONS = {
 
         settingsTitle: 'Настройки',
         sectionShorts: 'Блокировка Shorts',
-        settingBlockAuto: 'Включить кнопки блокировки каналов',
-        settingBlockAutoSub: 'Добавляет интерактивную кнопку Блокировать к каждому Short',
+        settingBlockAuto: 'Включить локальную фильтрацию каналов',
+        settingBlockAutoSub: 'Добавляет кнопку блокировки и скрывает сохранённые каналы из рекомендаций',
         settingHideHome: 'Скрыть Shorts с главной страницы',
         settingHideHomeSub: 'Удаляет полку Shorts из ленты',
-        settingAutoSkipAds: 'Автопрокрутка рекламы в Shorts',
-        settingAutoSkipAdsSub: 'Автоматически переходит к следующему видео при обнаружении рекламы (Высокий риск)',
+        settingAutoSkipAds: 'Скрывать и автоматически пропускать рекламу в Shorts',
+        settingAutoSkipAdsSub: 'Скрывает обнаруженную рекламу Shorts и переходит к следующему видео (по маркерам; некоторые объявления могут не обнаруживаться)',
         sectionDownloader: 'Загрузчик',
         settingShowDlBtn: 'Показывать кнопку загрузки',
         settingShowDlBtnSub: 'В элементах управления плеером',
@@ -1122,9 +1168,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: 'Заблокированные каналы',
-        blocklistNote: 'Блокировка отправляет собственный сигнал YouTube «Не рекомендовать канал» — этот список лишь отслеживает его.',
+        blocklistNote: 'Заблокированные каналы локально скрываются из Shorts и рекомендаций. Синхронизация с аккаунтом YouTube выполняется, если доступна.',
         blocklistNoteRemove: '«Удалить из списка»',
-        blocklistNoteRemoveSub: 'удаляет только запись здесь; фильтр рекомендаций YouTube остаётся активным. Чтобы полностью разблокировать канал, посетите',
+        blocklistNoteRemoveSub: 'удаление записи сразу восстанавливает локальный фильтр. Предыдущий сигнал YouTube может сохраниться; для управления им посетите',
         blocklistNoteLink: 'Google Мои действия → Отзывы YouTube',
         blocklistEmpty: 'Каналов пока нет. Используйте кнопку «Заблокировать» в любом Short.',
         removeFromList: 'Удалить из списка',
@@ -1192,6 +1238,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: 'Канал заблокирован',
         notifWillNotRecommend: 'больше не будет рекомендован',
+        notifLocalChannelBlocked: 'Канал скрыт локально',
+        notifYouTubeSyncApplied: 'Синхронизация рекомендаций YouTube применена',
+        notifYouTubeSyncUnavailable: 'Локальная блокировка активна; синхронизация YouTube недоступна',
+        notifChannelIdentityUnavailable: 'Не удалось безопасно определить этот канал',
+        notifChannelStorageError: 'Не удалось сохранить локальный фильтр канала',
+        notifChannelFilterDisabled: 'Локальная фильтрация каналов отключена',
         notifPreparing: 'Подготовка загрузки...',
         notifDownloading: 'Загрузка… подождите',
         notifDownloadComplete: 'Загрузка завершена',
@@ -1240,12 +1292,12 @@ const TRANSLATIONS = {
 
         settingsTitle: '設定',
         sectionShorts: 'Shortsブロック',
-        settingBlockAuto: 'チャンネル・ブロックボタンを有効化',
-        settingBlockAutoSub: 'すべてのShortにインタラクティブなブロックボタンを追加します',
+        settingBlockAuto: 'チャンネルのローカルフィルタを有効にする',
+        settingBlockAutoSub: 'ブロックボタンを追加し、保存したチャンネルをおすすめから非表示にします',
         settingHideHome: 'ホームページからShortsを非表示',
         settingHideHomeSub: 'フィードからShortsシェルフを削除します',
-        settingAutoSkipAds: 'Shorts広告の自動スキップ',
-        settingAutoSkipAdsSub: '広告が検出されたときに自動的に次のビデオに移動します（高リスク）',
+        settingAutoSkipAds: 'Shorts広告を非表示にして自動スキップ',
+        settingAutoSkipAdsSub: '検出したShorts広告を非表示にして次の動画へ移動します（マーカー方式。一部の広告は検出できない場合があります）',
         sectionDownloader: 'ダウンローダー',
         settingShowDlBtn: 'ダウンロードボタンを表示',
         settingShowDlBtnSub: 'ビデオプレーヤーのコントロールに表示',
@@ -1273,9 +1325,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: 'ブロック済みチャンネル',
-        blocklistNote: 'ブロックするとYouTube独自の「チャンネルを勧めない」シグナルが送られます — このリストはそれを追跡するだけです。',
+        blocklistNote: 'ブロックしたチャンネルはShortsとおすすめからローカルで非表示になります。利用可能な場合はYouTubeアカウント同期も試行します。',
         blocklistNoteRemove: '「リストから削除」',
-        blocklistNoteRemoveSub: 'はここの記録を削除するだけです。YouTubeのフィルターは有効のままです。チャンネルを完全にブロック解除するには',
+        blocklistNoteRemoveSub: 'を削除するとローカルフィルタがすぐに復元されます。以前のYouTubeシグナルは残る場合があります。管理するには',
         blocklistNoteLink: 'Googleマイアクティビティ → YouTubeフィードバック',
         blocklistEmpty: 'まだチャンネルはブロックされていません。任意のShortのブロックボタンを使ってください。',
         removeFromList: 'リストから削除',
@@ -1343,6 +1395,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: 'チャンネルをブロックしました',
         notifWillNotRecommend: 'は今後おすすめされません',
+        notifLocalChannelBlocked: 'チャンネルをローカルで非表示にしました',
+        notifYouTubeSyncApplied: 'YouTubeおすすめ同期を適用しました',
+        notifYouTubeSyncUnavailable: 'ローカルブロックは有効です。YouTube同期は利用できません',
+        notifChannelIdentityUnavailable: 'このチャンネルを安全に識別できませんでした',
+        notifChannelStorageError: 'チャンネルのローカルフィルタを保存できませんでした',
+        notifChannelFilterDisabled: 'チャンネルのローカルフィルタを無効にしました',
         notifPreparing: 'ダウンロードを準備中...',
         notifDownloading: 'ダウンロード中… お待ちください',
         notifDownloadComplete: 'ダウンロード完了',
@@ -1391,12 +1449,12 @@ const TRANSLATIONS = {
 
         settingsTitle: '설정',
         sectionShorts: 'Shorts 차단',
-        settingBlockAuto: '채널 차단 버튼 활성화',
-        settingBlockAutoSub: '모든 Short에 대화형 차단 버튼을 추가합니다',
+        settingBlockAuto: '로컬 채널 필터링 활성화',
+        settingBlockAutoSub: '차단 버튼을 추가하고 저장된 채널을 추천에서 숨깁니다',
         settingHideHome: '홈 페이지에서 Shorts 숨기기',
         settingHideHomeSub: '피드에서 Shorts 섹션 제거',
-        settingAutoSkipAds: 'Shorts 광고 자동 스크롤',
-        settingAutoSkipAdsSub: '광고가 감지되면 자동으로 다음 동영상으로 넘어갑니다 (고위험)',
+        settingAutoSkipAds: 'Shorts 광고 숨기기 및 자동 건너뛰기',
+        settingAutoSkipAdsSub: '감지된 Shorts 광고를 숨기고 다음 동영상으로 이동합니다 (마커 기반이며 일부 광고는 감지되지 않을 수 있음)',
         sectionDownloader: '다운로더',
         settingShowDlBtn: '다운로드 버튼 표시',
         settingShowDlBtnSub: '동영상 플레이어 컨트롤에 표시',
@@ -1424,9 +1482,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: '차단된 채널',
-        blocklistNote: '차단하면 YouTube 자체 "채널 추천 안 함" 신호가 전송됩니다 — 이 목록은 이를 추적할 뿐입니다.',
+        blocklistNote: '차단된 채널은 Shorts와 추천에서 로컬로 숨겨집니다. 가능하면 YouTube 계정 동기화도 시도합니다.',
         blocklistNoteRemove: '"목록에서 제거"',
-        blocklistNoteRemoveSub: '는 여기의 항목만 제거합니다. YouTube 추천 필터는 계속 활성 상태입니다. 채널을 완전히 차단 해제하려면 방문하세요',
+        blocklistNoteRemoveSub: '를 제거하면 로컬 필터가 즉시 복원됩니다. 이전 YouTube 신호는 남을 수 있습니다. 관리하려면 방문하세요',
         blocklistNoteLink: 'Google 내 활동 → YouTube 의견',
         blocklistEmpty: '아직 차단된 채널이 없습니다. Short의 차단 버튼을 사용하세요.',
         removeFromList: '목록에서 제거',
@@ -1494,6 +1552,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: '채널이 차단됨',
         notifWillNotRecommend: '은(는) 더 이상 추천되지 않습니다',
+        notifLocalChannelBlocked: '채널이 로컬에서 숨겨짐',
+        notifYouTubeSyncApplied: 'YouTube 추천 동기화가 적용됨',
+        notifYouTubeSyncUnavailable: '로컬 차단 활성화됨; YouTube 동기화를 사용할 수 없음',
+        notifChannelIdentityUnavailable: '이 채널을 안전하게 식별할 수 없음',
+        notifChannelStorageError: '로컬 채널 필터를 저장할 수 없음',
+        notifChannelFilterDisabled: '로컬 채널 필터링 비활성화됨',
         notifPreparing: '다운로드 준비 중...',
         notifDownloading: '다운로드 중… 잠시만 기다려주세요',
         notifDownloadComplete: '다운로드 완료',
@@ -1542,12 +1606,12 @@ const TRANSLATIONS = {
 
         settingsTitle: '设置',
         sectionShorts: '屏蔽 Shorts',
-        settingBlockAuto: '启用频道拦截按钮',
-        settingBlockAutoSub: '为每个 Short 添加交互式拦截按钮',
+        settingBlockAuto: '启用本地频道过滤',
+        settingBlockAutoSub: '添加屏蔽按钮，并从推荐中隐藏已保存的频道',
         settingHideHome: '在主页隐藏 Shorts',
         settingHideHomeSub: '从信息流中移除 Shorts 栏目',
-        settingAutoSkipAds: '自动滚动 Shorts 广告',
-        settingAutoSkipAdsSub: '检测到广告时自动跳转到下一个视频（高风险）',
+        settingAutoSkipAds: '隐藏并自动跳过 Shorts 广告',
+        settingAutoSkipAdsSub: '隐藏检测到的 Shorts 广告并跳转到下一个视频（基于标记；部分广告可能无法检测）',
         sectionDownloader: '下载器',
         settingShowDlBtn: '显示下载按钮',
         settingShowDlBtnSub: '在视频播放器控件中显示',
@@ -1575,9 +1639,9 @@ const TRANSLATIONS = {
         langZh: '中文',
 
         blocklistTitle: '已屏蔽的频道',
-        blocklistNote: '屏蔽会发送 YouTube 自身的"不推荐该频道"信号 — 此列表仅作记录。',
+        blocklistNote: '已屏蔽的频道会从 Shorts 和推荐中本地隐藏。可用时也会尝试同步 YouTube 帐户。',
         blocklistNoteRemove: '"从列表中删除"',
-        blocklistNoteRemoveSub: '仅删除此处的记录；YouTube 的推荐过滤器仍然有效。要完全解除屏蔽某个频道，请访问',
+        blocklistNoteRemoveSub: '删除此条目会立即恢复本地过滤。之前发送的 YouTube 信号可能仍然存在；如需管理请访问',
         blocklistNoteLink: 'Google 我的活动 → YouTube 反馈',
         blocklistEmpty: '尚未屏蔽任何频道。在任意 Short 上使用屏蔽按钮。',
         removeFromList: '从列表中删除',
@@ -1645,6 +1709,12 @@ const TRANSLATIONS = {
 
         notifChannelBlocked: '频道已屏蔽',
         notifWillNotRecommend: '将不再被推荐',
+        notifLocalChannelBlocked: '频道已在本地隐藏',
+        notifYouTubeSyncApplied: '已应用 YouTube 推荐同步',
+        notifYouTubeSyncUnavailable: '本地屏蔽已启用；YouTube 同步不可用',
+        notifChannelIdentityUnavailable: '无法安全识别此频道',
+        notifChannelStorageError: '无法保存本地频道过滤器',
+        notifChannelFilterDisabled: '本地频道过滤已停用',
         notifPreparing: '正在准备下载...',
         notifDownloading: '下载中… 请稍候',
         notifDownloadComplete: '下载完成',
@@ -1676,6 +1746,10 @@ const TRANSLATIONS = {
 // back to English if an older translation is intentionally left unchanged.
 const DOWNLOAD_PAGE_TRANSLATIONS = {
     en: {
+        channelFilterSetting: 'Enable local channel filtering',
+        channelFilterSettingSub: 'Adds a Block button and hides saved channels from recommendations',
+        blocklistLocalNote: 'Blocked channels are hidden locally from Shorts and recommendations. YouTube account sync is attempted when available.',
+        blocklistRemoveLocalNote: 'Removing this entry immediately restores the local filter. A previous YouTube signal may remain.',
         navDownloader: "Downloader",
         downloadKicker: "STANDALONE DOWNLOADER",
         downloadPageEyebrow: "PRIVATE YOUTUBE DOWNLOADER",
@@ -1740,9 +1814,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "Could not choose a folder.",
         downloadPathSaved: "Folder saved",
         downloadPathCancelled: "Folder selection cancelled",
-        downloadOpenFolder: "Open folder",
-        downloadFolderOpened: "Folder opened",
-        downloadOpenFolderError: "Could not open the download folder.",
         downloadNotificationDismiss: "Dismiss download notification",
         downloadNotificationClearFinished: "Clear finished downloads",
         downloadNotificationSpeed: "Speed",
@@ -1760,11 +1831,23 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadFormat: "Format",
         downloadMuxed: "Video + audio",
         downloadVideoOnly: "Video only",
+        downloadDeveloperMode: "Developer mode",
+        downloadDeveloperLogsEyebrow: "DEVELOPER MODE",
+        downloadDeveloperLogsTitle: "Diagnostic logs",
+        downloadDeveloperLogsHint: "Detailed yt-dlp output is shown here for this page session only.",
+        downloadDeveloperLogsClear: "Clear",
+        downloadDeveloperLogsEmpty: "No diagnostic logs yet.",
+        downloadDeveloperModeOn: "Developer mode enabled.",
+        downloadDeveloperResolveStart: "Requesting video metadata and available formats.",
         setupMediaToolsReady: "yt-dlp and verified ffmpeg are ready.",
         setupFfmpegMissing: "Verified ffmpeg is not installed yet. It will be installed securely on first use.",
         setupMediaToolsUnavailable: "Media tools status is unavailable until the native host is connected."
     },
     tr: {
+        channelFilterSetting: 'Yerel kanal filtrelemeyi etkinleştir',
+        channelFilterSettingSub: 'Engelle butonu ekler ve kaydedilen kanalları önerilerden gizler',
+        blocklistLocalNote: 'Engellenen kanallar Shorts ve önerilerden yerel olarak gizlenir. YouTube hesap senkronizasyonu kullanılabilir olduğunda denenir.',
+        blocklistRemoveLocalNote: 'Bu kaydı kaldırmak yerel filtreyi hemen geri açar. Önceki YouTube sinyali kalabilir.',
         navDownloader: "İndirici",
         downloadKicker: "BAĞIMSIZ İNDİRİCİ",
         downloadPageEyebrow: "ÖZEL YOUTUBE İNDİRİCİ",
@@ -1829,9 +1912,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "Klasör seçilemedi.",
         downloadPathSaved: "Klasör kaydedildi",
         downloadPathCancelled: "Klasör seçimi iptal edildi",
-        downloadOpenFolder: "Klasörü aç",
-        downloadFolderOpened: "Klasör açıldı",
-        downloadOpenFolderError: "İndirme klasörü açılamadı.",
         downloadNotificationDismiss: "İndirme bildirimini kapat",
         downloadNotificationClearFinished: "Tamamlanan indirmeleri temizle",
         downloadNotificationSpeed: "Hız",
@@ -1849,11 +1929,23 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadFormat: "Format",
         downloadMuxed: "Video + ses",
         downloadVideoOnly: "Yalnızca video",
+        downloadDeveloperMode: "Geliştirici modu",
+        downloadDeveloperLogsEyebrow: "GELİŞTİRİCİ MODU",
+        downloadDeveloperLogsTitle: "Tanı günlükleri",
+        downloadDeveloperLogsHint: "Ayrıntılı yt-dlp çıktısı yalnızca bu sayfa oturumu için burada gösterilir.",
+        downloadDeveloperLogsClear: "Temizle",
+        downloadDeveloperLogsEmpty: "Henüz tanı günlüğü yok.",
+        downloadDeveloperModeOn: "Geliştirici modu etkinleştirildi.",
+        downloadDeveloperResolveStart: "Video bilgileri ve kullanılabilir formatlar isteniyor.",
         setupMediaToolsReady: "yt-dlp ve doğrulanmış ffmpeg hazır.",
         setupFfmpegMissing: "Doğrulanmış ffmpeg henüz kurulu değil. İlk kullanımda güvenli şekilde kurulacak.",
         setupMediaToolsUnavailable: "Native host bağlanana kadar medya araçlarının durumu bilinmiyor."
     },
     de: {
+        channelFilterSetting: 'Lokale Kanälefilterung aktivieren',
+        channelFilterSettingSub: 'Fügt einen Sperrbutton hinzu und blendet gespeicherte Kanäle aus Empfehlungen aus',
+        blocklistLocalNote: 'Gesperrte Kanäle werden lokal aus Shorts und Empfehlungen ausgeblendet. Die YouTube-Kontosynchronisierung wird versucht, wenn sie verfügbar ist.',
+        blocklistRemoveLocalNote: 'Das Entfernen stellt den lokalen Filter sofort wieder her. Ein vorheriges YouTube-Signal kann bestehen bleiben.',
         navDownloader: "Downloader",
         downloadKicker: "EIGENSTÄNDIGER DOWNLOADER",
         downloadPageEyebrow: "PRIVATER YOUTUBE-DOWNLOADER",
@@ -1918,9 +2010,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "Ordner konnte nicht gewählt werden.",
         downloadPathSaved: "Ordner gespeichert",
         downloadPathCancelled: "Ordnerauswahl abgebrochen",
-        downloadOpenFolder: "Ordner öffnen",
-        downloadFolderOpened: "Ordner geöffnet",
-        downloadOpenFolderError: "Der Download-Ordner konnte nicht geöffnet werden.",
         downloadNotificationDismiss: "Download-Benachrichtigung schließen",
         downloadNotificationClearFinished: "Abgeschlossene Downloads löschen",
         downloadNotificationSpeed: "Geschwindigkeit",
@@ -1943,6 +2032,10 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         setupMediaToolsUnavailable: "Der Status der Medientools ist ohne Native Host nicht verfügbar."
     },
     fr: {
+        channelFilterSetting: 'Activer le filtrage local des chaînes',
+        channelFilterSettingSub: 'Ajoute un bouton Bloquer et masque les chaînes enregistrées des recommandations',
+        blocklistLocalNote: 'Les chaînes bloquées sont masquées localement des Shorts et des recommandations. La synchronisation du compte YouTube est tentée si elle est disponible.',
+        blocklistRemoveLocalNote: 'La suppression réactive immédiatement le filtre local. Un signal YouTube précédent peut rester actif.',
         navDownloader: "Téléchargeur",
         downloadKicker: "TÉLÉCHARGEUR AUTONOME",
         downloadPageEyebrow: "TÉLÉCHARGEUR YOUTUBE PRIVÉ",
@@ -2007,9 +2100,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "Impossible de choisir le dossier.",
         downloadPathSaved: "Dossier enregistré",
         downloadPathCancelled: "Sélection annulée",
-        downloadOpenFolder: "Ouvrir le dossier",
-        downloadFolderOpened: "Dossier ouvert",
-        downloadOpenFolderError: "Impossible d’ouvrir le dossier de téléchargement.",
         downloadNotificationDismiss: "Fermer la notification de téléchargement",
         downloadNotificationClearFinished: "Effacer les téléchargements terminés",
         downloadNotificationSpeed: "Vitesse",
@@ -2032,6 +2122,10 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         setupMediaToolsUnavailable: "L’état des outils multimédias est indisponible sans Native Host."
     },
     es: {
+        channelFilterSetting: 'Activar el filtrado local de canales',
+        channelFilterSettingSub: 'Añade un botón Bloquear y oculta los canales guardados de las recomendaciones',
+        blocklistLocalNote: 'Los canales bloqueados se ocultan localmente de Shorts y recomendaciones. La sincronización con la cuenta de YouTube se intenta cuando está disponible.',
+        blocklistRemoveLocalNote: 'Al eliminar esta entrada se restaura inmediatamente el filtro local. Una señal anterior de YouTube puede permanecer.',
         navDownloader: "Descargador",
         downloadKicker: "DESCARGADOR INDEPENDIENTE",
         downloadPageEyebrow: "DESCARGADOR PRIVADO DE YOUTUBE",
@@ -2096,9 +2190,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "No se pudo elegir la carpeta.",
         downloadPathSaved: "Carpeta guardada",
         downloadPathCancelled: "Selección cancelada",
-        downloadOpenFolder: "Abrir carpeta",
-        downloadFolderOpened: "Carpeta abierta",
-        downloadOpenFolderError: "No se pudo abrir la carpeta de descargas.",
         downloadNotificationDismiss: "Cerrar notificación de descarga",
         downloadNotificationClearFinished: "Borrar descargas completadas",
         downloadNotificationSpeed: "Velocidad",
@@ -2121,6 +2212,10 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         setupMediaToolsUnavailable: "El estado de las herramientas multimedia no está disponible sin el Native Host."
     },
     pt: {
+        channelFilterSetting: 'Ativar filtragem local de canais',
+        channelFilterSettingSub: 'Adiciona um botão Bloquear e oculta canais guardados das recomendações',
+        blocklistLocalNote: 'Os canais bloqueados são ocultados localmente dos Shorts e das recomendações. A sincronização com a conta do YouTube é tentada quando disponível.',
+        blocklistRemoveLocalNote: 'Remover esta entrada restaura imediatamente o filtro local. Um sinal anterior do YouTube pode permanecer.',
         navDownloader: "Baixador",
         downloadKicker: "BAIXADOR INDEPENDENTE",
         downloadPageEyebrow: "BAIXADOR PRIVADO DO YOUTUBE",
@@ -2185,9 +2280,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "Não foi possível escolher a pasta.",
         downloadPathSaved: "Pasta salva",
         downloadPathCancelled: "Seleção cancelada",
-        downloadOpenFolder: "Abrir pasta",
-        downloadFolderOpened: "Pasta aberta",
-        downloadOpenFolderError: "Não foi possível abrir a pasta de downloads.",
         downloadNotificationDismiss: "Fechar notificação de download",
         downloadNotificationClearFinished: "Limpar downloads concluídos",
         downloadNotificationSpeed: "Velocidade",
@@ -2210,6 +2302,10 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         setupMediaToolsUnavailable: "O status das ferramentas de mídia não está disponível sem o Native Host."
     },
     it: {
+        channelFilterSetting: 'Attiva il filtro locale dei canali',
+        channelFilterSettingSub: 'Aggiunge un pulsante Blocca e nasconde i canali salvati dai consigli',
+        blocklistLocalNote: 'I canali bloccati vengono nascosti localmente da Shorts e consigli. La sincronizzazione dell’account YouTube viene tentata quando disponibile.',
+        blocklistRemoveLocalNote: 'La rimozione ripristina subito il filtro locale. Un segnale YouTube precedente potrebbe restare attivo.',
         navDownloader: "Downloader",
         downloadKicker: "DOWNLOADER AUTONOMO",
         downloadPageEyebrow: "DOWNLOADER YOUTUBE PRIVATO",
@@ -2274,9 +2370,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "Impossibile scegliere la cartella.",
         downloadPathSaved: "Cartella salvata",
         downloadPathCancelled: "Selezione annullata",
-        downloadOpenFolder: "Apri cartella",
-        downloadFolderOpened: "Cartella aperta",
-        downloadOpenFolderError: "Impossibile aprire la cartella dei download.",
         downloadNotificationDismiss: "Chiudi notifica del download",
         downloadNotificationClearFinished: "Cancella download completati",
         downloadNotificationSpeed: "Velocità",
@@ -2299,6 +2392,10 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         setupMediaToolsUnavailable: "Lo stato degli strumenti multimediali non è disponibile senza Native Host."
     },
     ru: {
+        channelFilterSetting: 'Включить локальную фильтрацию каналов',
+        channelFilterSettingSub: 'Добавляет кнопку блокировки и скрывает сохранённые каналы из рекомендаций',
+        blocklistLocalNote: 'Заблокированные каналы локально скрываются из Shorts и рекомендаций. Синхронизация с аккаунтом YouTube выполняется, если доступна.',
+        blocklistRemoveLocalNote: 'Удаление записи сразу восстанавливает локальный фильтр. Предыдущий сигнал YouTube может сохраниться.',
         navDownloader: "Загрузчик",
         downloadKicker: "ОТДЕЛЬНЫЙ ЗАГРУЗЧИК",
         downloadPageEyebrow: "ПРИВАТНЫЙ ЗАГРУЗЧИК YOUTUBE",
@@ -2363,9 +2460,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "Не удалось выбрать папку.",
         downloadPathSaved: "Папка сохранена",
         downloadPathCancelled: "Выбор папки отменён",
-        downloadOpenFolder: "Открыть папку",
-        downloadFolderOpened: "Папка открыта",
-        downloadOpenFolderError: "Не удалось открыть папку загрузок.",
         downloadNotificationDismiss: "Закрыть уведомление о загрузке",
         downloadNotificationClearFinished: "Очистить завершённые загрузки",
         downloadNotificationSpeed: "Скорость",
@@ -2388,6 +2482,10 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         setupMediaToolsUnavailable: "Состояние медиатулов недоступно без Native Host."
     },
     ja: {
+        channelFilterSetting: 'チャンネルのローカルフィルタを有効にする',
+        channelFilterSettingSub: 'ブロックボタンを追加し、保存したチャンネルをおすすめから非表示にします',
+        blocklistLocalNote: 'ブロックしたチャンネルはShortsとおすすめからローカルで非表示になります。利用可能な場合はYouTubeアカウント同期も試行します。',
+        blocklistRemoveLocalNote: 'この項目を削除するとローカルフィルタがすぐに復元されます。以前のYouTubeシグナルは残る場合があります。',
         navDownloader: "ダウンローダー",
         downloadKicker: "スタンドアロンダウンローダー",
         downloadPageEyebrow: "プライベート YouTube ダウンローダー",
@@ -2452,9 +2550,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "フォルダーを選択できませんでした。",
         downloadPathSaved: "フォルダーを保存しました",
         downloadPathCancelled: "フォルダー選択をキャンセルしました",
-        downloadOpenFolder: "フォルダーを開く",
-        downloadFolderOpened: "フォルダーを開きました",
-        downloadOpenFolderError: "ダウンロードフォルダーを開けませんでした。",
         downloadNotificationDismiss: "ダウンロード通知を閉じる",
         downloadNotificationClearFinished: "完了したダウンロードを消去",
         downloadNotificationSpeed: "速度",
@@ -2477,6 +2572,10 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         setupMediaToolsUnavailable: "Native Host に接続するまでメディアツールの状態を確認できません。"
     },
     ko: {
+        channelFilterSetting: '로컬 채널 필터링 활성화',
+        channelFilterSettingSub: '차단 버튼을 추가하고 저장된 채널을 추천에서 숨깁니다',
+        blocklistLocalNote: '차단된 채널은 Shorts와 추천에서 로컬로 숨겨집니다. 가능하면 YouTube 계정 동기화도 시도합니다.',
+        blocklistRemoveLocalNote: '이 항목을 제거하면 로컬 필터가 즉시 복원됩니다. 이전 YouTube 신호는 남을 수 있습니다.',
         navDownloader: "다운로더",
         downloadKicker: "독립 다운로더",
         downloadPageEyebrow: "개인 YouTube 다운로더",
@@ -2541,9 +2640,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "폴더를 선택할 수 없습니다.",
         downloadPathSaved: "폴더 저장됨",
         downloadPathCancelled: "폴더 선택 취소됨",
-        downloadOpenFolder: "폴더 열기",
-        downloadFolderOpened: "폴더가 열렸습니다",
-        downloadOpenFolderError: "다운로드 폴더를 열 수 없습니다.",
         downloadNotificationDismiss: "다운로드 알림 닫기",
         downloadNotificationClearFinished: "완료된 다운로드 지우기",
         downloadNotificationSpeed: "속도",
@@ -2566,6 +2662,10 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         setupMediaToolsUnavailable: "Native Host에 연결할 때까지 미디어 도구 상태를 확인할 수 없습니다."
     },
     zh: {
+        channelFilterSetting: '启用本地频道过滤',
+        channelFilterSettingSub: '添加屏蔽按钮，并从推荐中隐藏已保存的频道',
+        blocklistLocalNote: '已屏蔽的频道会从 Shorts 和推荐中本地隐藏。可用时也会尝试同步 YouTube 帐户。',
+        blocklistRemoveLocalNote: '删除此条目会立即恢复本地过滤。之前发送的 YouTube 信号可能仍然存在。',
         navDownloader: "下载器",
         downloadKicker: "独立下载器",
         downloadPageEyebrow: "私人 YouTube 下载器",
@@ -2630,9 +2730,6 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
         downloadPathError: "无法选择文件夹。",
         downloadPathSaved: "文件夹已保存",
         downloadPathCancelled: "已取消选择文件夹",
-        downloadOpenFolder: "打开文件夹",
-        downloadFolderOpened: "文件夹已打开",
-        downloadOpenFolderError: "无法打开下载文件夹。",
         downloadNotificationDismiss: "关闭下载通知",
         downloadNotificationClearFinished: "清除已完成的下载",
         downloadNotificationSpeed: "速度",
@@ -2656,8 +2753,272 @@ const DOWNLOAD_PAGE_TRANSLATIONS = {
     }
 };
 
+// Developer-mode labels are intentionally centralized so the setting can grow
+// without duplicating the same diagnostic vocabulary in every locale block.
+// Keep the diagnostic vocabulary in one place so all supported locales retain
+// the same key contract as the main translation tables.
+const DEVELOPER_MODE_TRANSLATIONS = {
+    en: {
+        settingDeveloperMode: 'Developer mode',
+        settingDeveloperModeSub: 'Shows detailed downloader diagnostics and enables future developer tools'
+    },
+    tr: {
+        settingDeveloperMode: 'Geliştirici modu',
+        settingDeveloperModeSub: 'Ayrıntılı indirme tanılarını gösterir ve gelecekteki geliştirici araçlarını etkinleştirir'
+    },
+    de: {
+        settingDeveloperMode: 'Entwicklermodus',
+        settingDeveloperModeSub: 'Zeigt detaillierte Downloader-Diagnosen und aktiviert künftige Entwicklertools'
+    },
+    fr: {
+        settingDeveloperMode: 'Mode développeur',
+        settingDeveloperModeSub: 'Affiche les diagnostics détaillés du téléchargement et active les futurs outils développeur'
+    },
+    es: {
+        settingDeveloperMode: 'Modo desarrollador',
+        settingDeveloperModeSub: 'Muestra diagnósticos detallados de descargas y activa futuras herramientas de desarrollo'
+    },
+    pt: {
+        settingDeveloperMode: 'Modo de desenvolvedor',
+        settingDeveloperModeSub: 'Mostra diagnósticos detalhados de downloads e ativa futuras ferramentas de desenvolvimento'
+    },
+    it: {
+        settingDeveloperMode: 'Modalità sviluppatore',
+        settingDeveloperModeSub: 'Mostra diagnostica dettagliata dei download e abilita futuri strumenti per sviluppatori'
+    },
+    ru: {
+        settingDeveloperMode: 'Режим разработчика',
+        settingDeveloperModeSub: 'Показывает подробную диагностику загрузок и включает будущие инструменты разработчика'
+    },
+    ja: {
+        settingDeveloperMode: '開発者モード',
+        settingDeveloperModeSub: '詳細なダウンロード診断を表示し、今後の開発者ツールを有効にします'
+    },
+    ko: {
+        settingDeveloperMode: '개발자 모드',
+        settingDeveloperModeSub: '자세한 다운로드 진단을 표시하고 향후 개발자 도구를 활성화합니다'
+    },
+    zh: {
+        settingDeveloperMode: '开发者模式',
+        settingDeveloperModeSub: '显示详细的下载诊断信息，并启用未来的开发者工具'
+    }
+};
+Object.keys(TRANSLATIONS).forEach(lang => {
+    Object.assign(TRANSLATIONS[lang], DEVELOPER_MODE_TRANSLATIONS[lang] || DEVELOPER_MODE_TRANSLATIONS.en);
+});
+
+const DOWNLOAD_DEVELOPER_TRANSLATIONS = {
+    en: {
+        downloadDeveloperMode: 'Developer mode',
+        downloadDeveloperLogsEyebrow: 'DEVELOPER MODE',
+        downloadDeveloperLogsTitle: 'Diagnostic logs',
+        downloadDeveloperLogsHint: 'Detailed yt-dlp output is shown here for this page session only.',
+        downloadDeveloperLogsClear: 'Clear',
+        downloadDeveloperLogsEmpty: 'No diagnostic logs yet.',
+        downloadDeveloperModeOn: 'Developer mode enabled.',
+        downloadDeveloperResolveStart: 'Requesting video metadata and available formats.'
+    },
+    tr: {
+        downloadDeveloperMode: 'Geliştirici modu',
+        downloadDeveloperLogsEyebrow: 'GELİŞTİRİCİ MODU',
+        downloadDeveloperLogsTitle: 'Tanı günlükleri',
+        downloadDeveloperLogsHint: 'Ayrıntılı yt-dlp çıktısı yalnızca bu sayfa oturumu için burada gösterilir.',
+        downloadDeveloperLogsClear: 'Temizle',
+        downloadDeveloperLogsEmpty: 'Henüz tanı günlüğü yok.',
+        downloadDeveloperModeOn: 'Geliştirici modu etkinleştirildi.',
+        downloadDeveloperResolveStart: 'Video bilgileri ve kullanılabilir formatlar isteniyor.'
+    },
+    de: {
+        downloadDeveloperMode: 'Entwicklermodus',
+        downloadDeveloperLogsEyebrow: 'ENTWICKLERMODUS',
+        downloadDeveloperLogsTitle: 'Diagnoselogs',
+        downloadDeveloperLogsHint: 'Detaillierte yt-dlp-Ausgabe wird nur für diese Seitensitzung angezeigt.',
+        downloadDeveloperLogsClear: 'Löschen',
+        downloadDeveloperLogsEmpty: 'Noch keine Diagnoselogs.',
+        downloadDeveloperModeOn: 'Entwicklermodus aktiviert.',
+        downloadDeveloperResolveStart: 'Videometadaten und verfügbare Formate werden angefordert.'
+    },
+    fr: {
+        downloadDeveloperMode: 'Mode développeur',
+        downloadDeveloperLogsEyebrow: 'MODE DÉVELOPPEUR',
+        downloadDeveloperLogsTitle: 'Journaux de diagnostic',
+        downloadDeveloperLogsHint: 'La sortie détaillée de yt-dlp est affichée uniquement pour cette session.',
+        downloadDeveloperLogsClear: 'Effacer',
+        downloadDeveloperLogsEmpty: 'Aucun journal de diagnostic.',
+        downloadDeveloperModeOn: 'Mode développeur activé.',
+        downloadDeveloperResolveStart: 'Demande des métadonnées vidéo et des formats disponibles.'
+    },
+    es: {
+        downloadDeveloperMode: 'Modo desarrollador',
+        downloadDeveloperLogsEyebrow: 'MODO DESARROLLADOR',
+        downloadDeveloperLogsTitle: 'Registros de diagnóstico',
+        downloadDeveloperLogsHint: 'La salida detallada de yt-dlp solo se muestra durante esta sesión.',
+        downloadDeveloperLogsClear: 'Borrar',
+        downloadDeveloperLogsEmpty: 'Aún no hay registros de diagnóstico.',
+        downloadDeveloperModeOn: 'Modo desarrollador activado.',
+        downloadDeveloperResolveStart: 'Solicitando metadatos del vídeo y formatos disponibles.'
+    },
+    pt: {
+        downloadDeveloperMode: 'Modo de desenvolvedor',
+        downloadDeveloperLogsEyebrow: 'MODO DE DESENVOLVEDOR',
+        downloadDeveloperLogsTitle: 'Logs de diagnóstico',
+        downloadDeveloperLogsHint: 'A saída detalhada do yt-dlp é mostrada apenas nesta sessão.',
+        downloadDeveloperLogsClear: 'Limpar',
+        downloadDeveloperLogsEmpty: 'Ainda não há logs de diagnóstico.',
+        downloadDeveloperModeOn: 'Modo de desenvolvedor ativado.',
+        downloadDeveloperResolveStart: 'Solicitando metadados do vídeo e formatos disponíveis.'
+    },
+    it: {
+        downloadDeveloperMode: 'Modalità sviluppatore',
+        downloadDeveloperLogsEyebrow: 'MODALITÀ SVILUPPATORE',
+        downloadDeveloperLogsTitle: 'Log diagnostici',
+        downloadDeveloperLogsHint: 'L’output dettagliato di yt-dlp viene mostrato solo per questa sessione.',
+        downloadDeveloperLogsClear: 'Cancella',
+        downloadDeveloperLogsEmpty: 'Nessun log diagnostico.',
+        downloadDeveloperModeOn: 'Modalità sviluppatore attivata.',
+        downloadDeveloperResolveStart: 'Richiesta dei metadati video e dei formati disponibili.'
+    },
+    ru: {
+        downloadDeveloperMode: 'Режим разработчика',
+        downloadDeveloperLogsEyebrow: 'РЕЖИМ РАЗРАБОТЧИКА',
+        downloadDeveloperLogsTitle: 'Диагностические журналы',
+        downloadDeveloperLogsHint: 'Подробный вывод yt-dlp отображается только в течение этой сессии.',
+        downloadDeveloperLogsClear: 'Очистить',
+        downloadDeveloperLogsEmpty: 'Диагностических журналов пока нет.',
+        downloadDeveloperModeOn: 'Режим разработчика включён.',
+        downloadDeveloperResolveStart: 'Запрашиваются метаданные видео и доступные форматы.'
+    },
+    ja: {
+        downloadDeveloperMode: '開発者モード',
+        downloadDeveloperLogsEyebrow: '開発者モード',
+        downloadDeveloperLogsTitle: '診断ログ',
+        downloadDeveloperLogsHint: '詳細な yt-dlp 出力はこのページのセッション中のみ表示されます。',
+        downloadDeveloperLogsClear: 'クリア',
+        downloadDeveloperLogsEmpty: '診断ログはまだありません。',
+        downloadDeveloperModeOn: '開発者モードを有効にしました。',
+        downloadDeveloperResolveStart: '動画メタデータと利用可能な形式を要求しています。'
+    },
+    ko: {
+        downloadDeveloperMode: '개발자 모드',
+        downloadDeveloperLogsEyebrow: '개발자 모드',
+        downloadDeveloperLogsTitle: '진단 로그',
+        downloadDeveloperLogsHint: '자세한 yt-dlp 출력은 이 페이지 세션 동안만 표시됩니다.',
+        downloadDeveloperLogsClear: '지우기',
+        downloadDeveloperLogsEmpty: '진단 로그가 아직 없습니다.',
+        downloadDeveloperModeOn: '개발자 모드가 활성화되었습니다.',
+        downloadDeveloperResolveStart: '동영상 메타데이터와 사용 가능한 형식을 요청하는 중입니다.'
+    },
+    zh: {
+        downloadDeveloperMode: '开发者模式',
+        downloadDeveloperLogsEyebrow: '开发者模式',
+        downloadDeveloperLogsTitle: '诊断日志',
+        downloadDeveloperLogsHint: '详细的 yt-dlp 输出仅在本页面会话期间显示。',
+        downloadDeveloperLogsClear: '清除',
+        downloadDeveloperLogsEmpty: '暂无诊断日志。',
+        downloadDeveloperModeOn: '开发者模式已启用。',
+        downloadDeveloperResolveStart: '正在请求视频元数据和可用格式。'
+    }
+};
+Object.keys(DOWNLOAD_PAGE_TRANSLATIONS).forEach(lang => {
+    Object.assign(
+        DOWNLOAD_PAGE_TRANSLATIONS[lang],
+        DOWNLOAD_DEVELOPER_TRANSLATIONS[lang] || DOWNLOAD_DEVELOPER_TRANSLATIONS.en
+    );
+});
+
 Object.entries(DOWNLOAD_PAGE_TRANSLATIONS).forEach(([lang, strings]) => {
     Object.assign(TRANSLATIONS[lang], strings);
+});
+
+const DEVELOPER_CONSOLE_TRANSLATIONS = {
+    en: {
+        sectionDeveloper: 'Developer tools',
+        settingDeveloperModeSub: 'Collects local diagnostics from every extension surface for this browser session',
+        developerOpenConsole: 'Open Developer Console',
+        developerConsoleEyebrow: 'DEVELOPER CONSOLE',
+        developerConsoleTitle: 'Extension diagnostics',
+        developerConsoleSubtitle: 'Local logs from every extension surface, kept for this browser session.',
+        developerSearchLabel: 'Search logs',
+        developerSearchPlaceholder: 'Search logs…',
+        developerScopeLabel: 'Scope',
+        developerAllScopes: 'All scopes',
+        developerModuleLabel: 'Module',
+        developerAllModules: 'All modules',
+        developerLevelLabel: 'Level',
+        developerAllLevels: 'All levels',
+        developerCopy: 'Copy visible',
+        developerConnecting: 'Connecting to diagnostic store…',
+        developerDisconnected: 'Diagnostic store disconnected.',
+        developerSessionReady: 'session buffer ready',
+        developerMemoryFallback: 'memory-only fallback',
+        developerSessionTitle: 'Session status',
+        developerVisibleCount: 'Visible',
+        developerTotalCount: 'Total',
+        developerModeOnStatus: 'Developer mode on',
+        developerModeOffStatus: 'Developer mode off',
+        developerCopied: 'Visible logs copied.',
+        developerCopyFailed: 'Could not copy logs.',
+        developerPrivacyNote: 'Logs stay on this device for the current browser session. Sensitive URLs, tokens, cookies, paths, and page markup are redacted.'
+    },
+    tr: {
+        sectionDeveloper: 'Geliştirici araçları',
+        settingDeveloperModeSub: 'Bu tarayıcı oturumu boyunca eklentinin tüm yüzeylerinden yerel tanıları toplar',
+        developerOpenConsole: 'Geliştirici konsolunu aç',
+        developerConsoleEyebrow: 'GELİŞTİRİCİ KONSOLU',
+        developerConsoleTitle: 'Eklenti tanıları',
+        developerConsoleSubtitle: 'Eklentinin tüm yüzeylerinden gelen yerel günlükler bu tarayıcı oturumunda tutulur.',
+        developerSearchLabel: 'Günlüklerde ara',
+        developerSearchPlaceholder: 'Günlüklerde ara…',
+        developerScopeLabel: 'Kapsam',
+        developerAllScopes: 'Tüm kapsamlar',
+        developerModuleLabel: 'Modül',
+        developerAllModules: 'Tüm modüller',
+        developerLevelLabel: 'Seviye',
+        developerAllLevels: 'Tüm seviyeler',
+        developerCopy: 'Görünenleri kopyala',
+        developerConnecting: 'Tanı deposuna bağlanılıyor…',
+        developerDisconnected: 'Tanı deposu bağlantısı kesildi.',
+        developerSessionReady: 'oturum buffer hazır',
+        developerMemoryFallback: 'yalnızca bellek geri dönüşü',
+        developerSessionTitle: 'Oturum durumu',
+        developerVisibleCount: 'Görünen',
+        developerTotalCount: 'Toplam',
+        developerModeOnStatus: 'Geliştirici modu açık',
+        developerModeOffStatus: 'Geliştirici modu kapalı',
+        developerCopied: 'Görünen günlükler kopyalandı.',
+        developerCopyFailed: 'Günlükler kopyalanamadı.',
+        developerPrivacyNote: 'Günlükler bu cihazda ve yalnızca mevcut tarayıcı oturumunda tutulur. Hassas URL, token, cookie, yol ve sayfa işaretlemeleri redakte edilir.'
+    },
+    de: {
+        sectionDeveloper: 'Entwicklertools', settingDeveloperModeSub: 'Sammelt lokale Diagnosen aus allen Erweiterungsbereichen für diese Browsersitzung', developerOpenConsole: 'Entwicklerkonsole öffnen', developerConsoleEyebrow: 'ENTWICKLERKONSOLE', developerConsoleTitle: 'Erweiterungsdiagnose', developerConsoleSubtitle: 'Lokale Protokolle aller Erweiterungsbereiche für diese Browsersitzung.', developerSearchLabel: 'Protokolle durchsuchen', developerSearchPlaceholder: 'Protokolle durchsuchen…', developerScopeLabel: 'Bereich', developerAllScopes: 'Alle Bereiche', developerModuleLabel: 'Modul', developerAllModules: 'Alle Module', developerLevelLabel: 'Stufe', developerAllLevels: 'Alle Stufen', developerCopy: 'Sichtbare kopieren', developerConnecting: 'Diagnosespeicher wird verbunden…', developerDisconnected: 'Verbindung zum Diagnosespeicher getrennt.', developerSessionReady: 'Sitzungsspeicher bereit', developerMemoryFallback: 'Nur-Speicher-Fallback', developerSessionTitle: 'Sitzungsstatus', developerVisibleCount: 'Sichtbar', developerTotalCount: 'Gesamt', developerModeOnStatus: 'Entwicklermodus an', developerModeOffStatus: 'Entwicklermodus aus', developerCopied: 'Sichtbare Protokolle kopiert.', developerCopyFailed: 'Protokolle konnten nicht kopiert werden.', developerPrivacyNote: 'Protokolle bleiben für diese Browsersitzung auf diesem Gerät. Sensible URLs, Tokens, Cookies, Pfade und Seitenmarkups werden entfernt.'
+    },
+    fr: {
+        sectionDeveloper: 'Outils développeur', settingDeveloperModeSub: 'Collecte les diagnostics locaux de chaque surface de l’extension pour cette session', developerOpenConsole: 'Ouvrir la console développeur', developerConsoleEyebrow: 'CONSOLE DÉVELOPPEUR', developerConsoleTitle: 'Diagnostics de l’extension', developerConsoleSubtitle: 'Journaux locaux de chaque surface de l’extension pour cette session.', developerSearchLabel: 'Rechercher dans les journaux', developerSearchPlaceholder: 'Rechercher…', developerScopeLabel: 'Portée', developerAllScopes: 'Toutes les portées', developerModuleLabel: 'Module', developerAllModules: 'Tous les modules', developerLevelLabel: 'Niveau', developerAllLevels: 'Tous les niveaux', developerCopy: 'Copier les visibles', developerConnecting: 'Connexion au stockage de diagnostic…', developerDisconnected: 'Stockage de diagnostic déconnecté.', developerSessionReady: 'tampon de session prêt', developerMemoryFallback: 'solution mémoire uniquement', developerSessionTitle: 'État de la session', developerVisibleCount: 'Visibles', developerTotalCount: 'Total', developerModeOnStatus: 'Mode développeur activé', developerModeOffStatus: 'Mode développeur désactivé', developerCopied: 'Journaux visibles copiés.', developerCopyFailed: 'Impossible de copier les journaux.', developerPrivacyNote: 'Les journaux restent sur cet appareil pour la session. Les URL sensibles, jetons, cookies, chemins et balises de page sont masqués.'
+    },
+    es: {
+        sectionDeveloper: 'Herramientas de desarrollo', settingDeveloperModeSub: 'Recopila diagnósticos locales de todas las superficies de la extensión durante esta sesión', developerOpenConsole: 'Abrir consola de desarrollo', developerConsoleEyebrow: 'CONSOLA DE DESARROLLO', developerConsoleTitle: 'Diagnósticos de la extensión', developerConsoleSubtitle: 'Registros locales de todas las superficies durante esta sesión.', developerSearchLabel: 'Buscar registros', developerSearchPlaceholder: 'Buscar registros…', developerScopeLabel: 'Ámbito', developerAllScopes: 'Todos los ámbitos', developerModuleLabel: 'Módulo', developerAllModules: 'Todos los módulos', developerLevelLabel: 'Nivel', developerAllLevels: 'Todos los niveles', developerCopy: 'Copiar visibles', developerConnecting: 'Conectando al almacén de diagnósticos…', developerDisconnected: 'Almacén de diagnósticos desconectado.', developerSessionReady: 'búfer de sesión listo', developerMemoryFallback: 'respaldo solo en memoria', developerSessionTitle: 'Estado de la sesión', developerVisibleCount: 'Visibles', developerTotalCount: 'Total', developerModeOnStatus: 'Modo de desarrollo activado', developerModeOffStatus: 'Modo de desarrollo desactivado', developerCopied: 'Registros visibles copiados.', developerCopyFailed: 'No se pudieron copiar los registros.', developerPrivacyNote: 'Los registros permanecen en este dispositivo durante la sesión. Se ocultan URL, tokens, cookies, rutas y marcado de página sensibles.'
+    },
+    pt: {
+        sectionDeveloper: 'Ferramentas de desenvolvedor', settingDeveloperModeSub: 'Coleta diagnósticos locais de todas as áreas da extensão nesta sessão', developerOpenConsole: 'Abrir console do desenvolvedor', developerConsoleEyebrow: 'CONSOLE DO DESENVOLVEDOR', developerConsoleTitle: 'Diagnósticos da extensão', developerConsoleSubtitle: 'Logs locais de todas as áreas da extensão nesta sessão.', developerSearchLabel: 'Pesquisar logs', developerSearchPlaceholder: 'Pesquisar logs…', developerScopeLabel: 'Escopo', developerAllScopes: 'Todos os escopos', developerModuleLabel: 'Módulo', developerAllModules: 'Todos os módulos', developerLevelLabel: 'Nível', developerAllLevels: 'Todos os níveis', developerCopy: 'Copiar visíveis', developerConnecting: 'Conectando ao armazenamento de diagnóstico…', developerDisconnected: 'Armazenamento de diagnóstico desconectado.', developerSessionReady: 'buffer da sessão pronto', developerMemoryFallback: 'fallback somente em memória', developerSessionTitle: 'Estado da sessão', developerVisibleCount: 'Visíveis', developerTotalCount: 'Total', developerModeOnStatus: 'Modo de desenvolvedor ativado', developerModeOffStatus: 'Modo de desenvolvedor desativado', developerCopied: 'Logs visíveis copiados.', developerCopyFailed: 'Não foi possível copiar os logs.', developerPrivacyNote: 'Os logs ficam neste dispositivo durante a sessão. URLs, tokens, cookies, caminhos e marcação de página sensíveis são ocultados.'
+    },
+    it: {
+        sectionDeveloper: 'Strumenti per sviluppatori', settingDeveloperModeSub: 'Raccoglie diagnostica locale da tutte le superfici dell’estensione per questa sessione', developerOpenConsole: 'Apri console sviluppatore', developerConsoleEyebrow: 'CONSOLE SVILUPPATORE', developerConsoleTitle: 'Diagnostica estensione', developerConsoleSubtitle: 'Log locali da tutte le superfici dell’estensione per questa sessione.', developerSearchLabel: 'Cerca nei log', developerSearchPlaceholder: 'Cerca nei log…', developerScopeLabel: 'Ambito', developerAllScopes: 'Tutti gli ambiti', developerModuleLabel: 'Modulo', developerAllModules: 'Tutti i moduli', developerLevelLabel: 'Livello', developerAllLevels: 'Tutti i livelli', developerCopy: 'Copia visibili', developerConnecting: 'Connessione al registro diagnostico…', developerDisconnected: 'Registro diagnostico disconnesso.', developerSessionReady: 'buffer sessione pronto', developerMemoryFallback: 'fallback solo memoria', developerSessionTitle: 'Stato della sessione', developerVisibleCount: 'Visibili', developerTotalCount: 'Totale', developerModeOnStatus: 'Modalità sviluppatore attiva', developerModeOffStatus: 'Modalità sviluppatore disattivata', developerCopied: 'Log visibili copiati.', developerCopyFailed: 'Impossibile copiare i log.', developerPrivacyNote: 'I log restano su questo dispositivo per la sessione corrente. URL, token, cookie, percorsi e markup della pagina sensibili vengono oscurati.'
+    },
+    ru: {
+        sectionDeveloper: 'Инструменты разработчика', settingDeveloperModeSub: 'Собирает локальную диагностику всех компонентов расширения в этой сессии', developerOpenConsole: 'Открыть консоль разработчика', developerConsoleEyebrow: 'КОНСОЛЬ РАЗРАБОТЧИКА', developerConsoleTitle: 'Диагностика расширения', developerConsoleSubtitle: 'Локальные журналы всех компонентов расширения в этой сессии.', developerSearchLabel: 'Поиск журналов', developerSearchPlaceholder: 'Поиск журналов…', developerScopeLabel: 'Область', developerAllScopes: 'Все области', developerModuleLabel: 'Модуль', developerAllModules: 'Все модули', developerLevelLabel: 'Уровень', developerAllLevels: 'Все уровни', developerCopy: 'Копировать видимые', developerConnecting: 'Подключение к хранилищу диагностики…', developerDisconnected: 'Хранилище диагностики отключено.', developerSessionReady: 'буфер сессии готов', developerMemoryFallback: 'резерв только в памяти', developerSessionTitle: 'Состояние сеанса', developerVisibleCount: 'Видимые', developerTotalCount: 'Всего', developerModeOnStatus: 'Режим разработчика включён', developerModeOffStatus: 'Режим разработчика выключен', developerCopied: 'Видимые журналы скопированы.', developerCopyFailed: 'Не удалось скопировать журналы.', developerPrivacyNote: 'Журналы остаются на этом устройстве в течение сессии. Чувствительные URL, токены, cookies, пути и разметка страницы скрываются.'
+    },
+    ja: {
+        sectionDeveloper: '開発者ツール', settingDeveloperModeSub: 'このブラウザセッション中、拡張機能のすべての画面からローカル診断を収集します', developerOpenConsole: '開発者コンソールを開く', developerConsoleEyebrow: '開発者コンソール', developerConsoleTitle: '拡張機能の診断', developerConsoleSubtitle: '拡張機能全体のローカルログをこのセッションに保持します。', developerSearchLabel: 'ログを検索', developerSearchPlaceholder: 'ログを検索…', developerScopeLabel: '範囲', developerAllScopes: 'すべての範囲', developerModuleLabel: 'モジュール', developerAllModules: 'すべてのモジュール', developerLevelLabel: 'レベル', developerAllLevels: 'すべてのレベル', developerCopy: '表示分をコピー', developerConnecting: '診断ストアに接続しています…', developerDisconnected: '診断ストアから切断されました。', developerSessionReady: 'セッションバッファ準備完了', developerMemoryFallback: 'メモリのみのフォールバック', developerSessionTitle: 'セッション状態', developerVisibleCount: '表示中', developerTotalCount: '合計', developerModeOnStatus: '開発者モードオン', developerModeOffStatus: '開発者モードオフ', developerCopied: '表示ログをコピーしました。', developerCopyFailed: 'ログをコピーできませんでした。', developerPrivacyNote: 'ログはこの端末の現在のブラウザセッションにのみ保存されます。機密 URL、トークン、Cookie、パス、ページマークアップは削除されます。'
+    },
+    ko: {
+        sectionDeveloper: '개발자 도구', settingDeveloperModeSub: '이 브라우저 세션 동안 확장 프로그램 전체의 로컬 진단을 수집합니다', developerOpenConsole: '개발자 콘솔 열기', developerConsoleEyebrow: '개발자 콘솔', developerConsoleTitle: '확장 프로그램 진단', developerConsoleSubtitle: '확장 프로그램 전체의 로컬 로그를 이 세션 동안 보관합니다.', developerSearchLabel: '로그 검색', developerSearchPlaceholder: '로그 검색…', developerScopeLabel: '범위', developerAllScopes: '모든 범위', developerModuleLabel: '모듈', developerAllModules: '모든 모듈', developerLevelLabel: '수준', developerAllLevels: '모든 수준', developerCopy: '표시 항목 복사', developerConnecting: '진단 저장소에 연결하는 중…', developerDisconnected: '진단 저장소 연결이 끊겼습니다.', developerSessionReady: '세션 버퍼 준비됨', developerMemoryFallback: '메모리 전용 대체 모드', developerSessionTitle: '세션 상태', developerVisibleCount: '표시됨', developerTotalCount: '전체', developerModeOnStatus: '개발자 모드 켜짐', developerModeOffStatus: '개발자 모드 꺼짐', developerCopied: '표시 로그를 복사했습니다.', developerCopyFailed: '로그를 복사할 수 없습니다.', developerPrivacyNote: '로그는 현재 브라우저 세션 동안 이 기기에만 저장됩니다. 민감한 URL, 토큰, 쿠키, 경로와 페이지 마크업은 숨겨집니다.'
+    },
+    zh: {
+        sectionDeveloper: '开发者工具', settingDeveloperModeSub: '在本次浏览器会话中收集整个扩展的本地诊断信息', developerOpenConsole: '打开开发者控制台', developerConsoleEyebrow: '开发者控制台', developerConsoleTitle: '扩展诊断', developerConsoleSubtitle: '在本次会话中保留来自扩展各部分的本地日志。', developerSearchLabel: '搜索日志', developerSearchPlaceholder: '搜索日志…', developerScopeLabel: '范围', developerAllScopes: '所有范围', developerModuleLabel: '模块', developerAllModules: '所有模块', developerLevelLabel: '级别', developerAllLevels: '所有级别', developerCopy: '复制可见内容', developerConnecting: '正在连接诊断存储…', developerDisconnected: '诊断存储已断开。', developerSessionReady: '会话缓冲区已就绪', developerMemoryFallback: '仅内存备用模式', developerSessionTitle: '会话状态', developerVisibleCount: '可见', developerTotalCount: '总数', developerModeOnStatus: '开发者模式已开启', developerModeOffStatus: '开发者模式已关闭', developerCopied: '已复制可见日志。', developerCopyFailed: '无法复制日志。', developerPrivacyNote: '日志仅在当前浏览器会话中保留在此设备上。敏感 URL、令牌、Cookie、路径和页面标记会被隐藏。'
+    }
+};
+Object.keys(TRANSLATIONS).forEach(lang => {
+    Object.assign(TRANSLATIONS[lang], DEVELOPER_CONSOLE_TRANSLATIONS[lang] || DEVELOPER_CONSOLE_TRANSLATIONS.en);
 });
 
 // =============================================================================

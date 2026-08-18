@@ -6,7 +6,98 @@ try {
     // Keep legacy features alive if the shared policy is unavailable.
 }
 
+try {
+    importScripts('developer-log-store.js');
+} catch (_) {
+    // Diagnostics are optional and must never prevent the service worker booting.
+}
+
 let nativePort = null;
+let developerModeEnabled = false;
+const developerConsolePorts = new Set();
+const developerLogStore = typeof DeveloperLogStore !== 'undefined'
+    ? DeveloperLogStore.create()
+    : null;
+
+function broadcastDeveloperMessage(message) {
+    developerConsolePorts.forEach(port => {
+        try { port.postMessage(message); } catch (_) { }
+    });
+}
+
+function setDeveloperModeState(value) {
+    developerModeEnabled = value === true;
+    developerLogStore?.setEnabled(developerModeEnabled);
+    broadcastDeveloperMessage({
+        action: 'developer_mode_changed',
+        enabled: developerModeEnabled
+    });
+}
+
+function writeDeveloperMode(value) {
+    const next = value === true;
+    setDeveloperModeState(next);
+    try {
+        chrome.storage.local.set({ developerMode: next });
+    } catch (_) { }
+    if (next) {
+        appendBackgroundLog('info', 'developer.mode_enabled', 'Developer mode enabled.');
+    }
+    return next;
+}
+
+function appendBackgroundLog(level, event, message, details = '', context = {}) {
+    if (!developerLogStore || !developerModeEnabled) return Promise.resolve(null);
+    return developerLogStore.append({
+        level,
+        scope: 'background',
+        module: 'background',
+        event,
+        message,
+        details,
+        context
+    });
+}
+
+function appendIncomingDeveloperLog(entry, sender) {
+    if (!developerLogStore || !developerModeEnabled) return Promise.resolve(null);
+    return developerLogStore.append(entry, sender);
+}
+
+function sendDeveloperSnapshot(port) {
+    if (!developerLogStore || !port) return;
+    Promise.resolve(developerLogStore.ready()).then(() => {
+        try {
+            port.postMessage({
+                action: 'developer_snapshot',
+                enabled: developerModeEnabled,
+                entries: developerLogStore.getEntries(),
+                hasSessionStorage: developerLogStore.hasSessionStorage,
+                limits: developerLogStore.limits
+            });
+        } catch (_) { }
+    });
+}
+
+if (developerLogStore) {
+    developerLogStore.onEntry(entry => broadcastDeveloperMessage({
+        action: 'developer_log_entry',
+        entry
+    }));
+}
+
+try {
+    chrome.storage.local.get(['developerMode'], result => {
+        setDeveloperModeState(result?.developerMode === true);
+    });
+    chrome.storage.onChanged?.addListener((changes, areaName) => {
+        if (areaName === 'local' && changes?.developerMode) {
+            setDeveloperModeState(changes.developerMode.newValue === true);
+        }
+    });
+} catch (_) {
+    setDeveloperModeState(false);
+}
 
 // ── Active download tracking (rate-limit / dedup) ─────────────────────────────
 // Maps "videoId|quality" → { tabId, videoId }. Prevents the same video+quality
@@ -100,6 +191,69 @@ function isAllowedGoogleVideoUrl(value) {
     }
 }
 
+function nativeLogContext(message) {
+    const context = {};
+    ['requestId', 'jobId', 'downloadId', 'videoId', 'operationId'].forEach(key => {
+        if (message?.[key] !== undefined && message?.[key] !== null) {
+            context[key] = String(message[key]).slice(0, 100);
+        }
+    });
+    return context;
+}
+
+function handleNativeDeveloperMessage(message) {
+    if (!message) return false;
+
+    if (message.action === 'developer_log' || message.action === 'download_page_log') {
+        const context = nativeLogContext(message);
+        const entry = {
+            level: message.level,
+            scope: 'native-host',
+            module: message.module || message.phase || 'native-host',
+            event: message.event || `native.${message.phase || message.stream || 'output'}`,
+            message: message.message || message.data || '',
+            details: message.details,
+            context
+        };
+        if (developerModeEnabled) void appendIncomingDeveloperLog(entry);
+
+        if (isPageId(message.requestId)) {
+            const jobEntry = isPageId(message.jobId) ? downloadPageJobs.get(message.jobId) : null;
+            const requestEntry = downloadPageRequests.get(message.requestId);
+            const pageEntry = jobEntry || requestEntry;
+            if (pageEntry) {
+                sendToDownloadPage(pageEntry.port, {
+                    ...message,
+                    action: 'download_page_log',
+                    timestamp: message.timestamp || Date.now()
+                });
+            }
+        }
+        return true;
+    }
+
+    const statusLevels = {
+        info: 'info',
+        progress: 'debug',
+        error_log: 'warn',
+        update_success: 'info',
+        media_tools_ready: 'info',
+        error: 'error'
+    };
+    if (statusLevels[message.status]) {
+        void appendIncomingDeveloperLog({
+            level: statusLevels[message.status],
+            scope: 'native-host',
+            module: message.module || message.operation || 'native-host',
+            event: `native.${message.status}`,
+            message: message.message || message.data || '',
+            details: message.details,
+            context: nativeLogContext(message)
+        });
+    }
+    return false;
+}
+
 function connectToNativeHost() {
     if (nativePort) return true;
     try {
@@ -107,10 +261,15 @@ function connectToNativeHost() {
     } catch (error) {
         nativePort = null;
         console.warn('[BG] Native host connection failed:', error.message);
+        void appendBackgroundLog('error', 'native.connect_failed', 'Native host connection failed.', error.message);
         return false;
     }
 
+    void appendBackgroundLog('info', 'native.connected', 'Native host connected.');
+
     nativePort.onMessage.addListener((msg) => {
+        if (handleNativeDeveloperMessage(msg)) return;
+
         if (msg && msg.action === 'download_page_formats' && isPageId(msg.requestId)) {
             const entry = downloadPageRequests.get(msg.requestId);
             if (entry) {
@@ -153,6 +312,7 @@ function connectToNativeHost() {
     nativePort.onDisconnect.addListener(() => {
         const err = chrome.runtime.lastError;
         console.warn('[BG] Native host disconnected:', err?.message);
+        void appendBackgroundLog('warn', 'native.disconnected', 'Native host disconnected.', err?.message || '');
         nativePort = null;
         const interruptedDownloads = [...activeDownloads.values()];
         activeDownloads.clear();
@@ -201,6 +361,26 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === 'developer-console') {
+        developerConsolePorts.add(port);
+        sendDeveloperSnapshot(port);
+        port.onMessage.addListener((message) => {
+            if (!message || typeof message !== 'object') return;
+            if (message.action === 'developer_snapshot') {
+                sendDeveloperSnapshot(port);
+            } else if (message.action === 'developer_clear') {
+                Promise.resolve(developerLogStore?.clear()).then(() => {
+                    broadcastDeveloperMessage({ action: 'developer_logs_cleared' });
+                    sendDeveloperSnapshot(port);
+                });
+            } else if (message.action === 'developer_set_mode') {
+                writeDeveloperMode(message.enabled === true);
+            }
+        });
+        port.onDisconnect.addListener(() => developerConsolePorts.delete(port));
+        return;
+    }
+
     if (port.name !== 'download-page') return;
 
     port.onMessage.addListener((message) => {
@@ -223,6 +403,7 @@ function handleDownloadPageMessage(port, message) {
     if (message.action === 'resolve_formats') {
         const requestId = String(message.requestId || '');
         if (!isPageId(requestId)) {
+            void appendBackgroundLog('warn', 'download.invalid_request', 'Invalid format request id.', '', { requestId });
             sendDownloadPageError(port, 'download_page_formats', requestId, 'invalid_request', 'Invalid request id.');
             return;
         }
@@ -231,6 +412,7 @@ function handleDownloadPageMessage(port, message) {
             ? DownloadPolicy.parse(message.url)
             : { ok: false, reason: 'policy_unavailable' };
         if (!parsed.ok) {
+            void appendBackgroundLog('warn', 'download.policy_rejected', 'Download URL rejected by policy.', parsed.reason || '', { requestId });
             sendDownloadPageError(
                 port,
                 'download_page_formats',
@@ -242,6 +424,7 @@ function handleDownloadPageMessage(port, message) {
         }
 
         if (!connectToNativeHost()) {
+            void appendBackgroundLog('error', 'download.native_required', 'Native host is not connected.', '', { requestId });
             sendDownloadPageError(
                 port,
                 'download_page_formats',
@@ -259,6 +442,10 @@ function handleDownloadPageMessage(port, message) {
             createdAt: Date.now()
         };
         downloadPageRequests.set(requestId, entry);
+        void appendBackgroundLog('info', 'download.resolve_started', 'Resolving available formats.', '', {
+            requestId,
+            videoId: parsed.videoId
+        });
         setTimeout(() => {
             if (downloadPageRequests.get(requestId) === entry) {
                 downloadPageRequests.delete(requestId);
@@ -266,10 +453,25 @@ function handleDownloadPageMessage(port, message) {
         }, 10 * 60 * 1000);
 
         try {
-            nativePort.postMessage({
-                action: 'resolve_formats',
-                requestId,
-                url: parsed.canonicalUrl
+            chrome.storage.local.get(['developerMode'], result => {
+                try {
+                    nativePort.postMessage({
+                        action: 'resolve_formats',
+                        requestId,
+                        url: parsed.canonicalUrl,
+                        developerMode: result?.developerMode === true
+                    });
+                } catch (_) {
+                    void appendBackgroundLog('error', 'download.resolve_dispatch_failed', 'Could not contact native host.', '', { requestId });
+                    downloadPageRequests.delete(requestId);
+                    sendDownloadPageError(
+                        port,
+                        'download_page_formats',
+                        requestId,
+                        'native_required',
+                        'Could not contact native host.'
+                    );
+                }
             });
         } catch (_) {
             downloadPageRequests.delete(requestId);
@@ -278,7 +480,7 @@ function handleDownloadPageMessage(port, message) {
                 'download_page_formats',
                 requestId,
                 'native_required',
-                'Could not contact native host.'
+                'Could not read developer mode.'
             );
         }
         return;
@@ -304,6 +506,7 @@ function handleDownloadPageMessage(port, message) {
             !parsed.ok || parsed.canonicalUrl !== requestEntry.url ||
             !selectionValid || !isAllowedOutputFormat(outputFormat) ||
             !isProfileOutputPairValid(profileId, outputFormat)) {
+            void appendBackgroundLog('warn', 'download.invalid_selection', 'Invalid download selection.', '', { requestId, jobId });
             sendDownloadPageError(
                 port,
                 'download_page_dispatch_result',
@@ -316,6 +519,7 @@ function handleDownloadPageMessage(port, message) {
         }
 
         if (downloadPageJobs.has(jobId) || downloadPageJobReservations.has(jobId)) {
+            void appendBackgroundLog('warn', 'download.duplicate_job', 'Download job is already active.', '', { requestId, jobId });
             sendDownloadPageError(
                 port,
                 'download_page_dispatch_result',
@@ -328,6 +532,7 @@ function handleDownloadPageMessage(port, message) {
         }
 
         if (!connectToNativeHost()) {
+            void appendBackgroundLog('error', 'download.native_required', 'Native host is not connected.', '', { requestId, jobId });
             sendDownloadPageError(
                 port,
                 'download_page_dispatch_result',
@@ -341,7 +546,7 @@ function handleDownloadPageMessage(port, message) {
 
         downloadPageJobReservations.add(jobId);
 
-        chrome.storage.local.get(['downloadPath'], (result) => {
+        chrome.storage.local.get(['downloadPath', 'developerMode'], (result) => {
             if (!nativePort) {
                 downloadPageJobReservations.delete(jobId);
                 sendDownloadPageError(
@@ -361,6 +566,7 @@ function handleDownloadPageMessage(port, message) {
             const entry = { port, requestId, createdAt: Date.now() };
             downloadPageJobs.set(jobId, entry);
             downloadPageJobReservations.delete(jobId);
+            void appendBackgroundLog('info', 'download.dispatch_started', 'Dispatching download to native host.', '', { requestId, jobId });
 
             try {
                 nativePort.postMessage({
@@ -373,6 +579,7 @@ function handleDownloadPageMessage(port, message) {
                     profileId,
                     outputFormat,
                     title,
+                    developerMode: result?.developerMode === true,
                     savePath: typeof result.downloadPath === 'string'
                         ? result.downloadPath
                         : ''
@@ -384,6 +591,7 @@ function handleDownloadPageMessage(port, message) {
                     jobId
                 });
             } catch (_) {
+                void appendBackgroundLog('error', 'download.dispatch_failed', 'Could not start native download.', '', { requestId, jobId });
                 downloadPageJobs.delete(jobId);
                 downloadPageJobReservations.delete(jobId);
                 sendDownloadPageError(
@@ -405,6 +613,7 @@ function handleDownloadPageMessage(port, message) {
         const entry = downloadPageJobs.get(jobId);
         if (!entry || entry.port !== port || !isPageId(requestId) ||
             !isPageId(jobId) || entry.requestId !== requestId) {
+            void appendBackgroundLog('warn', 'download.cancel_invalid', 'Download cancellation was rejected.', '', { requestId, jobId });
             sendDownloadPageError(
                 port,
                 'download_page_result',
@@ -416,6 +625,7 @@ function handleDownloadPageMessage(port, message) {
             return;
         }
         if (!nativePort) {
+            void appendBackgroundLog('error', 'download.cancel_native_missing', 'Native host is not connected for cancellation.', '', { requestId, jobId });
             sendDownloadPageError(
                 port,
                 'download_page_result',
@@ -427,8 +637,10 @@ function handleDownloadPageMessage(port, message) {
             return;
         }
         try {
+            void appendBackgroundLog('info', 'download.cancel_requested', 'Download cancellation requested.', '', { requestId, jobId });
             nativePort.postMessage({ action: 'cancel_download', requestId, jobId });
         } catch (_) {
+            void appendBackgroundLog('error', 'download.cancel_dispatch_failed', 'Could not cancel native download.', '', { requestId, jobId });
             sendDownloadPageError(
                 port,
                 'download_page_result',
@@ -442,6 +654,43 @@ function handleDownloadPageMessage(port, message) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+
+    if (message?.action === 'developer_log') {
+        void appendIncomingDeveloperLog(message.entry || message, sender);
+        sendResponse?.({ ok: true });
+        return false;
+    }
+
+    if (message?.action === 'developer_mode_get') {
+        sendResponse({ enabled: developerModeEnabled });
+        return false;
+    }
+
+    if (message?.action === 'developer_mode_set') {
+        sendResponse({ enabled: writeDeveloperMode(message.enabled === true) });
+        return false;
+    }
+
+    if (message?.action === 'developer_logs_get') {
+        Promise.resolve(developerLogStore?.ready()).then(() => {
+            sendResponse({
+                ok: true,
+                enabled: developerModeEnabled,
+                entries: developerLogStore?.getEntries?.() || [],
+                hasSessionStorage: developerLogStore?.hasSessionStorage === true,
+                limits: developerLogStore?.limits || {}
+            });
+        });
+        return true;
+    }
+
+    if (message?.action === 'developer_logs_clear') {
+        Promise.resolve(developerLogStore?.clear()).then(() => {
+            broadcastDeveloperMessage({ action: 'developer_logs_cleared' });
+            sendResponse({ ok: true });
+        });
+        return true;
+    }
 
     // ── Ping ──────────────────────────────────────────────────────────────────
     if (message.action === 'ping') {
@@ -459,6 +708,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         try {
             testPort = chrome.runtime.connectNative('com.paracci.youtubedownloader');
         } catch (error) {
+            void appendBackgroundLog('error', 'native.health_check_failed', 'Native host health check failed.', error.message);
             sendResponse({ status: 'disconnected', error: error.message });
             return false;
         }
@@ -466,6 +716,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         testPort.onDisconnect.addListener(() => {
             if (responded) return;
             responded = true;
+            void appendBackgroundLog('warn', 'native.health_check_disconnected', 'Native host health check disconnected.', chrome.runtime.lastError?.message || '');
             sendResponse({ status: 'disconnected', error: chrome.runtime.lastError?.message });
         });
 
@@ -487,6 +738,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         } catch (_) {
             if (!responded) {
                 responded = true;
+                void appendBackgroundLog('error', 'native.health_check_dispatch_failed', 'Native host health check dispatch failed.', 'postMessage failed');
                 sendResponse({ status: 'disconnected', error: 'postMessage failed' });
             }
         }
@@ -496,6 +748,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             if (responded) return;
             responded = true;
             try { testPort.disconnect(); } catch (_) {}
+            void appendBackgroundLog('warn', 'native.health_check_timeout', 'Native host health check timed out.');
             sendResponse({ status: 'disconnected', error: 'timeout' });
         }, 2000);
 
@@ -518,13 +771,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
             };
             updatePort.onMessage.addListener(updateListener);
-            try {
-                updatePort.postMessage({ action: 'update_ytdlp' });
-                sendResponse({ status: 'sent_to_native' });
-            } catch (error) {
-                updatePort.onMessage.removeListener(updateListener);
-                sendResponse({ status: 'failed_native_dispatch', error: error.message });
-            }
+            chrome.storage.local.get(['developerMode'], result => {
+                try {
+                    updatePort.postMessage({
+                        action: 'update_ytdlp',
+                        developerMode: result?.developerMode === true
+                    });
+                    void appendBackgroundLog('info', 'native.update_started', 'yt-dlp update started.');
+                    sendResponse({ status: 'sent_to_native' });
+                } catch (error) {
+                    updatePort.onMessage.removeListener(updateListener);
+                    void appendBackgroundLog('error', 'native.update_dispatch_failed', 'Could not dispatch yt-dlp update.', error.message);
+                    sendResponse({ status: 'failed_native_dispatch', error: error.message });
+                }
+            });
         } else {
             sendResponse({ status: 'failed_native_connect' });
         }
@@ -570,48 +830,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     // ── Open the configured download folder in Windows Explorer ──────────────
-    if (message.action === 'open_download_folder') {
-        chrome.storage.local.get(['downloadPath'], (result) => {
-            if (!nativePort) connectToNativeHost();
-            const port = nativePort;
-            if (!port) {
-                sendResponse({ status: 'error', error: 'native_not_connected' });
-                return;
-            }
-
-            const requestId = 'folder-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-            let responded = false;
-            let timeoutId = null;
-            const finish = (response) => {
-                if (responded) return;
-                responded = true;
-                if (timeoutId) clearTimeout(timeoutId);
-                try { port.onMessage.removeListener(folderListener); } catch (_) { }
-                sendResponse(response);
-            };
-            const folderListener = (msg) => {
-                if (msg?.action !== 'open_download_folder_result' || msg.requestId !== requestId) return;
-                finish(msg.status === 'success'
-                    ? { status: 'ok', path: msg.path || '' }
-                    : { status: 'error', error: 'open_failed' });
-            };
-
-            port.onMessage.addListener(folderListener);
-            timeoutId = setTimeout(() => finish({ status: 'error', error: 'timeout' }), 8000);
-
-            try {
-                port.postMessage({
-                    action: 'open_download_folder',
-                    requestId,
-                    path: typeof result.downloadPath === 'string' ? result.downloadPath : ''
-                });
-            } catch (_) {
-                finish({ status: 'error', error: 'postMessage failed' });
-            }
-        });
-        return true;
-    }
-
     // ── Download video (native host — yt-dlp) ─────────────────────────────────
     if (message.action === 'download_video_native') {
         const videoId = String(message.videoId || '');
@@ -639,7 +857,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             activeDownloads.set(dlKey, downloadEntry);
 
             // Read the user-configured save path and forward it to native host
-            chrome.storage.local.get(['downloadPath'], (res) => {
+            chrome.storage.local.get(['downloadPath', 'developerMode'], (res) => {
                 if (!nativePort) {
                     activeDownloads.delete(dlKey);
                     sendNativeMessageToTab(sender.tab?.id, {
@@ -662,11 +880,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         qualityHeight: message.qualityHeight,
                         isAudioOnly:   message.isAudioOnly,
                         isVideoAudio:  message.isVideoAudio,
-                        savePath:      res.downloadPath || ''
+                        savePath:      res.downloadPath || '',
+                        developerMode: res?.developerMode === true
+                    });
+                    void appendBackgroundLog('info', 'download.native_started', 'Native player download dispatched.', '', {
+                        videoId,
+                        downloadId,
+                        tabId: sender.tab?.id
                     });
                 } catch (error) {
                     activeDownloads.delete(dlKey);
                     console.warn('[BG] Native download dispatch failed:', error.message);
+                    void appendBackgroundLog('error', 'download.native_dispatch_failed', 'Native download dispatch failed.', error.message, {
+                        videoId,
+                        downloadId,
+                        tabId: sender.tab?.id
+                    });
                     sendNativeMessageToTab(sender.tab?.id, {
                         action: 'download_video_result',
                         status: 'error',
@@ -723,9 +952,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.action === 'download_video_browser') {
-        chrome.storage.local.get(['downloadPath'], (res) => {
+        chrome.storage.local.get(['downloadPath', 'developerMode'], (res) => {
             const videoId = String(message.videoId || '');
             if (!/^[A-Za-z0-9_-]{6,}$/.test(videoId) || !isAllowedGoogleVideoUrl(message.url)) {
+                void appendBackgroundLog('warn', 'download.browser_invalid_request', 'Browser download request was rejected.', '', { videoId });
                 sendResponse({ status: 'invalid_download_request' });
                 return;
             }
@@ -747,11 +977,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         url:          message.url,          // direct stream URL
                         isDirectUrl:  true,                 // tells host to wget/fetch the URL
                         isAudioOnly:  message.isAudioOnly || false,
-                        savePath:     customPath
+                        savePath:     customPath,
+                        developerMode: res?.developerMode === true
                     });
+                    void appendBackgroundLog('info', 'download.browser_native_started', 'Direct stream download dispatched to native host.', '', { videoId });
                     sendResponse({ status: 'sent_to_native' });
                 } catch (error) {
                     activeDownloads.delete(dlKey);
+                    void appendBackgroundLog('error', 'download.browser_native_dispatch_failed', 'Direct stream native dispatch failed.', error.message, { videoId });
                     sendResponse({ status: 'failed_native_dispatch', error: error.message });
                 }
             } else {
@@ -771,8 +1004,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     saveAs:   false          // ← never opens Save As / no 3rd-party intercept
                 }, (downloadId) => {
                     if (chrome.runtime.lastError || !downloadId) {
+                        void appendBackgroundLog('error', 'download.browser_failed', 'Browser download failed.', chrome.runtime.lastError?.message || '', { videoId });
                         sendResponse({ status: 'error', error: chrome.runtime.lastError?.message });
                     } else {
+                        void appendBackgroundLog('info', 'download.browser_started', 'Browser download started.', '', { videoId, downloadId });
                         sendResponse({ status: 'ok', downloadId });
                     }
                 });

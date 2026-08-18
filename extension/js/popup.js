@@ -3,6 +3,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── i18n — initialise FIRST, before touching any DOM text ────────────────
     await i18n.init();
     i18n.applyToDOM();
+    const popupLogger = typeof DeveloperLogger !== 'undefined'
+        ? DeveloperLogger.create('popup', 'popup')
+        : null;
+    popupLogger?.info('popup.loaded', 'Popup opened.');
 
     // ── Navigation ────────────────────────────────────────────────────────────
     const navItems = document.querySelectorAll('.nav-item');
@@ -12,6 +16,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         item.addEventListener('click', () => {
             if (item.id === 'nav-download') {
                 openStandaloneDownloader();
+                return;
+            }
+            if (item.id === 'nav-developer') {
+                openDeveloperConsole();
                 return;
             }
             navItems.forEach(n => n.classList.remove('active'));
@@ -29,6 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toggleBlocking = document.getElementById('toggle-blocking');
     const toggleHideHome = document.getElementById('hide-homepage-toggle');
     const toggleDownloader = document.getElementById('toggle-downloader');
+    const toggleDeveloperMode = document.getElementById('toggle-developer-mode');
     const premiumNotice = document.getElementById('premium-notice');
     const premiumChecking = document.getElementById('premium-checking');
     const statBlocked = document.getElementById('stat-blocked');
@@ -39,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const langSelect = document.getElementById('lang-select');
     const nativeBadge = document.getElementById('native-badge');
     const btnSetup = document.getElementById('btn-setup');
+    const btnDeveloperConsole = document.getElementById('btn-developer-console');
     const btnReset = document.getElementById('btn-reset');
     const aboutVersion = document.getElementById('about-version');
 
@@ -74,6 +84,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         'blockingEnabled',
         'hideHomepageShorts',
         'downloaderEnabled',
+        'developerMode',
         'adBlockerEnabled',
         'autoSkipShortsAds',
         'isPremium',
@@ -99,6 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         toggleBlocking.checked = blocking;
         toggleHideHome.checked = hideHome;
         toggleDownloader.checked = downloader;
+        if (toggleDeveloperMode) toggleDeveloperMode.checked = res.developerMode === true;
 
         applyPremiumUI(isPremium, isKnown, adBlocker, autoSkipShorts);
 
@@ -126,6 +138,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.runtime.sendMessage({ action: 'check_native_host_status' }, (res) => {
         const connected = !chrome.runtime.lastError && res?.status === 'connected';
         _nativeConnected = connected;
+        if (connected) popupLogger?.info('native.status_ready', 'Native Host status is connected.');
+        else popupLogger?.warn('native.status_unavailable', 'Native Host status is unavailable.', res?.error || chrome.runtime.lastError?.message || '');
         setNativeBadge(connected);
     });
 
@@ -165,6 +179,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 changes.adsBlockedCount.oldValue || 0,
                 changes.adsBlockedCount.newValue || 0, 700);
         }
+        if (changes.developerMode && toggleDeveloperMode) {
+            toggleDeveloperMode.checked = changes.developerMode.newValue === true;
+        }
     });
 
     // ── Language switcher ─────────────────────────────────────────────────────
@@ -190,6 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── Master toggle ─────────────────────────────────────────────────────────
     mainToggle.addEventListener('change', (e) => {
         const enabled = e.target.checked;
+        popupLogger?.info('settings.extension_enabled', `Extension enabled: ${enabled}.`);
         chrome.storage.local.set({ extensionEnabled: enabled });
         updateStatusUI(enabled);
         broadcastToYT({ action: 'toggle_extension', enabled });
@@ -197,21 +215,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ── Blocking toggle ───────────────────────────────────────────────────────
     toggleBlocking.addEventListener('change', (e) => {
+        popupLogger?.info('settings.blocking_enabled', `Channel blocking enabled: ${e.target.checked}.`);
         chrome.storage.local.set({ blockingEnabled: e.target.checked });
         broadcastToYT({ action: 'toggle_blocking', enabled: e.target.checked });
     });
 
     // ── Hide homepage toggle ──────────────────────────────────────────────────
     toggleHideHome.addEventListener('change', (e) => {
+        popupLogger?.info('settings.homepage_shorts_hidden', `Homepage Shorts hiding enabled: ${e.target.checked}.`);
         chrome.storage.local.set({ hideHomepageShorts: e.target.checked });
         broadcastToYT({ action: 'toggle_hide_shorts', enabled: e.target.checked });
     });
 
     // ── Downloader toggle ─────────────────────────────────────────────────────
     toggleDownloader.addEventListener('change', (e) => {
+        popupLogger?.info('settings.downloader_enabled', `Downloader enabled: ${e.target.checked}.`);
         chrome.storage.local.set({ downloaderEnabled: e.target.checked });
         broadcastToYT({ action: 'toggle_downloader', enabled: e.target.checked });
     });
+
+    // ── Developer mode toggle ────────────────────────────────────────────────
+    if (toggleDeveloperMode) {
+        toggleDeveloperMode.addEventListener('change', (e) => {
+            popupLogger?.info('developer.mode_changed', `Developer mode enabled: ${e.target.checked}.`);
+            if (typeof DeveloperLogger !== 'undefined') {
+                DeveloperLogger.setEnabled(e.target.checked);
+            } else {
+                chrome.storage.local.set({ developerMode: e.target.checked });
+            }
+        });
+    }
 
     // ── Ad Blocker toggle ─────────────────────────────────────────────────────
     if (toggleAdblocker) {
@@ -317,11 +350,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // ── Setup button ──────────────────────────────────────────────────────────
     btnSetup.addEventListener('click', () => {
+        popupLogger?.info('navigation.setup_opened', 'Setup page opened.');
         chrome.tabs.create({ url: chrome.runtime.getURL('views/setup.html') });
     });
 
+    if (btnDeveloperConsole) {
+        btnDeveloperConsole.addEventListener('click', openDeveloperConsole);
+    }
+
+    function openDeveloperConsole() {
+        popupLogger?.info('navigation.developer_console_opened', 'Developer Console opened.');
+        chrome.tabs.create({ url: chrome.runtime.getURL('views/developer.html') });
+    }
+
     // ── Standalone downloader page ────────────────────────────────────────────
     function openStandaloneDownloader() {
+        popupLogger?.info('navigation.downloader_opened', 'Standalone Downloader opened.');
         chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
             const activeUrl = tabs?.[0]?.url || '';
             let target = chrome.runtime.getURL('views/download.html');
@@ -382,7 +426,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             row.querySelector('button').addEventListener('click', () => {
                 chrome.storage.local.get(['blockedChannels'], (res) => {
-                    const newList = (res.blockedChannels || []).filter(c => c.id !== ch.id);
+                    const identityKeys = new Set([ch.id, ...(Array.isArray(ch.aliases) ? ch.aliases : [])]
+                        .filter(Boolean));
+                    const newList = (res.blockedChannels || []).filter(entry => {
+                        const entryKeys = [entry?.id, ...(Array.isArray(entry?.aliases) ? entry.aliases : [])]
+                            .filter(Boolean);
+                        return !entryKeys.some(key => identityKeys.has(key));
+                    });
                     chrome.storage.local.set({ blockedChannels: newList, blockedCount: newList.length });
                 });
             });

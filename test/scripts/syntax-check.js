@@ -24,7 +24,8 @@ function collectJavaScriptFiles(directory) {
 const files = [
     ...collectJavaScriptFiles(path.join(repositoryRoot, 'extension', 'js')),
     ...collectJavaScriptFiles(path.join(repositoryRoot, 'native-host')),
-    path.join(repositoryRoot, 'landing-demo.js')
+    path.join(repositoryRoot, 'landing-demo.js'),
+    path.join(repositoryRoot, 'landing-developer-demo.js')
 ].filter((filePath, index, allFiles) => allFiles.indexOf(filePath) === index)
     .sort((left, right) => left.localeCompare(right));
 

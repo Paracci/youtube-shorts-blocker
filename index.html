@@ -4,10 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>YouTube Shorts Blocker (v1.13.0) — Block Shorts. Download Your Way.</title>
+  <title>YouTube Shorts Blocker (v1.14.0) — Block Shorts. Download Your Way.</title>
   <meta name="description"
     content="A privacy-first Chrome extension that blocks Shorts channels, hides the Shorts shelf, and downloads public YouTube videos in six local output formats.">
-  <meta property="og:title" content="YouTube Shorts Blocker (v1.13.0)">
+  <meta property="og:title" content="YouTube Shorts Blocker (v1.14.0)">
   <meta property="og:description"
     content="Block Shorts channels, hide the Shorts shelf, and download public YouTube videos in the format you choose. Premium-aware and local-first.">
   <meta property="og:type" content="website">
@@ -18,6 +18,7 @@
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="./landing-demo.css?v=20260812">
+  <link rel="stylesheet" href="./landing-developer.css?v=20260819">
   <style>
     :root {
       --red: #ff0000;
@@ -1801,8 +1802,7 @@
         white-space: nowrap;
       }
 
-      .nav-links .nav-link:nth-of-type(4),
-      .nav-links .nav-link:nth-of-type(5) {
+      .nav-links .nav-link-optional {
         display: none;
       }
 
@@ -1831,8 +1831,9 @@
       <a href="#features" class="nav-link">Features</a>
       <a href="#how-it-works" class="nav-link">How it works</a>
       <a href="#download-demo" class="nav-link">Downloader</a>
-      <a href="#privacy" class="nav-link">Privacy</a>
-      <a href="#install" class="nav-link">Install</a>
+      <a href="#developer-demo" class="nav-link">Developer</a>
+      <a href="#privacy" class="nav-link nav-link-optional">Privacy</a>
+      <a href="#install" class="nav-link nav-link-optional">Install</a>
       <a href="https://github.com/Paracci/youtube-shorts-blocker" target="_blank" rel="noopener noreferrer" class="nav-cta">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
           <path
@@ -1851,7 +1852,7 @@
       <div class="hero-content">
         <div class="hero-badge">
           <div class="hero-badge-dot"></div>
-          v1.13.0 · Chrome Extension
+          v1.14.0 · Chrome Extension
         </div>
         <h1 class="hero-title">
           Block<br>
@@ -2544,7 +2545,7 @@
       </div>
 
       <!-- CARD 3: SETUP PAGE DEMO (full width) -->
-      <div class="showcase-card full-width fade-up">
+      <div id="setup-demo" class="showcase-card full-width fade-up">
         <div class="showcase-card-label">
           <span class="dot green"></span>
           setup.html · native host setup wizard
@@ -2611,6 +2612,148 @@
           <div class="showcase-info green">
             <span class="info-dot green">●</span> The setup wizard guides you through connecting Chrome to yt-dlp and
             verifying ffmpeg via Native Messaging — all running locally on your machine.
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 4: DEVELOPER CONSOLE DEMO (full width) -->
+      <div id="developer-demo" class="showcase-card full-width fade-up">
+        <div class="showcase-card-label">
+          <span class="dot blue"></span>
+          developer.html · global diagnostics console
+        </div>
+        <div class="showcase-card-body">
+          <div class="landing-developer-preview" data-landing-developer-demo>
+            <div class="developer-shell">
+              <header class="page-brand">
+                <div class="brand-lockup">
+                  <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25-.42 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5.2 3-5.2 3z" />
+                  </svg>
+                  <div>
+                    <div class="brand-name">Shorts Blocker</div>
+                    <div class="brand-kicker">Developer Console</div>
+                  </div>
+                </div>
+                <div class="page-brand-actions">
+                  <a class="header-link" href="#download-demo">Downloader</a>
+                  <a class="header-link" href="#setup-demo">Setup / Monitor</a>
+                </div>
+              </header>
+
+              <main class="developer-layout">
+                <section class="intro-card developer-intro" aria-labelledby="landing-developer-page-title">
+                  <div class="eyebrow">DEVELOPER CONSOLE</div>
+                  <h1 id="landing-developer-page-title">Extension diagnostics</h1>
+                  <p class="intro-copy">
+                    Local logs from every extension surface, kept for this browser session.
+                  </p>
+                  <div class="intro-status">
+                    <span class="status-dot active" aria-hidden="true"></span>
+                    <span>Sample session ready</span>
+                  </div>
+                </section>
+
+                <aside class="developer-side-column">
+                  <section class="side-card developer-mode-card" aria-labelledby="landing-developer-mode-title">
+                    <div class="side-card-heading">
+                      <div>
+                        <div class="eyebrow">DEVELOPER TOOLS</div>
+                        <h2 id="landing-developer-mode-title">Developer mode</h2>
+                      </div>
+                      <span class="side-card-mark" aria-hidden="true">●</span>
+                    </div>
+                    <p class="side-status">
+                      Collects local diagnostics from every extension surface for this browser session.
+                    </p>
+                    <label class="dev-mode-control" for="landing-developer-mode-toggle">
+                      <span class="dev-mode-label">Developer mode</span>
+                      <input id="landing-developer-mode-toggle" type="checkbox" checked>
+                      <span class="dev-mode-switch" aria-hidden="true"></span>
+                    </label>
+                  </section>
+
+                  <section class="side-card session-card" aria-labelledby="landing-developer-session-title">
+                    <div class="eyebrow">DEVELOPER CONSOLE</div>
+                    <h2 id="landing-developer-session-title">Session status</h2>
+                    <div class="console-status is-enabled" id="landing-developer-status" role="status" aria-live="polite">
+                      Developer mode on · Sample session
+                    </div>
+                    <div class="developer-count-grid">
+                      <div class="developer-count">
+                        <strong id="landing-developer-visible-count">8</strong>
+                        <span>Visible</span>
+                      </div>
+                      <div class="developer-count">
+                        <strong id="landing-developer-total-count">8</strong>
+                        <span>Total</span>
+                      </div>
+                    </div>
+                  </section>
+                </aside>
+
+                <section class="console-card" aria-labelledby="landing-developer-console-title">
+                  <div class="console-heading">
+                    <div>
+                      <div class="eyebrow">DEVELOPER CONSOLE</div>
+                      <h2 id="landing-developer-console-title">Extension diagnostics</h2>
+                    </div>
+                    <span class="console-badge">Local session</span>
+                  </div>
+
+                  <div class="toolbar">
+                    <label class="search-field">
+                      <span class="sr-only">Search logs</span>
+                      <input id="landing-developer-search" type="search" placeholder="Search logs…" autocomplete="off">
+                    </label>
+                    <label class="select-field">
+                      <span class="sr-only">Scope</span>
+                      <select id="landing-developer-scope-filter" aria-label="Scope">
+                        <option value="">All scopes</option>
+                      </select>
+                    </label>
+                    <label class="select-field">
+                      <span class="sr-only">Module</span>
+                      <select id="landing-developer-module-filter" aria-label="Module">
+                        <option value="">All modules</option>
+                      </select>
+                    </label>
+                    <label class="select-field">
+                      <span class="sr-only">Level</span>
+                      <select id="landing-developer-level-filter" aria-label="Level">
+                        <option value="">All levels</option>
+                        <option value="debug">DEBUG</option>
+                        <option value="info">INFO</option>
+                        <option value="warn">WARN</option>
+                        <option value="error">ERROR</option>
+                      </select>
+                    </label>
+                    <button id="landing-developer-copy" class="outline-button" type="button">Copy visible</button>
+                    <button id="landing-developer-clear" class="outline-button danger" type="button">Clear</button>
+                  </div>
+
+                  <div class="console-meta">
+                    <span>Local logs from every extension surface, kept for this browser session.</span>
+                    <span class="console-meta-mark" aria-hidden="true"></span>
+                  </div>
+
+                  <div class="log-wrap">
+                    <div id="landing-developer-log-list" class="log-list" role="log" aria-live="polite"></div>
+                    <div id="landing-developer-log-empty" class="log-empty" hidden>No diagnostic logs yet.</div>
+                  </div>
+                </section>
+              </main>
+
+              <p class="privacy-note">
+                Logs stay on this device for the current browser session. Sensitive URLs, tokens, cookies, paths, and page
+                markup are redacted.
+              </p>
+            </div>
+          </div>
+          <div class="showcase-info blue">
+            <span class="info-dot blue">●</span> This landing preview uses sanitized local sample logs. The real
+            extension console keeps diagnostics on this device for the current browser session.
           </div>
         </div>
       </div>
@@ -2767,6 +2910,7 @@
   </footer>
 
   <script src="./landing-demo.js?v=20260812"></script>
+  <script src="./landing-developer-demo.js?v=20260819"></script>
   <script>
     // Fade-up observer
     const fadeObs = new IntersectionObserver((entries) => {

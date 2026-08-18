@@ -94,6 +94,13 @@ button {
     margin-bottom: 30px;
 }
 
+.page-brand-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
 .brand-lockup {
     display: flex;
     align-items: center;
@@ -151,6 +158,68 @@ button {
 .header-link:focus-visible {
     border-color: rgba(62, 166, 255, .55);
     background: var(--blue-glow);
+}
+
+.dev-mode-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-2);
+    background: rgba(255, 255, 255, .025);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    user-select: none;
+    transition: color .15s, border-color .15s, background .15s;
+}
+
+.dev-mode-control:hover,
+.dev-mode-control:focus-within {
+    border-color: rgba(62, 166, 255, .45);
+    color: var(--text);
+    background: var(--blue-glow);
+}
+
+.dev-mode-control input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.dev-mode-switch {
+    position: relative;
+    width: 27px;
+    height: 15px;
+    border-radius: 999px;
+    background: var(--text-3);
+    transition: background .15s;
+}
+
+.dev-mode-switch::after {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    content: '';
+    background: #fff;
+    transition: transform .15s;
+}
+
+.dev-mode-control input:checked + .dev-mode-switch {
+    background: var(--blue);
+    box-shadow: 0 0 8px rgba(62, 166, 255, .42);
+}
+
+.dev-mode-control input:checked + .dev-mode-switch::after {
+    transform: translateX(12px);
 }
 
 .download-layout {
@@ -665,6 +734,102 @@ button {
     background: rgba(255, 0, 0, .2);
 }
 
+.developer-section {
+    border-color: rgba(62, 166, 255, .25);
+}
+
+.developer-log-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.developer-log-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border: 1px solid rgba(62, 166, 255, .24);
+    border-radius: 999px;
+    color: var(--blue);
+    background: var(--blue-glow);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+}
+
+.developer-hint {
+    margin: 8px 0 0;
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.developer-log-wrap {
+    max-height: 320px;
+    margin-top: 16px;
+    overflow: auto;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 10px;
+    background: #090909;
+    scrollbar-color: var(--card-hover) transparent;
+    scrollbar-width: thin;
+}
+
+.developer-log-list {
+    display: grid;
+    gap: 1px;
+    padding: 10px;
+    font-family: 'DM Mono', 'Cascadia Code', Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.developer-log-line {
+    display: grid;
+    grid-template-columns: auto auto auto minmax(0, 1fr);
+    gap: 8px;
+    padding: 3px 4px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.developer-log-time,
+.developer-log-stream {
+    color: var(--text-3);
+}
+
+.developer-log-level {
+    color: var(--blue);
+    font-weight: 700;
+}
+
+.developer-log-line.is-warn .developer-log-level {
+    color: var(--yellow);
+}
+
+.developer-log-line.is-error .developer-log-level {
+    color: var(--error);
+}
+
+.developer-log-line.is-error .developer-log-message {
+    color: #ffb0aa;
+}
+
+.developer-log-message {
+    min-width: 0;
+    color: #c8d8e5;
+}
+
+.developer-log-empty {
+    margin: 0;
+    padding: 18px 14px;
+    color: var(--text-3);
+    font-size: 11px;
+    text-align: center;
+}
+
 .jobs-notification {
     position: fixed;
     top: max(18px, calc(env(safe-area-inset-top) + 12px));
@@ -736,52 +901,6 @@ button {
     font-family: 'DM Mono', monospace;
     font-size: 10px;
     font-weight: 500;
-}
-
-.jobs-open-folder {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-height: 30px;
-    padding: 0 10px;
-    border: 1px solid rgba(62, 166, 255, .28);
-    border-radius: 999px;
-    color: var(--blue);
-    background: rgba(62, 166, 255, .08);
-    cursor: pointer;
-    font-size: 10px;
-    font-weight: 600;
-    white-space: nowrap;
-    transition: color .15s, border-color .15s, background .15s, transform .15s;
-}
-
-.jobs-open-folder svg {
-    width: 14px;
-    height: 14px;
-    fill: currentColor;
-}
-
-.jobs-open-folder:hover,
-.jobs-open-folder:focus-visible {
-    border-color: rgba(62, 166, 255, .62);
-    color: #fff;
-    background: rgba(62, 166, 255, .16);
-}
-
-.jobs-open-folder:active {
-    transform: scale(.97);
-}
-
-.jobs-open-folder:disabled {
-    cursor: wait;
-    opacity: .62;
-}
-
-.jobs-open-folder.is-success {
-    border-color: rgba(43, 166, 64, .52);
-    color: #68d779;
-    background: rgba(43, 166, 64, .12);
 }
 
 .jobs-panel-toggle {
@@ -1120,6 +1239,11 @@ button {
         margin-bottom: 22px;
     }
 
+    .page-brand-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
     .download-layout {
         display: flex;
         flex-direction: column;
@@ -1238,13 +1362,20 @@ button {
     .job-controls {
         justify-content: flex-start;
     }
+
+    .developer-log-line {
+        grid-template-columns: auto auto minmax(0, 1fr);
+    }
+
+    .developer-log-stream {
+        display: none;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .jobs-panel,
     .jobs-indicator,
     .job-progress-bar,
-    .jobs-open-folder,
     .jobs-panel-toggle svg {
         animation: none;
         transition: none;

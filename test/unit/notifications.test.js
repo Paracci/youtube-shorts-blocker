@@ -132,14 +132,6 @@ class Element {
 
         if (this._innerHTML.includes('<svg')) this.appendChild(new Element('svg', this.document));
 
-        const actionMatch = this._innerHTML.match(/<button[^>]*data-toast-action[^>]*>([\s\S]*?)<\/button>/i);
-        if (actionMatch) {
-            const button = new Element('button', this.document);
-            button.setAttribute('data-toast-action', '');
-            button.hidden = true;
-            button.textContent = actionMatch[1].replace(/<[^>]+>/g, '');
-            this.appendChild(button);
-        }
     }
 
     get innerHTML() {
@@ -216,45 +208,19 @@ function makeHarness() {
     return { context, document };
 }
 
-test('YouTube notification action stays hidden until completion and invokes the folder callback', () => {
+test('generic notifications retain the compact toast shape', () => {
     const harness = makeHarness();
-    const notification = vm.runInContext(`showYouTubeNotification(
-        'Example video',
-        'Preparing',
-        'abc12345678',
-        'preparing',
-        { actionLabel: 'Open folder', onAction: () => { actionCalls += 1; } }
-    )`, harness.context);
-
-    const stack = harness.document.getElementById('my-yt-notification-stack');
-    assert.ok(stack);
-    assert.match(stack.style.cssText, /position:\s*fixed/);
-    assert.equal(stack.childElementCount, 1);
-
-    const toast = stack.children[0];
-    const action = toast.querySelector('[data-toast-action]');
-    assert.ok(action);
-    assert.equal(action.hidden, true);
-
-    notification.showAction();
-    assert.equal(action.hidden, false);
-    action.click();
-    assert.equal(harness.context.actionCalls, 1);
-
-    notification.success('Complete');
-    assert.equal(toast.style.backgroundColor, '#2e7d32');
-    assert.equal(toast.querySelector('[data-toast-message]').textContent, 'Complete');
-});
-
-test('notifications without an action do not render a misleading folder control', () => {
-    const harness = makeHarness();
-    vm.runInContext("showYouTubeNotification('', 'Downloading', null, 'preparing')", harness.context);
+    const notification = vm.runInContext("showYouTubeNotification('', 'Downloading', null, 'preparing')", harness.context);
     const stack = harness.document.getElementById('my-yt-notification-stack');
     assert.equal(stack.childElementCount, 1);
-    assert.equal(stack.children[0].querySelector('[data-toast-action]'), null);
+
+    notification.setState('unavailable', 'Local block active');
+    assert.equal(stack.children[0].dataset.state, 'unavailable');
+    notification.success('Synced');
+    assert.equal(stack.children[0].dataset.state, 'success');
 });
 
-test('download notification cards expose progress, cancel, folder, and retry states', () => {
+test('download notification cards expose progress, cancel, and retry states', () => {
     const harness = makeHarness();
     const notification = vm.runInContext(`showYouTubeNotification(
         'Example video',
@@ -266,7 +232,6 @@ test('download notification cards expose progress, cancel, folder, and retry sta
             downloadId: 'download-test-01',
             formatLabel: '1080p MP4',
             onCancel: () => { actionCalls += 1; },
-            onAction: () => { actionCalls += 10; },
             onRetry: () => { actionCalls += 100; }
         }
     )`, harness.context);
@@ -302,19 +267,12 @@ test('download notification cards expose progress, cancel, folder, and retry sta
     assert.equal(cancel.disabled, true);
     assert.equal(harness.context.actionCalls, 1);
 
-    notification.success('Complete', { percent: 100 });
-    notification.showAction();
-    const folder = card.querySelector('.yt-download-notification__action--folder');
-    assert.equal(folder.hidden, false);
-    folder.click();
-    assert.equal(harness.context.actionCalls, 11);
-
     notification.setState('error', 'Failed');
     notification.showRetry();
     const retry = card.querySelector('.yt-download-notification__action--retry');
     assert.equal(retry.hidden, false);
     retry.click();
-    assert.equal(harness.context.actionCalls, 111);
+    assert.equal(harness.context.actionCalls, 101);
     assert.equal(notification.isVisible(), true);
 });
 

@@ -21,8 +21,10 @@
                     <div class="brand-kicker" data-i18n="downloadKicker">Private YouTube downloader</div>
                 </div>
             </div>
-            <a class="header-link" href="setup.html" target="_blank" rel="noopener noreferrer"
-                data-i18n="btnSetupMonitor">Setup / Monitor</a>
+            <div class="page-brand-actions">
+                <a class="header-link" href="setup.html" target="_blank" rel="noopener noreferrer"
+                    data-i18n="btnSetupMonitor">Setup / Monitor</a>
+            </div>
         </header>
 
         <main class="download-layout">
@@ -171,14 +173,6 @@
                         </h2>
                     </div>
                     <div class="jobs-panel-header-actions">
-                        <button class="jobs-open-folder" id="jobs-open-folder" type="button"
-                            data-i18n-title="downloadOpenFolder">
-                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                                <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
-                                <path d="M12 10v3H9l3 3 3-3h-3v-3z" />
-                            </svg>
-                            <span data-i18n="downloadOpenFolder">Open folder</span>
-                        </button>
                         <button class="icon-button jobs-panel-toggle" id="jobs-panel-toggle" type="button"
                             aria-expanded="true" aria-controls="jobs-panel-body"
                             data-i18n-title="downloadJobsCollapse">
@@ -214,6 +208,7 @@
 
     <script src="../js/i18n/translations.js"></script>
     <script src="../js/download-policy.js"></script>
+    <script src="../js/developer-logger.js"></script>
     <script src="../js/download-page.js"></script>
 </body>
 

@@ -102,8 +102,8 @@
                     <h2 data-i18n="sectionShorts">Shorts Blocking</h2>
                     <div class="card-row">
                         <div>
-                            <div class="row-label" data-i18n="settingBlockAuto">Block channels automatically</div>
-                            <div class="row-sublabel" data-i18n="settingBlockAutoSub">Adds channel to blocklist on click
+                            <div class="row-label" data-i18n="channelFilterSetting">Enable local channel filtering</div>
+                            <div class="row-sublabel" data-i18n="channelFilterSettingSub">Adds a Block button and hides saved channels from recommendations
                             </div>
                         </div>
                         <label class="toggle-switch">
@@ -155,11 +155,11 @@
                         </label>
                     </div>
 
-                    <!-- Auto-scroll Shorts ads (Isolated for safety) -->
+                    <!-- Hide and auto-skip Shorts ads (marker-based) -->
                     <div class="card-row">
                         <div>
-                            <div class="row-label" data-i18n="settingAutoSkipAds">Auto-scroll Shorts ads</div>
-                            <div class="row-sublabel" data-i18n="settingAutoSkipAdsSub">Automatically skip to the next video when an ad is detected (High Risk)</div>
+                            <div class="row-label" data-i18n="settingAutoSkipAds">Hide and auto-skip Shorts ads</div>
+                            <div class="row-sublabel" data-i18n="settingAutoSkipAdsSub">Hides detected Shorts ads and moves to the next video (marker-based; some ads may not be detected)</div>
                         </div>
                         <label class="toggle-switch">
                             <input type="checkbox" id="toggle-auto-skip-shorts" checked>
@@ -212,6 +212,26 @@
 
                         <div class="path-status-line" id="download-path-status"></div>
                     </div>
+
+                </div>
+
+                <!-- Developer tools -->
+                <div class="card">
+                    <h2 data-i18n="sectionDeveloper">Developer tools</h2>
+                    <div class="card-row">
+                        <div>
+                            <div class="row-label" data-i18n="settingDeveloperMode">Developer mode</div>
+                            <div class="row-sublabel" data-i18n="settingDeveloperModeSub">Collects local diagnostics from every extension surface for this browser session</div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-developer-mode">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <button class="action-btn" id="btn-developer-console" style="width:100%;justify-content:center;"
+                        data-i18n="developerOpenConsole">
+                        Open Developer Console
+                    </button>
                 </div>
 
                 <!-- Language -->
@@ -265,15 +285,13 @@
                 <div class="card" style="border-left:3px solid #f0a500;">
                     <p style="font-size:12px;color:var(--yt-text-secondary);margin:0;line-height:1.6;">
                         <b style="color:#f0a500;">ℹ Note:</b>
-                        <span data-i18n="blocklistNote">Blocking sends YouTube's own "Don't recommend channel" signal —
-                            this list just tracks it.</span>
+                        <span data-i18n="blocklistLocalNote">Blocked channels are hidden locally from Shorts and recommendations. YouTube account sync is attempted when available.</span>
                         <b style="color:var(--yt-text-primary);" data-i18n="blocklistNoteRemove">"Remove from list"</b>
-                        <span data-i18n="blocklistNoteRemoveSub">only removes the entry here; YouTube's recommendation
-                            filter stays active. To fully unblock a channel, visit your</span>
+                        <span data-i18n="blocklistRemoveLocalNote">Removing this entry immediately restores the local filter. A previous YouTube signal may remain.</span>
                         <a href="https://myactivity.google.com/page?page=youtube_user_feedback" target="_blank" rel="noopener noreferrer"
                             style="color:#f0a500;text-decoration:underline;" data-i18n="blocklistNoteLink">Google My
                             Activity → YouTube feedback</a>
-                        page and delete the "Don't recommend" entries there.
+                        .
                     </p>
                 </div>
                 <div class="card">
@@ -328,6 +346,12 @@
                     </svg>
                     <span data-i18n="navDownloader">Downloader</span>
                 </button>
+                <button class="nav-item nav-item-external" id="nav-developer" type="button">
+                    <svg viewBox="0 0 24 24">
+                        <path d="m8.7 17.3-1.4-1.4 3.9-3.9-3.9-3.9 1.4-1.4 5.3 5.3-5.3 5.3zM15 17h6v-2h-6v2z" />
+                    </svg>
+                    <span data-i18n="developerOpenConsole">Open Developer Console</span>
+                </button>
                 <button class="nav-item" data-target="page-settings">
                     <svg viewBox="0 0 24 24">
                         <path
@@ -361,6 +385,7 @@
 
     <script src="../js/i18n/translations.js"></script>
     <script src="../js/download-policy.js"></script>
+    <script src="../js/developer-logger.js"></script>
     <script src="../js/popup.js"></script>
 </body>
 

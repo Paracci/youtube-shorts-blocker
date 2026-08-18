@@ -3,6 +3,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ── i18n — initialise FIRST ───────────────────────────────────────────────
     await i18n.init();
     i18n.applyToDOM();
+    const setupLogger = typeof DeveloperLogger !== 'undefined'
+        ? DeveloperLogger.create('setup', 'setup')
+        : null;
+    setupLogger?.info('setup.loaded', 'Setup page loaded.');
 
     // ── Element refs ──────────────────────────────────────────────────────────
     const statusIndicator = document.getElementById('status-indicator');
@@ -35,12 +39,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     function setStatus(state) {
         statusIndicator.className = 'status-dot';
         if (state === 'checking') {
+            setupLogger?.debug('native.health_check_started', 'Checking Native Host connection.');
             statusIndicator.classList.add('checking');
             statusText.textContent = i18n.t('setupStatusChecking');
             instructionsBlock.style.display = 'none';
             checkBtn.style.display = 'none';
 
         } else if (state === 'connected') {
+            setupLogger?.info('native.connected', 'Native Host connection is ready.');
             statusIndicator.classList.add('connected');
             statusText.textContent = i18n.t('setupStatusConnected');
 
@@ -50,6 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }, 600);
 
         } else if (state === 'disconnected') {
+            setupLogger?.warn('native.disconnected', 'Native Host was not detected.');
             statusIndicator.classList.add('disconnected');
             statusText.textContent = i18n.t('setupStatusDisconnected');
             instructionsBlock.style.display = 'block';
@@ -84,14 +91,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         chrome.runtime.sendMessage({ action: 'check_native_host_status' }, (response) => {
             if (chrome.runtime.lastError) {
+                setupLogger?.error('native.health_check_failed', 'Native Host health check failed.', chrome.runtime.lastError.message);
                 setMediaToolsStatus(null);
                 setStatus('disconnected');
                 return;
             }
             setMediaToolsStatus(response);
             if (response && response.status === 'connected') {
+                setupLogger?.info('native.health_check_succeeded', 'Native Host health check succeeded.');
                 setStatus('connected');
             } else {
+                setupLogger?.warn('native.health_check_rejected', 'Native Host health check returned a disconnected state.', response?.error || '');
                 setStatus('disconnected');
             }
         });
@@ -119,9 +129,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             updateLogContainer.classList.remove('hidden');
             updateLogContainer.textContent = i18n.t('setupUpdateStart') + '\n';
+            setupLogger?.info('native.update_started', 'yt-dlp update requested.');
 
             chrome.runtime.sendMessage({ action: 'update_downloader_native' }, (res) => {
                 if (chrome.runtime.lastError || res?.status === 'failed_native_connect') {
+                    setupLogger?.error('native.update_dispatch_failed', 'Could not dispatch yt-dlp update.', chrome.runtime.lastError?.message || '');
                     updateLogContainer.textContent += '\n' + i18n.t('setupUpdateError');
                     resetUpdateBtn();
                 }
@@ -137,10 +149,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateLogContainer.textContent += (data.data || data.message || '') + '\n';
                 updateLogContainer.scrollTop = updateLogContainer.scrollHeight;
             } else if (data.status === 'error') {
+                setupLogger?.error('native.update_failed', data.message || i18n.t('setupUpdateError'));
                 updateLogContainer.textContent += '\n' + (data.message || i18n.t('setupUpdateError')) + '\n';
                 updateLogContainer.scrollTop = updateLogContainer.scrollHeight;
                 resetUpdateBtn();
             } else if (data.status === 'update_success') {
+                setupLogger?.info('native.update_completed', data.message || i18n.t('setupUpdateDone'));
                 updateLogContainer.textContent += '\n' + i18n.t('setupUpdateDone') + '\n';
                 updateLogContainer.scrollTop = updateLogContainer.scrollHeight;
 

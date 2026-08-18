@@ -38,12 +38,9 @@ test('all supported languages have the same base and downloader key sets', () =>
     });
 });
 
-test('folder actions and job panel labels are translated in every language', () => {
+test('job panel labels are translated in every language', () => {
     const data = readTranslationData();
     const required = [
-        'downloadOpenFolder',
-        'downloadFolderOpened',
-        'downloadOpenFolderError',
         'downloadJobsCollapse',
         'downloadJobsExpand',
         'downloadJobsActive',
@@ -61,7 +58,7 @@ test('folder actions and job panel labels are translated in every language', () 
 
     const english = data.download.en;
     data.supported.filter(language => language !== 'en').forEach(language => {
-        required.slice(0, 3).forEach(key => {
+        required.slice(0, 1).forEach(key => {
             assert.notEqual(data.download[language][key], english[key], `${language}.${key} fell back to English`);
         });
     });

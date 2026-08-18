@@ -158,6 +158,30 @@ test('native command construction covers every approved video and audio output',
     }
 });
 
+test('YouTube downloads pin the supported JS runtime and embedded player client', () => {
+    assert.deepEqual(host.getYtdlpRuntimeArgs(), ['--js-runtimes', 'node:' + process.execPath]);
+    assert.deepEqual(host.getYtdlpYouTubeArgs(), [
+        '--js-runtimes', 'node:' + process.execPath,
+        '--extractor-args',
+        'youtube:player_client=web_embedded'
+    ]);
+
+    const args = host.buildPageDownloadArgs({
+        saveDir: 'C:\\Users\\Test\\Downloads',
+        title: 'Video',
+        label: 'best_mp4',
+        outputFormat: 'mp4',
+        ffmpegPath: 'C:\\Tools\\ffmpeg\\ffmpeg.exe',
+        selector: 'bestvideo+bestaudio/best',
+        audioOnly: false,
+        url: 'https://www.youtube.com/watch?v=abc12345678'
+    });
+    assert.equal(args.includes('--js-runtimes'), true);
+    assert.equal(args.includes('node:' + process.execPath), true);
+    assert.equal(args.includes('--extractor-args'), true);
+    assert.equal(args.includes('youtube:player_client=web_embedded'), true);
+});
+
 test('page download command is an argument array with safe output rules', () => {
     const videoArgs = host.buildPageDownloadArgs({
         saveDir: 'C:\\Users\\Test\\Downloads',
@@ -187,6 +211,19 @@ test('page download command is an argument array with safe output rules', () => 
     });
     assert.deepEqual(audioArgs.slice(-6, -1), ['-x', '--audio-format', 'mp3', '--audio-quality', '0']);
     assert.equal(audioArgs.includes('--merge-output-format'), false);
+
+    const developerArgs = host.buildPageDownloadArgs({
+        saveDir: 'C:\\Users\\Test\\Downloads',
+        title: 'Debug video',
+        label: 'best_mp4',
+        outputFormat: 'mp4',
+        ffmpegPath: 'C:\\Tools\\ffmpeg\\ffmpeg.exe',
+        selector: 'bestvideo+bestaudio/best',
+        audioOnly: false,
+        url: 'https://www.youtube.com/watch?v=abc12345678',
+        developerMode: true
+    });
+    assert.equal(developerArgs[0], '--verbose');
 });
 
 test('folder and direct-stream policies fail closed', () => {
@@ -199,27 +236,6 @@ test('folder and direct-stream policies fail closed', () => {
     assert.equal(host.isAllowedDirectUrl('http://r1.googlevideo.com/videoplayback'), false);
     assert.equal(host.isAllowedDirectUrl('https://youtube.com/watch?v=abc12345678'), false);
     assert.equal(host.isAllowedDirectUrl('https://googlevideo.com.evil.example/videoplayback'), false);
-});
-
-test('folder opener resolves Windows Explorer explicitly without shell parsing', () => {
-    assert.equal(
-        host.getExplorerExecutable({ WINDIR: 'C:\\Windows', SystemRoot: '' }, 'win32'),
-        path.join('C:\\Windows', 'explorer.exe')
-    );
-    assert.equal(
-        host.getExplorerExecutable({ WINDIR: '', SystemRoot: 'D:\\SystemRoot' }, 'win32'),
-        path.join('D:\\SystemRoot', 'explorer.exe')
-    );
-
-    const command = host.buildOpenFolderCommand('C:\\Users\\Test User\\Downloads', {
-        WINDIR: 'C:\\Windows',
-        SystemRoot: ''
-    }, 'win32');
-    assert.deepEqual(command, {
-        executable: path.join('C:\\Windows', 'explorer.exe'),
-        args: ['C:\\Users\\Test User\\Downloads']
-    });
-    assert.throws(() => host.buildOpenFolderCommand('relative\\folder', {}, 'win32'), /absolute/i);
 });
 
 test('verified ffmpeg artifact metadata is pinned', () => {

@@ -9,7 +9,7 @@ const vm = require('node:vm');
 const repoRoot = path.resolve(__dirname, '..', '..');
 const source = fs.readFileSync(path.join(repoRoot, 'extension', 'js', 'background.js'), 'utf8');
 
-function makeBackgroundHarness({ connectThrows = false } = {}) {
+function makeBackgroundHarness({ connectThrows = false, developerMode = false } = {}) {
     const runtime = { onMessage: [], onConnect: [], onInstalled: [] };
     const nativeMessages = [];
     const tabMessages = [];
@@ -36,7 +36,9 @@ function makeBackgroundHarness({ connectThrows = false } = {}) {
         emit(message) { [...messageListeners].forEach(listener => listener(message)); }
     };
     const storage = {
-        get(_key, callback) { callback({ downloadPath: 'C:\\Users\\Test\\Downloads' }); },
+        get(_key, callback) {
+            callback({ downloadPath: 'C:\\Users\\Test\\Downloads', developerMode });
+        },
         set(_value, callback) { callback?.(); }
     };
     const chrome = {
@@ -109,46 +111,6 @@ function callMessage(harness, message) {
     });
 }
 
-test('background routes open-folder requests through storage and native messaging', async () => {
-    const harness = makeBackgroundHarness();
-    const responsePromise = callMessage(harness, { action: 'open_download_folder' });
-    assert.equal(harness.nativeMessages.length, 1);
-    const request = harness.nativeMessages[0];
-    assert.equal(request.action, 'open_download_folder');
-    assert.equal(request.path, 'C:\\Users\\Test\\Downloads');
-    assert.match(request.requestId, /^folder-/);
-
-    harness.nativePort.emit({ action: 'open_download_folder_result', requestId: 'folder-wrong', status: 'success' });
-    let settled = false;
-    responsePromise.then(() => { settled = true; });
-    await new Promise(resolve => setImmediate(resolve));
-    assert.equal(settled, false);
-
-    harness.nativePort.emit({ action: 'open_download_folder_result', requestId: request.requestId, status: 'success', path: request.path });
-    assert.deepEqual({ ...await responsePromise }, { status: 'ok', path: request.path });
-});
-
-test('background keeps concurrent folder requests isolated by requestId', async () => {
-    const harness = makeBackgroundHarness();
-    const first = callMessage(harness, { action: 'open_download_folder' });
-    const second = callMessage(harness, { action: 'open_download_folder' });
-    const requests = harness.nativeMessages.slice(-2);
-    assert.notEqual(requests[0].requestId, requests[1].requestId);
-
-    harness.nativePort.emit({ action: 'open_download_folder_result', requestId: requests[1].requestId, status: 'success', path: requests[1].path });
-    harness.nativePort.emit({ action: 'open_download_folder_result', requestId: requests[0].requestId, status: 'success', path: requests[0].path });
-    assert.deepEqual({ ...await first }, { status: 'ok', path: requests[0].path });
-    assert.deepEqual({ ...await second }, { status: 'ok', path: requests[1].path });
-});
-
-test('background fails closed when the native host cannot connect', async () => {
-    const harness = makeBackgroundHarness({ connectThrows: true });
-    assert.deepEqual({ ...await callMessage(harness, { action: 'open_download_folder' }) }, {
-        status: 'error',
-        error: 'native_not_connected'
-    });
-});
-
 test('background isolates standalone page formats, jobs, progress, results, and cancellation', () => {
     const harness = makeBackgroundHarness();
     const firstPage = harness.connectPage('download-page');
@@ -176,6 +138,16 @@ test('background isolates standalone page formats, jobs, progress, results, and 
     });
     assert.equal(firstPage.messages.at(-1).requestId, firstRequestId);
     assert.equal(secondPage.messages.length, 0);
+
+    harness.nativePort.emit({
+        action: 'download_page_log',
+        requestId: firstRequestId,
+        level: 'error',
+        stream: 'stderr',
+        message: 'Detailed resolve failure'
+    });
+    assert.equal(firstPage.messages.at(-1).action, 'download_page_log');
+    assert.equal(secondPage.messages.some(message => message.message === 'Detailed resolve failure'), false);
 
     harness.nativePort.emit({
         action: 'download_page_formats',
@@ -208,6 +180,7 @@ test('background isolates standalone page formats, jobs, progress, results, and 
     assert.equal(downloadMessages.length, 2);
     assert.equal(downloadMessages[0].jobId, firstJobId);
     assert.equal(downloadMessages[1].jobId, secondJobId);
+    assert.equal(downloadMessages[0].developerMode, false);
     assert.equal(downloadMessages[0].formatId, '18');
     assert.equal(downloadMessages[1].profileId, 'audio_mp3');
     assert.equal(firstPage.messages.at(-1).action, 'download_page_dispatch_result');
@@ -217,6 +190,16 @@ test('background isolates standalone page formats, jobs, progress, results, and 
     assert.equal(firstPage.messages.at(-1).jobId, firstJobId);
     assert.equal(firstPage.messages.at(-1).percent, 42);
     assert.equal(secondPage.messages.some(message => message.jobId === firstJobId), false);
+
+    harness.nativePort.emit({
+        action: 'download_page_log',
+        requestId: firstRequestId,
+        jobId: firstJobId,
+        level: 'warn',
+        message: 'Detailed process output'
+    });
+    assert.equal(firstPage.messages.at(-1).action, 'download_page_log');
+    assert.equal(secondPage.messages.some(message => message.message === 'Detailed process output'), false);
 
     firstPage.emit({ action: 'cancel_download', requestId: firstRequestId, jobId: firstJobId });
     const cancelMessage = harness.nativeMessages.at(-1);
@@ -263,6 +246,31 @@ test('background rejects standalone selections that do not match the resolved re
     assert.equal(response.status, 'error');
     assert.equal(response.errorCode, 'invalid_download_request');
     assert.equal(harness.nativeMessages.some(message => message.action === 'download_video'), false);
+});
+
+test('background forwards persisted developer mode only to standalone page jobs', () => {
+    const harness = makeBackgroundHarness({ developerMode: true });
+    const page = harness.connectPage('download-page');
+    const requestId = 'request-D01';
+    const jobId = 'job-D-0001';
+    const url = 'https://www.youtube.com/watch?v=abc12345678';
+
+    page.emit({ action: 'resolve_formats', requestId, url });
+    assert.equal(harness.nativeMessages.at(-1).developerMode, true);
+
+    page.emit({
+        action: 'start_download',
+        requestId,
+        jobId,
+        url,
+        formatId: '18',
+        outputFormat: 'mp4',
+        title: 'Debug video'
+    });
+    const pageDownload = harness.nativeMessages.at(-1);
+    assert.equal(pageDownload.action, 'download_video');
+    assert.equal(pageDownload.mode, 'page');
+    assert.equal(pageDownload.developerMode, true);
 });
 
 test('background isolates normal YouTube download progress and cancellation by downloadId', async () => {

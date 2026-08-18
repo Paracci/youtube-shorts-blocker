@@ -20,6 +20,8 @@ const FFMPEG_ARCHIVE_URL =
     FFMPEG_RELEASE_TAG + '/' + FFMPEG_ARCHIVE_NAME;
 const FFMPEG_ARCHIVE_SHA256 =
     'e9d24d8cdd3c2aab4bc5923839d777b693d72a5cb6152bf61c263454b9023dd6';
+const YOUTUBE_PLAYER_CLIENT = 'web_embedded';
+const YTDLP_JS_RUNTIME = 'node';
 
 let ytdlpInstallPromise = null;
 let ffmpegInstallPromise = null;
@@ -262,7 +264,69 @@ function redactStreamUrls(value) {
     );
 }
 
-function runCaptured(binary, args, maxBytes = 24 * 1024 * 1024) {
+function redactDiagnosticText(value) {
+    return redactStreamUrls(String(value || ''))
+        .replace(/\b(authorization|proxy-authorization|cookie|set-cookie)\s*[:=]\s*[^\r\n;]+/gi, '$1: [redacted]')
+        .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi, '$1 [redacted]')
+        .replace(/([?&](?:sig|signature|token|auth|key|poToken|visitorData|expire)=)[^&#\s]*/gi, '$1[redacted]')
+        .replace(/(?:[A-Za-z]:\\Users\\[^\r\n]+|[A-Za-z]:\\[^\r\n]+\\Downloads\\[^\r\n]*)/gi, '[local path hidden]')
+        .replace(/\/Users\/[^\r\n]+/gi, '[local path hidden]');
+}
+
+function getYtdlpRuntimeArgs() {
+    // The native host is already running under Node. Passing its exact
+    // executable path avoids relying on Chrome's inherited PATH, which can be
+    // different from the interactive shell used during setup.
+    const executable = typeof process.execPath === 'string' && process.execPath
+        ? process.execPath
+        : YTDLP_JS_RUNTIME;
+    return ['--js-runtimes', `${YTDLP_JS_RUNTIME}:${executable}`];
+}
+
+function getYtdlpYouTubeArgs() {
+    return [
+        ...getYtdlpRuntimeArgs(),
+        '--extractor-args',
+        `youtube:player_client=${YOUTUBE_PLAYER_CLIENT}`
+    ];
+}
+
+function emitDeveloperLog(request, level, message, stream = '', phase = '', event = '') {
+    if (request?.developerMode !== true) return;
+    const lines = redactDiagnosticText(String(message || ''))
+        .replace(/\r/g, '')
+        .split('\n')
+        .map(line => line.trim().slice(0, 2000))
+        .filter(Boolean);
+    if (!lines.length) return;
+
+    lines.forEach(line => sendMessage({
+        action: 'developer_log',
+        scope: 'native-host',
+        module: request.module || phase || 'native-host',
+        event: event || `native.${phase || stream || 'output'}`,
+        requestId: isPageId(request.requestId) ? request.requestId : '',
+        jobId: isPageId(request.jobId) ? request.jobId : '',
+        downloadId: isDownloadId(request.downloadId) ? request.downloadId : '',
+        videoId: /^[A-Za-z0-9_-]{6,}$/.test(String(request.videoId || '')) ? request.videoId : '',
+        level: ['debug', 'info', 'warn', 'error'].includes(level) ? level : 'info',
+        stream: stream || '',
+        phase: phase || '',
+        timestamp: Date.now(),
+        message: line
+    }));
+}
+
+function emitPageLog(request, level, message, stream = '', phase = '') {
+    emitDeveloperLog(request, level, message, stream, phase, `download.${phase || 'output'}`);
+}
+
+function appendOutputTail(current, chunk, maxLength = 8000) {
+    const next = String(current || '') + String(chunk || '');
+    return next.length > maxLength ? next.slice(-maxLength) : next;
+}
+
+function runCaptured(binary, args, maxBytes = 24 * 1024 * 1024, onOutput = null) {
     return new Promise((resolve, reject) => {
         let child;
         try {
@@ -287,8 +351,14 @@ function runCaptured(binary, args, maxBytes = 24 * 1024 * 1024) {
             return next;
         };
 
-        child.stdout.on('data', chunk => { stdout = append(stdout, chunk); });
-        child.stderr.on('data', chunk => { stderr = append(stderr, chunk); });
+        child.stdout.on('data', chunk => {
+            if (typeof onOutput === 'function') onOutput('stdout', chunk.toString());
+            stdout = append(stdout, chunk);
+        });
+        child.stderr.on('data', chunk => {
+            if (typeof onOutput === 'function') onOutput('stderr', chunk.toString());
+            stderr = append(stderr, chunk);
+        });
         child.on('error', reject);
         child.on('close', code => {
             if (tooLarge) {
@@ -339,14 +409,18 @@ function normalizeYtdlpFormat(format) {
     };
 }
 
-async function extractVideoMetadata(url) {
-    const result = await runCaptured(YTDLP_BIN, [
+async function extractVideoMetadata(url, options = {}) {
+    const developerMode = options?.developerMode === true;
+    const args = [
+        ...getYtdlpYouTubeArgs(),
         '--dump-single-json',
         '--skip-download',
         '--no-playlist',
         '--no-warnings',
         url
-    ]);
+    ];
+    if (developerMode) args.unshift('--verbose');
+    const result = await runCaptured(YTDLP_BIN, args, 24 * 1024 * 1024, options?.onOutput);
     const data = parseJsonOutput(result.stdout);
     const formats = Array.isArray(data.formats) ? data.formats : [];
     const unique = new Map();
@@ -591,28 +665,10 @@ function resolveDownloadFolderPath(requestedPath, homeDirectory = process.env.US
     return path.resolve(value || defaultPath);
 }
 
-function getExplorerExecutable(environment = process.env, platform = process.platform) {
-    if (platform !== 'win32') return 'explorer.exe';
-
-    const windowsRoot = [environment?.WINDIR, environment?.SystemRoot, 'C:\\Windows']
-        .find(value => typeof value === 'string' && value.trim());
-    return path.join(windowsRoot, 'explorer.exe');
-}
-
-function buildOpenFolderCommand(folderPath, environment = process.env, platform = process.platform) {
-    if (typeof folderPath !== 'string' || !path.isAbsolute(folderPath)) {
-        throw new Error('The download folder must be an absolute local path.');
-    }
-
-    return {
-        executable: getExplorerExecutable(environment, platform),
-        args: [folderPath]
-    };
-}
-
-function buildPageDownloadArgs({ saveDir, title, label, outputFormat, ffmpegPath, selector, audioOnly, url }) {
+function buildPageDownloadArgs({ saveDir, title, label, outputFormat, ffmpegPath, selector, audioOnly, url, developerMode = false }) {
     const outputTemplate = path.join(saveDir, title + ' [' + label + '].%(ext)s');
     const args = [
+        ...getYtdlpYouTubeArgs(),
         '--newline',
         '--no-playlist',
         '--no-part',
@@ -626,6 +682,8 @@ function buildPageDownloadArgs({ saveDir, title, label, outputFormat, ffmpegPath
         '-o',
         outputTemplate
     ];
+
+    if (developerMode === true) args.unshift('--verbose');
 
     if (audioOnly) {
         args.push('-x', '--audio-format', outputFormat, '--audio-quality', '0');
@@ -678,11 +736,27 @@ async function handlePageDownload(request) {
 
     pageJobReservations.add(jobId);
 
+    const developerMode = request.developerMode === true;
+    let stdoutTail = '';
+    let stderrTail = '';
+    const log = (level, message, stream = '', phase = 'download') => {
+        emitPageLog(request, level, message, stream, phase);
+    };
+
     try {
+        log('info', 'Preparing yt-dlp and media tools.');
         await ensureYtdlp();
-        const metadata = await extractVideoMetadata(parsed.canonicalUrl);
+        log('info', 'yt-dlp is ready; reading video metadata.');
+        const metadata = await extractVideoMetadata(parsed.canonicalUrl, {
+            developerMode,
+            onOutput: (stream, chunk) => log('debug', chunk, stream, 'metadata')
+        });
+        log('info', 'Metadata loaded: ' + metadata.formats.length + ' compatible formats.', '', 'metadata');
         const selection = await resolvePageSelector(request, metadata);
+        log('debug', 'Selected yt-dlp format selector: ' + selection.selector, '', 'selection');
+        log('info', 'Checking ffmpeg availability.', '', 'tools');
         const ffmpegPath = await ensureFfmpeg();
+        log('info', 'ffmpeg is ready.', '', 'tools');
 
         if (pendingPageCancellations.get(jobId) === requestId) {
             pendingPageCancellations.delete(jobId);
@@ -723,8 +797,11 @@ async function handlePageDownload(request) {
             ffmpegPath,
             selector: selection.selector,
             audioOnly: selection.audioOnly,
-            url: parsed.canonicalUrl
+            url: parsed.canonicalUrl,
+            developerMode
         });
+
+        log('debug', 'Starting yt-dlp with output format ' + outputFormat + '.', '', 'download');
 
         sendMessage({
             action: 'download_page_progress',
@@ -739,21 +816,28 @@ async function handlePageDownload(request) {
         const job = { child, requestId, cancelled: false, finished: false };
         activePageDownloads.set(jobId, job);
 
-        const finish = (status, message) => {
+        const finish = (status, message, details = '') => {
             if (job.finished) return;
             job.finished = true;
             activePageDownloads.delete(jobId);
-            sendMessage({
+            const result = {
                 action: 'download_page_result',
                 status,
                 requestId,
                 jobId,
                 message
-            });
+            };
+            if (developerMode && details) {
+                result.details = redactDiagnosticText(String(details)).trim().slice(-6000);
+            }
+            sendMessage(result);
         };
 
         child.stdout.on('data', chunk => {
-            const progress = parseProgressLine(chunk.toString());
+            const output = chunk.toString();
+            stdoutTail = appendOutputTail(stdoutTail, output);
+            log('debug', output, 'stdout', 'download');
+            const progress = parseProgressLine(output);
             sendMessage({
                 action: 'download_page_progress',
                 status: 'progress',
@@ -764,7 +848,10 @@ async function handlePageDownload(request) {
             });
         });
         child.stderr.on('data', chunk => {
-            const progress = parseProgressLine(chunk.toString());
+            const output = chunk.toString();
+            stderrTail = appendOutputTail(stderrTail, output);
+            log('warn', output, 'stderr', 'download');
+            const progress = parseProgressLine(output);
             if (progress.message) {
                 sendMessage({
                     action: 'download_page_progress',
@@ -776,29 +863,37 @@ async function handlePageDownload(request) {
                 });
             }
         });
-        child.on('error', error => finish('error', error.message));
+        child.on('error', error => {
+            log('error', error.message, 'stderr', 'process');
+            finish('error', 'Could not start yt-dlp.', error.message);
+        });
         child.on('close', code => {
             if (job.cancelled) {
                 finish('cancelled', 'Download cancelled.');
             } else if (code === 0) {
                 finish('success', 'Download completed.');
             } else {
-                finish('error', 'yt-dlp exited with code ' + code + '.');
+                const details = stderrTail.trim() || stdoutTail.trim();
+                if (!details) log('error', 'yt-dlp exited without diagnostic output.', 'stderr', 'process');
+                finish('error', 'yt-dlp exited with code ' + code + '.', details);
             }
         });
     } catch (error) {
-        const message = redactStreamUrls(String(error?.message || error));
+        const message = redactDiagnosticText(String(error?.message || error));
+        log('error', message, 'stderr', 'setup');
         const errorCode = error?.code === 'ffmpeg_required' || /ffmpeg/i.test(message)
             ? 'ffmpeg_required'
             : 'download_failed';
-        sendMessage({
+        const result = {
             action: 'download_page_result',
             status: 'error',
             errorCode,
             requestId,
             jobId,
             message
-        });
+        };
+        if (developerMode) result.details = message.slice(-6000);
+        sendMessage(result);
     } finally {
         pageJobReservations.delete(jobId);
     }
@@ -836,9 +931,21 @@ async function main() {
                     continue;
                 }
 
+                const developerMode = request.developerMode === true;
+                const pageRequest = { requestId, developerMode };
+                const log = (level, message, stream = '', phase = 'resolve') => {
+                    emitPageLog(pageRequest, level, message, stream, phase);
+                };
+
                 try {
+                    log('info', 'Starting yt-dlp metadata lookup.');
                     await ensureYtdlp();
-                    const metadata = await extractVideoMetadata(parsed.canonicalUrl);
+                    log('info', 'yt-dlp is ready; reading available formats.');
+                    const metadata = await extractVideoMetadata(parsed.canonicalUrl, {
+                        developerMode,
+                        onOutput: (stream, chunk) => log('debug', chunk, stream, 'metadata')
+                    });
+                    log('info', 'Metadata lookup completed: ' + metadata.formats.length + ' compatible formats.');
                     if (!metadata.formats.length) {
                         sendMessage({
                             action: 'download_page_formats',
@@ -860,13 +967,17 @@ async function main() {
                         });
                     }
                 } catch (error) {
-                    sendMessage({
+                    const detail = redactDiagnosticText(String(error?.message || error)).slice(-6000);
+                    log('error', detail, 'stderr', 'resolve');
+                    const result = {
                         action: 'download_page_formats',
                         status: 'error',
                         requestId,
                         errorCode: 'resolve_failed',
-                        message: redactStreamUrls(String(error?.message || error)).slice(-1200)
-                    });
+                        message: detail.slice(-1200)
+                    };
+                    if (developerMode) result.errorDetail = detail;
+                    sendMessage(result);
                 }
                 continue;
             }
@@ -897,64 +1008,6 @@ async function main() {
                 continue;
             }
 
-            if (request.action === 'open_download_folder') {
-                const requestId = typeof request.requestId === 'string' ? request.requestId : '';
-                const requestedPath = typeof request.path === 'string' ? request.path.trim() : '';
-                let folderPath;
-                try {
-                    folderPath = resolveDownloadFolderPath(requestedPath);
-                } catch (error) {
-                    sendMessage({
-                        action: 'open_download_folder_result',
-                        requestId,
-                        status: 'error',
-                        message: error.message
-                    });
-                    continue;
-                }
-
-                try {
-                    if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true });
-                    if (!fs.statSync(folderPath).isDirectory()) {
-                        throw new Error('The configured download path is not a folder.');
-                    }
-
-                    let replied = false;
-                    const reply = (message) => {
-                        if (replied) return;
-                        replied = true;
-                        sendMessage(message);
-                    };
-                    const explorerCommand = buildOpenFolderCommand(folderPath);
-                    const explorer = spawn(explorerCommand.executable, explorerCommand.args, {
-                        detached: true,
-                        stdio: 'ignore',
-                        windowsHide: true
-                    });
-                    explorer.once('spawn', () => reply({
-                        action: 'open_download_folder_result',
-                        requestId,
-                        status: 'success',
-                        path: folderPath
-                    }));
-                    explorer.once('error', error => reply({
-                        action: 'open_download_folder_result',
-                        requestId,
-                        status: 'error',
-                        message: 'Could not open Windows Explorer: ' + error.message
-                    }));
-                    explorer.unref();
-                } catch (error) {
-                    sendMessage({
-                        action: 'open_download_folder_result',
-                        requestId,
-                        status: 'error',
-                        message: error.message
-                    });
-                }
-                continue;
-            }
-
             if (request.action === 'download_video') {
                 if (request.mode === 'page') {
                     // Keep the native message loop responsive so a subsequent
@@ -977,17 +1030,25 @@ async function main() {
                 const isDirectUrl = request.isDirectUrl === true;
                 const url = typeof request.url === 'string' ? request.url : '';
                 const savePath = typeof request.savePath === 'string' ? request.savePath : '';
+                const developerMode = request.developerMode === true;
+                const log = (level, message, stream = '', phase = 'download', event = '') =>
+                    emitDeveloperLog({ ...request, developerMode }, level, message, stream, phase, event);
 
                 if (!/^[A-Za-z0-9_-]{6,}$/.test(videoId)) {
+                    log('warn', 'Invalid videoId.', 'stderr', 'validation', 'download.invalid_video_id');
                     sendMessage({ action: 'download_video_result', status: 'error', message: 'Invalid videoId.', downloadId, videoId, title });
                     continue;
                 }
                 if (isDirectUrl && !isAllowedDirectUrl(url)) {
+                    log('warn', 'Direct stream URL is not an allowed YouTube host.', 'stderr', 'validation', 'download.invalid_direct_url');
                     sendMessage({ action: 'download_video_result', status: 'error', message: 'Direct stream URL is not an allowed YouTube host.', downloadId, videoId, title });
                     continue;
                 }
 
+                log('info', 'Preparing native video download.', '', 'download', 'download.started');
+
                 if (activeVideoDownloads.has(downloadId)) {
+                    log('warn', 'This download is already active.', '', 'validation', 'download.duplicate_id');
                     sendMessage({ action: 'download_video_result', status: 'error', message: 'This download is already active.', downloadId, videoId, title });
                     continue;
                 }
@@ -995,6 +1056,7 @@ async function main() {
                 // Second-line dedup defence (first is in background.js)
                 const downloadKey = `${videoId}|${isAudioOnly ? 'audio' : (qualityHeight || videoQuality || 'best')}`;
                 if (activeNativeDownloads.has(downloadKey)) {
+                    log('warn', `Already downloading ${videoId} — ignoring duplicate.`, '', 'validation', 'download.duplicate_key');
                     sendMessage({ action: 'download_video_result', status: 'error', message: `Already downloading ${videoId} — ignoring duplicate.`, downloadId, videoId, title });
                     continue;
                 }
@@ -1020,10 +1082,13 @@ async function main() {
 
                 if (!fs.existsSync(YTDLP_BIN)) {
                     sendMessage({ status: 'info', message: 'Local yt-dlp.exe not found! Downloading it now...' });
+                    log('info', 'Local yt-dlp.exe not found; installing it.', '', 'setup', 'native.ytdlp_install_started');
                     try {
                         await installYtdlp();
                         sendMessage({ status: 'info', message: 'Successfully downloaded yt-dlp.exe!' });
+                        log('info', 'Successfully downloaded yt-dlp.exe.', '', 'setup', 'native.ytdlp_install_completed');
                     } catch (e) {
+                        log('error', 'Failed to download yt-dlp.exe.', 'stderr', 'setup', 'native.ytdlp_install_failed');
                         activeNativeDownloads.delete(downloadKey);
                         activeVideoDownloads.delete(downloadId);
                         sendMessage({
@@ -1048,6 +1113,7 @@ async function main() {
                 try {
                     if (!fs.existsSync(saveDir)) fs.mkdirSync(saveDir, { recursive: true });
                 } catch (mkdirErr) {
+                    log('error', 'Cannot create save folder.', 'stderr', 'filesystem', 'download.save_folder_failed');
                     sendMessage({
                         action: 'download_video_result', status: 'error',
                         message: `Cannot create save folder: ${mkdirErr.message}`,
@@ -1136,6 +1202,9 @@ async function main() {
                     ].join('/');
                 }
 
+                if (developerMode) args.unshift('--verbose');
+                log('debug', 'Starting yt-dlp process.', '', 'process', 'native.ytdlp_spawn');
+
                 const outTemplate = path.join(
                     saveDir,
                     isAudioOnly
@@ -1148,6 +1217,7 @@ async function main() {
                 //   --no-playlist             → never accidentally grab a playlist
                 //   --no-part                 → write directly, no .part temp file clutter
                 const commonArgs = [
+                    ...getYtdlpYouTubeArgs(),
                     '--newline',
                     '--concurrent-fragments', '4',
                     '--no-playlist',
@@ -1193,6 +1263,7 @@ async function main() {
                 try {
                     ytdlp = spawn(YTDLP_BIN, args, { windowsHide: true });
                 } catch (error) {
+                    log('error', `Could not start yt-dlp: ${error.message}`, 'stderr', 'process', 'native.ytdlp_spawn_failed');
                     activeNativeDownloads.delete(downloadKey);
                     activeVideoDownloads.delete(downloadId);
                     sendMessage({
@@ -1206,8 +1277,10 @@ async function main() {
                     continue;
                 }
                 videoJob.child = ytdlp;
+                let stdoutTail = '';
+                let stderrTail = '';
                 let finished = false;
-                const finishDownload = (code, errorMessage = '') => {
+                const finishDownload = (code, errorMessage = '', details = '') => {
                     if (finished) return;
                     finished = true;
                     activeNativeDownloads.delete(downloadKey);
@@ -1218,21 +1291,30 @@ async function main() {
                             message: 'Download cancelled.', downloadId, videoId, title: safeTitle
                         });
                     } else if (code === 0) {
+                        log('info', 'Native download completed.', '', 'process', 'download.completed');
                         sendMessage({
                             action: 'download_video_result', status: 'success',
                             message: 'Download completed.', downloadId, videoId, title: safeTitle
                         });
                     } else {
+                        const diagnostic = details || stderrTail.trim() || stdoutTail.trim();
+                        log('error', errorMessage || `yt-dlp error code: ${code}`, 'stderr', 'process', 'download.failed');
                         sendMessage({
                             action: 'download_video_result', status: 'error',
                             message: errorMessage || `yt-dlp error code: ${code}`,
-                            downloadId, videoId, title: safeTitle
+                            downloadId, videoId, title: safeTitle,
+                            ...(developerMode && diagnostic ? { details: redactDiagnosticText(diagnostic).slice(-6000) } : {})
                         });
                     }
                 };
 
                 ytdlp.stdout.on('data', (data) => {
-                    const progress = parseProgressLine(data.toString());
+                    const output = data.toString();
+                    if (developerMode) {
+                        stdoutTail = appendOutputTail(stdoutTail, output);
+                        log('debug', output, 'stdout', 'download', 'native.ytdlp_stdout');
+                    }
+                    const progress = parseProgressLine(output);
                     sendMessage({
                         action: 'download_video_progress',
                         status: 'progress',
@@ -1245,7 +1327,12 @@ async function main() {
                     });
                 });
                 ytdlp.stderr.on('data', (data) => {
-                    const progress = parseProgressLine(data.toString());
+                    const output = data.toString();
+                    if (developerMode) {
+                        stderrTail = appendOutputTail(stderrTail, output);
+                        log('warn', output, 'stderr', 'download', 'native.ytdlp_stderr');
+                    }
+                    const progress = parseProgressLine(output);
                     sendMessage({
                         action: 'download_video_progress',
                         status: 'progress',
@@ -1257,7 +1344,7 @@ async function main() {
                         message: progress.message
                     });
                 });
-                ytdlp.on('error', error => finishDownload(null, `Could not start yt-dlp: ${error.message}`));
+                ytdlp.on('error', error => finishDownload(null, `Could not start yt-dlp: ${error.message}`, error.message));
                 ytdlp.on('close', code => finishDownload(code));
 
             } else if (request.action === 'pick_folder') {
@@ -1417,21 +1504,33 @@ async function main() {
                 });
 
             } else if (request.action === 'update_media_tools') {
+                const developerMode = request.developerMode === true;
+                const log = (level, message, phase = 'tools', event = '') =>
+                    emitDeveloperLog({ ...request, developerMode }, level, message, '', phase, event);
+                log('info', 'Preparing verified media tools.', 'setup', 'native.media_tools_started');
                 sendMessage({ status: 'info', message: 'Preparing verified media tools...' });
                 try {
                     await ensureYtdlp();
                     await ensureFfmpeg();
+                    log('info', 'Verified media tools are ready.', 'setup', 'native.media_tools_ready');
                     sendMessage({ status: 'media_tools_ready', ...getToolStatus() });
                 } catch (e) {
+                    log('error', 'Failed to prepare media tools: ' + e.message, 'setup', 'native.media_tools_failed');
                     sendMessage({ status: 'error', message: 'Failed to prepare media tools: ' + e.message, ...getToolStatus() });
                 }
 
             } else if (request.action === 'update_ytdlp') {
+                const developerMode = request.developerMode === true;
+                const log = (level, message, phase = 'update', event = '') =>
+                    emitDeveloperLog({ ...request, developerMode }, level, message, '', phase, event);
+                log('info', 'Downloading and verifying the latest yt-dlp version.', 'update', 'native.ytdlp_update_started');
                 sendMessage({ status: 'info', message: 'Downloading and verifying the latest yt-dlp version...' });
                 try {
                     await installYtdlp();
+                    log('info', 'Successfully installed the verified yt-dlp version.', 'update', 'native.ytdlp_update_completed');
                     sendMessage({ status: 'update_success', message: 'Successfully installed the verified yt-dlp version!' });
                 } catch (e) {
+                    log('error', 'Failed to update yt-dlp: ' + e.message, 'update', 'native.ytdlp_update_failed');
                     sendMessage({ status: 'error', message: 'Failed to update yt-dlp: ' + e.message });
                 }
 
@@ -1440,6 +1539,7 @@ async function main() {
             }
 
         } catch (e) {
+            emitDeveloperLog(request, 'error', e.toString(), 'stderr', 'protocol', 'native.protocol_error');
             sendMessage({ status: 'error', message: e.toString() });
         }
     }
@@ -1454,6 +1554,8 @@ module.exports = {
     FFMPEG_ARCHIVE_SHA256,
     FFMPEG_ARCHIVE_URL,
     FFMPEG_RELEASE_TAG,
+    YOUTUBE_PLAYER_CLIENT,
+    YTDLP_JS_RUNTIME,
     OUTPUT_FORMATS,
     PAGE_ID_PATTERN,
     PROFILE_ID_PATTERN,
@@ -1467,13 +1569,14 @@ module.exports = {
     isSafeProfileId,
     sanitizeFilePart,
     redactStreamUrls,
+    redactDiagnosticText,
     parseJsonOutput,
     normalizeYtdlpFormat,
     numericDuration,
     parseProgressLine,
     resolvePageSelector,
     resolveDownloadFolderPath,
-    getExplorerExecutable,
-    buildOpenFolderCommand,
-    buildPageDownloadArgs
+    buildPageDownloadArgs,
+    getYtdlpRuntimeArgs,
+    getYtdlpYouTubeArgs
 };

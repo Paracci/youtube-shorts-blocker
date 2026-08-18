@@ -9,13 +9,20 @@
         media: null,
         formats: [],
         jobs: new Map(),
+        logs: [],
         jobsExpanded: true,
+        developerMode: false,
         hostConnected: false,
         ffmpegReady: false
     };
 
+    const MAX_DEVELOPER_LOGS = 400;
+
     const $ = (id) => document.getElementById(id);
     const t = (key) => i18n.t(key);
+    const pageLogger = typeof DeveloperLogger !== 'undefined'
+        ? DeveloperLogger.create('download-page', 'download-page')
+        : null;
 
     document.addEventListener('DOMContentLoaded', async () => {
         await i18n.init();
@@ -24,6 +31,7 @@
         connectPort();
         bindEvents();
         loadPath();
+        loadDeveloperMode();
         checkHostStatus();
         prefillUrl();
     });
@@ -43,9 +51,12 @@
         $('use-current-url').addEventListener('click', useCurrentUrl);
         $('open-setup').addEventListener('click', openSetup);
         $('change-path').addEventListener('click', choosePath);
-        $('jobs-open-folder').addEventListener('click', openDownloadFolder);
         $('jobs-panel-toggle').addEventListener('click', toggleJobsPanel);
         $('jobs-indicator').addEventListener('click', expandJobsPanel);
+        $('developer-mode-toggle')?.addEventListener('change', event => {
+            setDeveloperMode(event.target.checked);
+        });
+        $('clear-developer-logs')?.addEventListener('click', clearDeveloperLogs);
 
         $('advanced-toggle').addEventListener('click', () => {
             const panel = $('advanced-panel');
@@ -58,6 +69,10 @@
         chrome.storage.onChanged.addListener((changes, areaName) => {
             if (areaName === 'local' && changes.downloadPath) {
                 renderPath(changes.downloadPath.newValue || '');
+            }
+            if (areaName === 'local' && changes.developerMode) {
+                state.developerMode = changes.developerMode.newValue === true;
+                renderDeveloperMode();
             }
         });
     }
@@ -87,9 +102,24 @@
     function handlePortMessage(message) {
         if (!message || typeof message !== 'object') return;
 
+        if (message.action === 'download_page_log') {
+            const belongsToCurrentRequest = message.requestId === state.requestId;
+            const belongsToKnownJob = message.jobId && state.jobs.has(message.jobId);
+            if (belongsToCurrentRequest || belongsToKnownJob) appendDeveloperLog(message, false);
+            return;
+        }
+
         if (message.action === 'download_page_formats') {
             if (message.requestId !== state.requestId) return;
             if (message.status !== 'success') {
+                if (message.errorDetail) {
+                    appendDeveloperLog({
+                        level: 'error',
+                        stream: 'stderr',
+                        message: message.errorDetail,
+                        requestId: message.requestId
+                    }, false);
+                }
                 showResolveError(message);
                 return;
             }
@@ -132,6 +162,15 @@
 
         if (message.action === 'download_page_result') {
             if (!message.jobId || !state.jobs.has(message.jobId)) return;
+            if (message.details) {
+                appendDeveloperLog({
+                    level: 'error',
+                    stream: 'stderr',
+                    message: message.details,
+                    requestId: message.requestId,
+                    jobId: message.jobId
+                }, false);
+            }
             updateJob(message.jobId, {
                 status: message.status === 'success' ? 'success' :
                     message.status === 'cancelled' ? 'cancelled' : 'error',
@@ -160,6 +199,12 @@
         hideResults();
         setUrlStatus(t('downloadLoading'), '');
         $('fetch-formats').disabled = true;
+        appendDeveloperLog({
+            level: 'info',
+            phase: 'resolve',
+            requestId: state.requestId,
+            message: t('downloadDeveloperResolveStart')
+        });
 
         try {
             state.port.postMessage({
@@ -345,6 +390,13 @@
         if (!hadJobs) state.jobsExpanded = true;
         renderJobs();
         announceJob(state.jobs.get(jobId), 'active');
+        appendDeveloperLog({
+            level: 'info',
+            phase: 'download',
+            requestId: state.requestId,
+            jobId,
+            message: 'Starting ' + jobSummary(state.jobs.get(jobId)) + '.'
+        });
 
         try {
             state.port.postMessage({
@@ -545,6 +597,140 @@
         }
     }
 
+    function loadDeveloperMode() {
+        chrome.storage.local.get('developerMode', result => {
+            state.developerMode = result?.developerMode === true;
+            renderDeveloperMode();
+        });
+    }
+
+    function setDeveloperMode(enabled) {
+        state.developerMode = enabled === true;
+        if (typeof DeveloperLogger !== 'undefined') {
+            DeveloperLogger.setEnabled(state.developerMode);
+        } else {
+            chrome.storage.local.set({ developerMode: state.developerMode });
+        }
+        renderDeveloperMode();
+        if (state.developerMode) {
+            appendDeveloperLog({
+                level: 'info',
+                phase: 'page',
+                message: t('downloadDeveloperModeOn')
+            });
+        }
+    }
+
+    function renderDeveloperMode() {
+        const toggle = $('developer-mode-toggle');
+        const section = $('developer-section');
+        if (toggle) toggle.checked = state.developerMode;
+        if (section) {
+            section.hidden = !state.developerMode;
+            section.classList.toggle('hidden', !state.developerMode);
+        }
+        if (state.developerMode) renderDeveloperLogs();
+    }
+
+    function clearDeveloperLogs() {
+        state.logs = [];
+        renderDeveloperLogs();
+        try {
+            chrome.runtime.sendMessage({ action: 'developer_logs_clear' }, () => {
+                void chrome.runtime.lastError;
+            });
+        } catch (_) { }
+    }
+
+    function appendDeveloperLog(entry, persist = true) {
+        if (!state.developerMode) return;
+        const rawMessage = String(entry?.message || entry?.data || '').replace(/\r/g, '').trim();
+        if (!rawMessage) return;
+
+        if (persist && pageLogger) {
+            pageLogger.log(
+                ['debug', 'info', 'warn', 'error'].includes(entry?.level) ? entry.level : 'info',
+                entry?.event || `download.${entry?.phase || 'log'}`,
+                rawMessage,
+                entry?.details,
+                {
+                    requestId: entry?.requestId,
+                    jobId: entry?.jobId
+                }
+            );
+        }
+
+        const level = ['debug', 'info', 'warn', 'error'].includes(entry?.level)
+            ? entry.level
+            : 'info';
+        const context = [entry?.phase, entry?.stream, entry?.jobId ? 'job:' + String(entry.jobId).slice(0, 8) : '']
+            .filter(Boolean)
+            .join(' · ');
+        const timestamp = Number.isFinite(Number(entry?.timestamp))
+            ? Number(entry.timestamp)
+            : Date.now();
+
+        rawMessage.split(/\n+/).forEach(line => {
+            const message = line.trim().slice(0, 2000);
+            if (!message) return;
+            state.logs.push({ level, context, timestamp, message });
+        });
+        if (state.logs.length > MAX_DEVELOPER_LOGS) {
+            state.logs = state.logs.slice(-MAX_DEVELOPER_LOGS);
+        }
+        renderDeveloperLogs();
+    }
+
+    function renderDeveloperLogs() {
+        const list = $('developer-log-list');
+        const empty = $('developer-log-empty');
+        const count = $('developer-log-count');
+        if (!list || !empty || !count) return;
+
+        list.replaceChildren();
+        count.textContent = String(state.logs.length);
+        empty.hidden = state.logs.length > 0;
+
+        state.logs.forEach(entry => {
+            const line = document.createElement('div');
+            line.className = 'developer-log-line is-' + entry.level;
+
+            const time = document.createElement('span');
+            time.className = 'developer-log-time';
+            time.textContent = formatLogTime(entry.timestamp);
+
+            const level = document.createElement('span');
+            level.className = 'developer-log-level';
+            level.textContent = entry.level.toUpperCase();
+
+            const context = document.createElement('span');
+            context.className = 'developer-log-stream';
+            context.textContent = entry.context ? '[' + entry.context + ']' : '';
+
+            const message = document.createElement('span');
+            message.className = 'developer-log-message';
+            message.textContent = entry.message;
+
+            line.append(time, level, context, message);
+            list.appendChild(line);
+        });
+
+        const wrap = list.parentNode;
+        if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    }
+
+    function formatLogTime(timestamp) {
+        try {
+            return new Date(timestamp).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        } catch (_) {
+            return '--:--:--';
+        }
+    }
+
     function checkHostStatus() {
         setHostStatus('checking');
         chrome.runtime.sendMessage({ action: 'check_native_host_status' }, (response) => {
@@ -610,45 +796,6 @@
                 }
             });
         });
-    }
-
-    function openDownloadFolder() {
-        const button = $('jobs-open-folder');
-        const label = button?.querySelector('[data-i18n]');
-        if (!button) return;
-
-        const defaultLabel = t('downloadOpenFolder');
-        button.disabled = true;
-        button.classList.remove('is-success');
-
-        const finish = (response) => {
-            button.disabled = false;
-            if (chrome.runtime.lastError || !response || response.status !== 'ok') {
-                if (label) label.textContent = defaultLabel;
-                announceFolderStatus(t('downloadOpenFolderError'));
-                return;
-            }
-
-            if (label) label.textContent = t('downloadFolderOpened');
-            button.classList.add('is-success');
-            announceFolderStatus(t('downloadFolderOpened'));
-            window.setTimeout(() => {
-                if (!button.isConnected) return;
-                button.classList.remove('is-success');
-                if (label) label.textContent = defaultLabel;
-            }, 2200);
-        };
-
-        try {
-            chrome.runtime.sendMessage({ action: 'open_download_folder' }, finish);
-        } catch (_) {
-            finish(null);
-        }
-    }
-
-    function announceFolderStatus(message) {
-        const liveStatus = $('jobs-live-status');
-        if (liveStatus) liveStatus.textContent = message;
     }
 
     async function pasteUrl() {
