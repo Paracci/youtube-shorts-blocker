@@ -1,4 +1,4 @@
-# YouTube Shorts Blocker & Ultimate Downloader (v1.14.0)
+# YouTube Shorts Blocker & Ultimate Downloader (v1.14.1)
 
 A privacy-focused Chrome extension designed to improve your YouTube experience without sending your data to a cloud service. It blocks unwanted Shorts channels, hides distracting content, handles explicit ad states with Premium-aware safety controls, and provides a private native downloader for public single-video URLs.
 
@@ -26,7 +26,7 @@ Explore the interactive landing page to see the premium UI and features in actio
 - **Native-Like UI:** Download buttons are injected seamlessly into both the Shorts action bar and the standard video player controls bar.
 - **Standalone Downloader Page:** The popup's **Downloader** tab opens a dedicated full-page interface for public single YouTube videos, Shorts, embeds, and `youtu.be` links. It resolves metadata, shows quick profiles and advanced formats, and reports progress, speed, ETA, cancellation, and completion states.
 - **Six output formats:** Native downloads support MP4, WebM, MKV, MP3, M4A, and Opus. Ready-made choices include Best MP4, 2160p, 1440p, 1080p, 720p, MP3, and M4A when those qualities are available.
-- **Verified media tools:** The standalone page requires the Native Messaging host. Video/audio merging and conversion use a pinned, SHA-256-verified ffmpeg artifact; signed stream URLs, cookies, account tokens, and third-party online downloader services are never exposed to the page.
+- **Verified media tools:** The standalone page requires the Native Messaging host. Video/audio merging and conversion use an upstream SHA-256-verified ffmpeg artifact; signed stream URLs, cookies, account tokens, and third-party online downloader services are never exposed to the page.
 - **Custom Download Location:** Choose exactly where downloaded files are saved via the **Settings → Downloader → Download Location** panel. Click **Browse** to open Windows' modern File Explorer folder picker (Vista-style IFileOpenDialog — the same dialog used by "Save As" in any app). The selected path persists across sessions. If no custom path is set, files go to your default `Downloads` folder.
 - **Global Developer Mode Diagnostics:** Enable **Developer mode** in the global Developer tools section, the Developer Console, or the standalone Downloader page. The local-only console collects bounded, redacted diagnostics from popup, YouTube content scripts, setup, download, background, and native-host flows for the current browser session. Disable it at any time; verbose yt-dlp output is only requested for developer-mode operations.
 - **Correct Filenames:** Downloaded files are named after the actual video title, not a generic placeholder.
@@ -91,8 +91,8 @@ The standalone Downloader page communicates with `yt-dlp` through Chrome's Nativ
 2. On the **Home** tab, click **Setup / Monitor**.
 3. Follow the on-screen instructions on the setup page — you will be asked to run `install_host.bat` from the **`native-host`** folder.
 4. The script will prompt you for your Extension ID (displayed and copyable on the setup page) and register the native host with Chrome.
-5. If `yt-dlp.exe` is missing, the native host downloads the pinned executable and verifies its published digest before installation.
-6. The setup page reports separate `yt-dlp` and ffmpeg states. Missing ffmpeg is installed atomically from the pinned HTTPS artifact only after its SHA-256 digest matches.
+5. If `yt-dlp.exe` is missing, the native host downloads the current executable and verifies its published digest before installation.
+6. The setup page reports separate `yt-dlp` and ffmpeg states. On first use, both the in-player buttons and standalone page install missing ffmpeg atomically over HTTPS only after its published SHA-256 digest matches; yt-dlp receives the exact local ffmpeg directory.
 7. Ensure Node.js 22 or newer is installed before downloading. The native host passes its exact Node executable to yt-dlp and selects the `web_embedded` YouTube player client so current signed stream URLs can be resolved and downloaded.
 8. Once both checks pass, the popup and standalone page show **Connected** / **Ready** and downloads can use the selected output format.
 
@@ -149,7 +149,7 @@ youtube-shorts-blocker/
 │   │   ├── download.html          # Standalone native downloader page
 │   │   ├── popup.html             # Popup markup — navigation and settings
 │   │   └── setup.html             # Setup page markup — fully translated
-│   └── manifest.json             # Extension configuration (v1.14.0)
+│   └── manifest.json             # Extension configuration (v1.14.1)
 │
 ├── native-host/                  # Companion app for high-quality downloads
 │   ├── install_host.bat          # Windows installer & registry config
@@ -189,7 +189,7 @@ youtube-shorts-blocker/
 - **Standalone Native Protocol:** `download.html` communicates through a dedicated `runtime.connect({ name: 'download-page' })` port. Requests carry scoped `requestId`/`jobId` values, and background routing never broadcasts one page's format or progress state to another page.
 - **Safe Format Selection:** The page receives normalized metadata only (`id`, type, extension, dimensions, FPS, codecs, size, and audio/video flags). Signed `googlevideo.com` stream URLs and raw yt-dlp arguments never cross into the page.
 - **Native Conversion:** The native host maps approved profile IDs or normalized format IDs to safe argv arrays, automatically pairs video-only streams with audio, and uses ffmpeg for merging and MP3/M4A/Opus conversion. Playlist mode remains disabled.
-- **ffmpeg provenance:** The native host downloads only the pinned HTTPS BtbN FFmpeg-Builds archive (`autobuild-2026-08-11-13-11`, `ffmpeg-n8.1.2-34-g9b6c8969e0-win64-gpl-shared-8.1.zip`), verifies SHA-256 `e9d24d8cdd3c2aab4bc5923839d777b693d72a5cb6152bf61c263454b9023dd6` before installation, and keeps generated binaries under the ignored `native-host/ffmpeg/` directory. The selected shared build is GPL-licensed; review the upstream FFmpeg and build-distribution licenses before redistribution.
+- **ffmpeg provenance:** The native host resolves the maintained `ffmpeg-n8.1-latest-win64-gpl-shared-8.1.zip` asset through the official BtbN FFmpeg-Builds GitHub release API and requires its published SHA-256 digest before downloading. It verifies the archive against that digest before extraction and installs the complete binary directory (including ffprobe and DLLs) under the ignored `native-host/ffmpeg/` directory. Dated autobuild URLs are intentionally avoided because upstream removes old releases. Missing or mismatched digests stop installation. The selected shared build is GPL-licensed; review the upstream FFmpeg and build-distribution licenses before redistribution.
 
 ---
 
@@ -211,7 +211,7 @@ The suite covers accepted and rejected YouTube URLs, format normalization and sa
 
 - No data is collected, stored, or transmitted to any third party.
 - All settings, statistics, language preference, and the blocked channel list are stored locally in your browser via `chrome.storage.local`.
-- The extension does not make separate account/API calls for channel blocking. If available, the optional YouTube menu action uses the current YouTube page/session; the native host may contact GitHub only to retrieve the pinned `yt-dlp.exe` or ffmpeg artifacts, and verifies the published digest before installation.
+- The extension does not make separate account/API calls for channel blocking. If available, the optional YouTube menu action uses the current YouTube page/session; the native host may contact GitHub only to retrieve the `yt-dlp.exe` or ffmpeg release artifacts, and verifies the published digest before installation.
 - No cookies, account tokens, signed stream URLs, or third-party online downloader services are used.
 - All processing happens entirely on your device.
 - Developer diagnostics use `chrome.storage.session` when available and fall back to memory only; logs are cleared when the browser extension session ends and are never sent to a cloud service.

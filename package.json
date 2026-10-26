@@ -1,6 +1,6 @@
 {
   "name": "youtube-shorts-blocker",
-  "version": "1.14.0",
+  "version": "1.14.1",
   "private": true,
   "description": "Test harness for the YouTube Shorts Blocker extension and native host",
   "scripts": {

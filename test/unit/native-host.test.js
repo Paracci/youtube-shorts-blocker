@@ -238,9 +238,27 @@ test('folder and direct-stream policies fail closed', () => {
     assert.equal(host.isAllowedDirectUrl('https://googlevideo.com.evil.example/videoplayback'), false);
 });
 
-test('verified ffmpeg artifact metadata is pinned', () => {
-    assert.match(host.FFMPEG_ARCHIVE_URL, /^https:\/\/github\.com\//);
-    assert.match(host.FFMPEG_ARCHIVE_SHA256, /^[a-f0-9]{64}$/);
-    assert.match(host.FFMPEG_ARCHIVE_NAME, /\.zip$/);
-    assert.match(host.FFMPEG_RELEASE_TAG, /^autobuild-/);
+test('ffmpeg resolves only the maintained build with an upstream SHA-256 digest', () => {
+    assert.equal(host.FFMPEG_RELEASE_API, 'https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest');
+    const asset = {
+        name: host.FFMPEG_ARCHIVE_NAME,
+        digest: 'sha256:' + 'a'.repeat(64),
+        browser_download_url: 'https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/' + host.FFMPEG_ARCHIVE_NAME
+    };
+    assert.deepEqual(host.selectFfmpegAsset({ assets: [asset] }), {
+        url: asset.browser_download_url,
+        expectedHash: 'a'.repeat(64)
+    });
+    for (const digest of [undefined, '', 'sha256:bad', 'md5:' + 'a'.repeat(64)]) {
+        assert.throws(() => host.selectFfmpegAsset({ assets: [{ ...asset, digest }] }), /SHA-256/);
+    }
+    assert.throws(() => host.selectFfmpegAsset({ assets: [] }), /SHA-256/);
+    for (const url of [
+        asset.browser_download_url.replace('https:', 'http:'),
+        asset.browser_download_url.replace('github.com', 'example.com'),
+        asset.browser_download_url.replace('BtbN', 'someone'),
+        asset.browser_download_url + '?redirect=elsewhere'
+    ]) {
+        assert.throws(() => host.selectFfmpegAsset({ assets: [{ ...asset, browser_download_url: url }] }), /Unexpected/);
+    }
 });

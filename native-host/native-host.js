@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// native-host.js – v1.9.0
+// native-host.js – v1.14.1
 
 const fs = require('fs');
 const path = require('path');
@@ -13,13 +13,10 @@ const { parseYouTubeUrl } = require('./download-policy');
 const YTDLP_BIN = path.join(__dirname, 'yt-dlp.exe');
 const FFMPEG_HOME = path.join(__dirname, 'ffmpeg');
 const FFMPEG_BIN = path.join(FFMPEG_HOME, 'ffmpeg.exe');
-const FFMPEG_RELEASE_TAG = 'autobuild-2026-08-11-13-11';
-const FFMPEG_ARCHIVE_NAME = 'ffmpeg-n8.1.2-34-g9b6c8969e0-win64-gpl-shared-8.1.zip';
-const FFMPEG_ARCHIVE_URL =
-    'https://github.com/BtbN/FFmpeg-Builds/releases/download/' +
-    FFMPEG_RELEASE_TAG + '/' + FFMPEG_ARCHIVE_NAME;
-const FFMPEG_ARCHIVE_SHA256 =
-    'e9d24d8cdd3c2aab4bc5923839d777b693d72a5cb6152bf61c263454b9023dd6';
+// Dated BtbN autobuilds expire. Resolve the maintained 8.1 build and its
+// published digest together instead of retaining a dead dated download URL.
+const FFMPEG_RELEASE_API = 'https://api.github.com/repos/BtbN/FFmpeg-Builds/releases/latest';
+const FFMPEG_ARCHIVE_NAME = 'ffmpeg-n8.1-latest-win64-gpl-shared-8.1.zip';
 const YOUTUBE_PLAYER_CLIENT = 'web_embedded';
 const YTDLP_JS_RUNTIME = 'node';
 
@@ -74,6 +71,7 @@ function requestBuffer(url, headers = {}, redirectCount = 0, maxBytes = 100 * 10
             res.on('error', error => {
                 if (!aborted) reject(error);
             });
+            res.on('aborted', () => reject(new Error('GitHub download was interrupted. Please retry.')));
             res.on('end', () => {
                 if (aborted) return;
                 if (res.statusCode !== 200) {
@@ -84,6 +82,9 @@ function requestBuffer(url, headers = {}, redirectCount = 0, maxBytes = 100 * 10
             });
         });
         request.on('error', reject);
+        request.setTimeout(30000, () => {
+            request.destroy(new Error('GitHub download timed out. Check your connection and retry.'));
+        });
     });
 }
 
@@ -509,6 +510,23 @@ function findFileRecursive(directory, filename) {
     return null;
 }
 
+function selectFfmpegAsset(release) {
+    const asset = release?.assets?.find(item => item.name === FFMPEG_ARCHIVE_NAME);
+    const expectedHash = typeof asset?.digest === 'string' && /^sha256:[a-f0-9]{64}$/i.test(asset.digest)
+        ? asset.digest.slice(7).toLowerCase()
+        : '';
+    if (!asset || !expectedHash) {
+        throw new Error('No trusted SHA-256 digest was published for the ffmpeg archive.');
+    }
+    const url = new URL(asset.browser_download_url);
+    if (url.origin !== 'https://github.com' ||
+        !url.pathname.startsWith('/BtbN/FFmpeg-Builds/releases/download/') ||
+        !url.pathname.endsWith('/' + FFMPEG_ARCHIVE_NAME) || url.username || url.password || url.search || url.hash) {
+        throw new Error('Unexpected ffmpeg release download URL.');
+    }
+    return { url: url.href, expectedHash };
+}
+
 async function downloadFfmpeg() {
     const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'paracci-ffmpeg-'));
     const archivePath = path.join(tempRoot, FFMPEG_ARCHIVE_NAME);
@@ -517,9 +535,12 @@ async function downloadFfmpeg() {
 
     try {
         sendMessage({ status: 'media_tool_progress', message: 'Downloading verified ffmpeg...' });
-        const archive = await requestBuffer(FFMPEG_ARCHIVE_URL, {}, 0, 120 * 1024 * 1024);
+        const release = JSON.parse((await requestBuffer(FFMPEG_RELEASE_API,
+            { Accept: 'application/vnd.github+json' }, 0, 2 * 1024 * 1024)).toString('utf8'));
+        const { url, expectedHash } = selectFfmpegAsset(release);
+        const archive = await requestBuffer(url, {}, 0, 120 * 1024 * 1024);
         const actualHash = crypto.createHash('sha256').update(archive).digest('hex');
-        if (actualHash !== FFMPEG_ARCHIVE_SHA256) {
+        if (actualHash !== expectedHash) {
             throw new Error('ffmpeg archive SHA-256 verification failed.');
         }
 
@@ -532,7 +553,15 @@ async function downloadFfmpeg() {
 
         const binDirectory = path.dirname(executable);
         fs.rmSync(stagedPath, { recursive: true, force: true });
-        fs.cpSync(binDirectory, stagedPath, { recursive: true });
+        // Node 22.18's Windows cpSync can garble non-ASCII destination paths.
+        // The upstream bin directory is flat; copy its EXEs/DLLs with the
+        // Unicode-safe copyFileSync API before the atomic directory swap.
+        fs.mkdirSync(stagedPath, { recursive: true });
+        for (const entry of fs.readdirSync(binDirectory, { withFileTypes: true })) {
+            if (entry.isFile()) {
+                fs.copyFileSync(path.join(binDirectory, entry.name), path.join(stagedPath, entry.name));
+            }
+        }
 
         // Swap the complete directory only after the archive has been
         // verified and extracted. If the rename fails, restore the previous
@@ -1102,6 +1131,27 @@ async function main() {
 
                 if (finishBeforeSpawnIfCancelled()) continue;
 
+                let ffmpegPath;
+                if (!isDirectUrl) {
+                    sendMessage({ action: 'download_video_progress', status: 'progress',
+                        downloadId, videoId, percent: 0, speed: null, eta: null });
+                    log('info', 'Preparing verified ffmpeg.', '', 'setup', 'native.ffmpeg_install_started');
+                    try {
+                        ffmpegPath = await ensureFfmpeg();
+                        log('info', 'ffmpeg is ready.', '', 'setup', 'native.ffmpeg_ready');
+                    } catch (error) {
+                        const detail = redactDiagnosticText(String(error?.message || error));
+                        log('error', detail, 'stderr', 'setup', 'native.ffmpeg_install_failed');
+                        activeNativeDownloads.delete(downloadKey);
+                        activeVideoDownloads.delete(downloadId);
+                        sendMessage({ action: 'download_video_result', status: 'error',
+                            errorCode: 'ffmpeg_required', message: detail,
+                            downloadId, videoId, title });
+                        continue;
+                    }
+                    if (finishBeforeSpawnIfCancelled()) continue;
+                }
+
                 // ── Output directory ───────────────────────────────────────────
                 // Use custom savePath if provided & non-empty; otherwise default Downloads.
                 const normalizedSavePath = savePath.trim();
@@ -1218,6 +1268,7 @@ async function main() {
                 //   --no-part                 → write directly, no .part temp file clutter
                 const commonArgs = [
                     ...getYtdlpYouTubeArgs(),
+                    '--ffmpeg-location', path.dirname(ffmpegPath || FFMPEG_BIN),
                     '--newline',
                     '--concurrent-fragments', '4',
                     '--no-playlist',
@@ -1551,9 +1602,8 @@ if (require.main === module) {
 
 module.exports = {
     FFMPEG_ARCHIVE_NAME,
-    FFMPEG_ARCHIVE_SHA256,
-    FFMPEG_ARCHIVE_URL,
-    FFMPEG_RELEASE_TAG,
+    FFMPEG_RELEASE_API,
+    selectFfmpegAsset,
     YOUTUBE_PLAYER_CLIENT,
     YTDLP_JS_RUNTIME,
     OUTPUT_FORMATS,
