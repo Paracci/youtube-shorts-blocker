@@ -1,5 +1,5 @@
 // =============================================================================
-// js/i18n/translations.js  –  YouTube Shorts Channel Blocker
+// js/i18n/translations.js  –  Paracci YouTube Toolkit
 // Shared translation engine — loaded before popup.js, setup.js, and content.js
 // =============================================================================
 
@@ -15,7 +15,7 @@ const TRANSLATIONS = {
         navBlocked: 'Blocked',
         navAbout: 'About',
 
-        appName: 'Shorts Blocker',
+        appName: 'YouTube Toolkit',
         protection: 'Protection',
         statusActive: 'Active',
         statusPaused: 'Paused',
@@ -87,7 +87,7 @@ const TRANSLATIONS = {
         resetConfirm: 'Clear all statistics and the blocked channel list?',
 
         setupTitle: 'Native Host Setup',
-        setupPageTitle: 'YouTube Shorts Blocker',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: 'Step',
         setupStep1Title: 'Install Node.js',
         setupStep1Desc: 'The companion app requires Node.js to run.',
@@ -174,7 +174,7 @@ const TRANSLATIONS = {
         navBlocked: 'Engellenenler',
         navAbout: 'Hakkında',
 
-        appName: 'Shorts Engelleyici',
+        appName: 'YouTube Toolkit',
         protection: 'Koruma',
         statusActive: 'Aktif',
         statusPaused: 'Duraklatıldı',
@@ -246,7 +246,7 @@ const TRANSLATIONS = {
         resetConfirm: 'Tüm istatistikler ve engellenen kanal listesi temizlensin mi?',
 
         setupTitle: 'Yerel Host Kurulumu',
-        setupPageTitle: 'YouTube Shorts Engelleyici',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: 'Adım',
         setupStep1Title: 'Node.js Kur',
         setupStep1Desc: 'Yardımcı uygulama Node.js gerektirir.',
@@ -333,7 +333,7 @@ const TRANSLATIONS = {
         navBlocked: 'Gesperrt',
         navAbout: 'Über',
 
-        appName: 'Shorts-Blocker',
+        appName: 'YouTube Toolkit',
         protection: 'Schutz',
         statusActive: 'Aktiv',
         statusPaused: 'Pausiert',
@@ -403,7 +403,7 @@ const TRANSLATIONS = {
         resetConfirm: 'Alle Statistiken und die gesperrte Kanalliste löschen?',
 
         setupTitle: 'Native-Host-Einrichtung',
-        setupPageTitle: 'YouTube Shorts Blocker',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: 'Schritt',
         setupStep1Title: 'Node.js installieren',
         setupStep1Desc: 'Die Begleit-App benötigt Node.js.',
@@ -490,7 +490,7 @@ const TRANSLATIONS = {
         navBlocked: 'Bloqués',
         navAbout: 'À propos',
 
-        appName: 'Bloqueur Shorts',
+        appName: 'YouTube Toolkit',
         protection: 'Protection',
         statusActive: 'Actif',
         statusPaused: 'En pause',
@@ -560,7 +560,7 @@ const TRANSLATIONS = {
         resetConfirm: 'Effacer toutes les statistiques et la liste des chaînes bloquées ?',
 
         setupTitle: "Configuration de l'hôte natif",
-        setupPageTitle: 'Bloqueur YouTube Shorts',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: 'Étape',
         setupStep1Title: 'Installer Node.js',
         setupStep1Desc: "L'application compagnon nécessite Node.js.",
@@ -647,7 +647,7 @@ const TRANSLATIONS = {
         navBlocked: 'Bloqueados',
         navAbout: 'Acerca de',
 
-        appName: 'Bloqueador de Shorts',
+        appName: 'YouTube Toolkit',
         protection: 'Protección',
         statusActive: 'Activo',
         statusPaused: 'En pausa',
@@ -717,7 +717,7 @@ const TRANSLATIONS = {
         resetConfirm: '¿Borrar todas las estadísticas y la lista de canales bloqueados?',
 
         setupTitle: 'Configuración del host nativo',
-        setupPageTitle: 'Bloqueador de YouTube Shorts',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: 'Paso',
         setupStep1Title: 'Instalar Node.js',
         setupStep1Desc: 'La aplicación complementaria requiere Node.js.',
@@ -804,7 +804,7 @@ const TRANSLATIONS = {
         navBlocked: 'Bloqueados',
         navAbout: 'Sobre',
 
-        appName: 'Bloqueador de Shorts',
+        appName: 'YouTube Toolkit',
         protection: 'Proteção',
         statusActive: 'Ativo',
         statusPaused: 'Pausado',
@@ -874,7 +874,7 @@ const TRANSLATIONS = {
         resetConfirm: 'Limpar todas as estatísticas e a lista de canais bloqueados?',
 
         setupTitle: 'Configuração do host nativo',
-        setupPageTitle: 'Bloqueador de YouTube Shorts',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: 'Passo',
         setupStep1Title: 'Instalar Node.js',
         setupStep1Desc: 'O aplicativo companheiro requer Node.js.',
@@ -961,7 +961,7 @@ const TRANSLATIONS = {
         navBlocked: 'Bloccati',
         navAbout: 'Info',
 
-        appName: 'Blocca Shorts',
+        appName: 'YouTube Toolkit',
         protection: 'Protezione',
         statusActive: 'Attivo',
         statusPaused: 'In pausa',
@@ -1031,7 +1031,7 @@ const TRANSLATIONS = {
         resetConfirm: 'Cancellare tutte le statistiche e la lista dei canali bloccati?',
 
         setupTitle: "Configurazione dell'host nativo",
-        setupPageTitle: 'Blocca YouTube Shorts',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: 'Passo',
         setupStep1Title: 'Installa Node.js',
         setupStep1Desc: "L'app companion richiede Node.js.",
@@ -1118,7 +1118,7 @@ const TRANSLATIONS = {
         navBlocked: 'Заблокированные',
         navAbout: 'О расширении',
 
-        appName: 'Блокировщик Shorts',
+        appName: 'YouTube Toolkit',
         protection: 'Защита',
         statusActive: 'Активен',
         statusPaused: 'Приостановлен',
@@ -1188,7 +1188,7 @@ const TRANSLATIONS = {
         resetConfirm: 'Очистить всю статистику и список заблокированных каналов?',
 
         setupTitle: 'Настройка нативного хоста',
-        setupPageTitle: 'Блокировщик YouTube Shorts',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: 'Шаг',
         setupStep1Title: 'Установить Node.js',
         setupStep1Desc: 'Для работы приложения-компаньона необходим Node.js.',
@@ -1275,7 +1275,7 @@ const TRANSLATIONS = {
         navBlocked: 'ブロック済み',
         navAbout: '概要',
 
-        appName: 'Shorts ブロッカー',
+        appName: 'YouTube Toolkit',
         protection: '保護',
         statusActive: '有効',
         statusPaused: '停止中',
@@ -1345,7 +1345,7 @@ const TRANSLATIONS = {
         resetConfirm: 'すべての統計とブロック済みチャンネルのリストを消去しますか？',
 
         setupTitle: 'ネイティブホストのセットアップ',
-        setupPageTitle: 'YouTube Shorts ブロッカー',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: 'ステップ',
         setupStep1Title: 'Node.jsをインストール',
         setupStep1Desc: 'コンパニオンアプリにはNode.jsが必要です。',
@@ -1432,7 +1432,7 @@ const TRANSLATIONS = {
         navBlocked: '차단됨',
         navAbout: '정보',
 
-        appName: 'Shorts 차단기',
+        appName: 'YouTube Toolkit',
         protection: '보호',
         statusActive: '활성',
         statusPaused: '일시정지',
@@ -1502,7 +1502,7 @@ const TRANSLATIONS = {
         resetConfirm: '모든 통계와 차단된 채널 목록을 지우시겠습니까?',
 
         setupTitle: '네이티브 호스트 설정',
-        setupPageTitle: 'YouTube Shorts 차단기',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: '단계',
         setupStep1Title: 'Node.js 설치',
         setupStep1Desc: '컴패니언 앱에는 Node.js가 필요합니다.',
@@ -1589,7 +1589,7 @@ const TRANSLATIONS = {
         navBlocked: '已屏蔽',
         navAbout: '关于',
 
-        appName: 'Shorts 拦截器',
+        appName: 'YouTube Toolkit',
         protection: '保护',
         statusActive: '已启用',
         statusPaused: '已暂停',
@@ -1659,7 +1659,7 @@ const TRANSLATIONS = {
         resetConfirm: '清除所有统计数据和已屏蔽频道列表？',
 
         setupTitle: '原生主机设置',
-        setupPageTitle: 'YouTube Shorts 拦截器',
+        setupPageTitle: 'Paracci YouTube Toolkit',
         setupStepLabel: '步骤',
         setupStep1Title: '安装 Node.js',
         setupStep1Desc: '伴侣应用需要 Node.js 才能运行。',

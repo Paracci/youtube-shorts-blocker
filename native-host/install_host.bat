@@ -47,7 +47,7 @@ if errorlevel 1 call :set_lang_en
 goto :main
 
 :set_lang_en
-set "T=YouTube Shorts Blocker - Native Host Setup"
+set "T=Paracci YouTube Toolkit - Native Host Setup"
 set "T1=Checking for yt-dlp.exe..."
 set "T2=yt-dlp.exe not found. The native host will download and verify it on first use."
 set "T3=yt-dlp.exe is ready."
@@ -64,7 +64,7 @@ set "T13=Press any key to close..."
 exit /b 0
 
 :set_lang_tr
-set "T=YouTube Shorts Engelleyici - Yerel Host Kurulumu"
+set "T=Paracci YouTube Toolkit - Yerel Host Kurulumu"
 set "T1=yt-dlp.exe kontrol ediliyor..."
 set "T2=yt-dlp.exe bulunamadi. Yerel host ilk kullanimda indirip dogrulayacak."
 set "T3=yt-dlp.exe hazir."
@@ -81,7 +81,7 @@ set "T13=Kapatmak icin herhangi bir tusa basin..."
 exit /b 0
 
 :set_lang_de
-set "T=YouTube Shorts Blocker - Native Host Installation"
+set "T=Paracci YouTube Toolkit - Native Host Installation"
 set "T1=Suche nach yt-dlp.exe..."
 set "T2=yt-dlp.exe nicht gefunden. Der Native Host laedt und prueft sie bei der ersten Nutzung."
 set "T3=yt-dlp.exe ist bereit."
@@ -98,7 +98,7 @@ set "T13=Zum Beenden beliebige Taste druecken..."
 exit /b 0
 
 :set_lang_fr
-set "T=Bloqueur YouTube Shorts - Installation hote natif"
+set "T=Paracci YouTube Toolkit - Installation hote natif"
 set "T1=Recherche de yt-dlp.exe..."
 set "T2=yt-dlp.exe introuvable. L hote natif le telechargera et le verifiera au premier usage."
 set "T3=yt-dlp.exe est pret."
@@ -115,7 +115,7 @@ set "T13=Appuyez sur une touche pour quitter..."
 exit /b 0
 
 :set_lang_es
-set "T=Bloqueador YouTube Shorts - Instalacion host nativo"
+set "T=Paracci YouTube Toolkit - Instalacion host nativo"
 set "T1=Buscando yt-dlp.exe..."
 set "T2=yt-dlp.exe no encontrado. El host nativo lo descargara y verificara al usarlo por primera vez."
 set "T3=yt-dlp.exe esta listo."
@@ -132,7 +132,7 @@ set "T13=Pulsa cualquier tecla para salir..."
 exit /b 0
 
 :set_lang_pt
-set "T=Bloqueador YouTube Shorts - Instalacao host nativo"
+set "T=Paracci YouTube Toolkit - Instalacao host nativo"
 set "T1=Procurando yt-dlp.exe..."
 set "T2=yt-dlp.exe nao encontrado. O host nativo baixara e verificara no primeiro uso."
 set "T3=yt-dlp.exe esta pronto."
@@ -149,7 +149,7 @@ set "T13=Pressione qualquer tecla para sair..."
 exit /b 0
 
 :set_lang_it
-set "T=Blocca YouTube Shorts - Installazione host nativo"
+set "T=Paracci YouTube Toolkit - Installazione host nativo"
 set "T1=Ricerca di yt-dlp.exe..."
 set "T2=yt-dlp.exe non trovato. L host nativo lo scarichera e verifichera al primo uso."
 set "T3=yt-dlp.exe e pronto."
@@ -166,7 +166,7 @@ set "T13=Premi un tasto per uscire..."
 exit /b 0
 
 :set_lang_ru
-set "T=YouTube Shorts Blocker - Ustanovka nativnogo hosta"
+set "T=Paracci YouTube Toolkit - Ustanovka nativnogo hosta"
 set "T1=Poisk yt-dlp.exe..."
 set "T2=yt-dlp.exe ne najden. Nativnyj host zagruzit i proverit ego pri pervom zapuske."
 set "T3=yt-dlp.exe gotov."
@@ -244,7 +244,7 @@ set "MANIFEST_FWD=%MANIFEST:\=/%"
 set "HOST_JSON=%DIR:\=\\%\\\\native-host.bat"
 set "EXT_ID=!EXTENSION_ID!"
 
-node -e "var fs=require('fs');var m={name:'com.paracci.youtubedownloader',description:'YouTube Shorts Blocker',path:'%HOST_JSON%',type:'stdio',allowed_origins:['chrome-extension://%EXT_ID%/']};fs.writeFileSync('%MANIFEST_FWD%',JSON.stringify(m,null,2));" 2>nul
+node -e "var fs=require('fs');var m={name:'com.paracci.youtubedownloader',description:'Paracci YouTube Toolkit',path:'%HOST_JSON%',type:'stdio',allowed_origins:['chrome-extension://%EXT_ID%/']};fs.writeFileSync('%MANIFEST_FWD%',JSON.stringify(m,null,2));" 2>nul
 if !errorlevel! neq 0 (
     echo.
     echo   %RED%  [FAIL]  %T9%%R%

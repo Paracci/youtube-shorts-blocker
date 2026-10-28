@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// native-host.js – v1.15.0
+// native-host.js – v1.16.0
 
 const fs = require('fs');
 const path = require('path');
@@ -32,7 +32,7 @@ function requestBuffer(url, headers = {}, redirectCount = 0, maxBytes = 100 * 10
         }
 
         const request = https.get(url, {
-            headers: { 'User-Agent': 'YouTube-Shorts-Blocker-Native-Host', ...headers }
+            headers: { 'User-Agent': 'Paracci-YouTube-Toolkit-Native-Host', ...headers }
         }, (res) => {
             if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
                 res.resume();

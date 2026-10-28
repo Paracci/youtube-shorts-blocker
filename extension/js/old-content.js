@@ -14,7 +14,7 @@
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
-// YouTube Shorts Channel Blocker + Video Downloader – content.js (LEGACY ARCHIVE)
+// Paracci YouTube Toolkit + Video Downloader – content.js (LEGACY ARCHIVE)
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Extension context guard ──────────────────────────────────────────────────

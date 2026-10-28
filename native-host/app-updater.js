@@ -4,7 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const API = 'https://api.github.com/repos/Paracci/youtube-shorts-blocker/releases/latest';
+const API = 'https://api.github.com/repos/Paracci/youtube-toolkit/releases/latest';
 const ASSET = 'paracci-update.json';
 const MAX_BYTES = 16 * 1024 * 1024;
 
@@ -95,7 +95,7 @@ function verify(envelopeBytes, publicKey, currentVersion) {
     const payload = Buffer.from(envelope.payload, 'base64');
     if (!crypto.verify(null, payload, publicKey, Buffer.from(envelope.signature, 'base64'))) throw new Error('Update signature verification failed.');
     const data = JSON.parse(payload.toString('utf8'));
-    if (data.protocol !== 1 || data.repository !== 'Paracci/youtube-shorts-blocker') throw new Error('Unsupported update package.');
+    if (data.protocol !== 1 || data.repository !== 'Paracci/youtube-toolkit') throw new Error('Unsupported update package.');
     if (compare(data.version, currentVersion) <= 0) throw new Error('Older or identical update rejected.');
     if (!Array.isArray(data.files) || !data.files.length || data.files.length > 256) throw new Error('Invalid update inventory.');
     const names = new Set();
@@ -166,7 +166,7 @@ function createUpdater({ root, request, publicKey = fs.readFileSync(path.join(__
             if (compare(latest, current) <= 0) return { status: 'current', currentVersion: current, version: latest };
             const asset = Array.isArray(release.assets) && release.assets.find(a => a.name === ASSET);
             if (!asset) return { status: 'unavailable', currentVersion: current, version: latest, message: 'This release has no signed update package.' };
-            const expected = `https://github.com/Paracci/youtube-shorts-blocker/releases/download/v${latest}/${ASSET}`;
+            const expected = `https://github.com/Paracci/youtube-toolkit/releases/download/v${latest}/${ASSET}`;
             if (asset.browser_download_url !== expected) throw new Error('Unexpected update download URL.');
             const bytes = await request(expected, {}, 0, MAX_BYTES);
             const data = verify(bytes, publicKey, current);

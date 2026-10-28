@@ -17,7 +17,7 @@ function bundle(change = data => data) {
         'native-host/native-host.js': 'new host'
     }).map(([name, value]) => ({ path: name, content: Buffer.from(value).toString('base64'),
         sha256: crypto.createHash('sha256').update(value).digest('hex') }));
-    const data = change({ protocol: 1, repository: 'Paracci/youtube-shorts-blocker', version: '1.15.0', files });
+    const data = change({ protocol: 1, repository: 'Paracci/youtube-toolkit', version: '1.15.0', files });
     const payload = Buffer.from(JSON.stringify(data));
     return Buffer.from(JSON.stringify({ payload: payload.toString('base64'), signature: crypto.sign(null, payload, keys.privateKey).toString('base64') }));
 }
@@ -40,6 +40,9 @@ test('updates require a valid publisher signature and reject tampering, wrong ke
     assert.throws(() => updater.verify(Buffer.from(JSON.stringify(envelope)), keys.publicKey, '1.14.1'), /signature/);
     assert.throws(() => updater.verify(bundle(), crypto.generateKeyPairSync('ed25519').publicKey, '1.14.1'), /signature/);
     assert.throws(() => updater.verify(bundle(), keys.publicKey, '1.15.0'), /Older/);
+    for (const repository of ['Paracci/youtube-shorts-blocker', 'someone/youtube-toolkit']) {
+        assert.throws(() => updater.verify(bundle(d => { d.repository = repository; return d; }), keys.publicKey, '1.14.1'), /Unsupported update package/);
+    }
     for (const file of ['../outside', 'extension/../outside', 'native-host/app-updater.js', 'native-host/update-public-key.pem', 'native-host/ffmpeg/ffmpeg.exe', 'extension/C:/bad', 'extension//bad']) {
         assert.throws(() => updater.verify(bundle(d => { d.files[1].path = file; return d; }), keys.publicKey, '1.14.1'), /Invalid update file/);
     }
@@ -99,7 +102,7 @@ test('development checkouts, live update locks and linked destination paths are 
 
 test('GitHub discovery verifies stable release version, exact asset URL and signed content', async t => {
     const root = fixture(t);
-    let assetUrl = 'https://github.com/Paracci/youtube-shorts-blocker/releases/download/v1.15.0/paracci-update.json';
+    let assetUrl = 'https://github.com/Paracci/youtube-toolkit/releases/download/v1.15.0/paracci-update.json';
     let tag = 'v1.15.0';
     let assets = true;
     const client = updater.createUpdater({ root, publicKey: keys.publicKey, request: async url => {
@@ -111,6 +114,8 @@ test('GitHub discovery verifies stable release version, exact asset URL and sign
     assert.equal((await client.check()).status, 'available');
     assert.throws(() => client.apply('1.16.0'), /Check for updates/);
     assetUrl = 'https://example.com/update';
+    await assert.rejects(client.check(), /Unexpected update/);
+    assetUrl = 'https://github.com/Paracci/youtube-shorts-blocker/releases/download/v1.15.0/paracci-update.json';
     await assert.rejects(client.check(), /Unexpected update/);
     assert.throws(() => client.apply('1.15.0'), /Check for updates/);
     assets = false;

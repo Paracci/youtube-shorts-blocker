@@ -28,7 +28,7 @@ function localAssetReferences(relativePath, html) {
 test('Manifest V3 contract points to every shipped runtime', () => {
     const manifest = JSON.parse(read('extension/manifest.json'));
     assert.equal(manifest.manifest_version, 3);
-    assert.equal(manifest.version, '1.15.0');
+    assert.equal(manifest.version, '1.16.0');
     assert.equal(manifest.background.service_worker, 'js/background.js');
     assert.deepEqual(manifest.permissions.sort(), ['alarms', 'downloads', 'nativeMessaging', 'storage', 'tabs']);
     assert.equal(manifest.host_permissions.includes('<all_urls>'), false);

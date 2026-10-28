@@ -1,12 +1,14 @@
-# YouTube Shorts Blocker & Ultimate Downloader (v1.15.0)
+# Paracci YouTube Toolkit (v1.16.0)
+
+Previously named `youtube-shorts-blocker`. The repository and live demo now use `youtube-toolkit`. Existing installations, including v1.15.0, need the [one-time repository migration](docs/UPDATES.md#one-time-upgrade-to-1160) before using GitHub updates from the new address.
 
 A privacy-focused Chrome extension designed to improve your YouTube experience without sending your data to a cloud service. It blocks unwanted Shorts channels, hides distracting content, handles explicit ad states with Premium-aware safety controls, and provides a private native downloader for public single-video URLs.
 
 > Part of the **Paracci Browser Tools** collection — privacy-first, zero telemetry, built for power users.
 
 
-### 🌐 [Live Demo & Showcase](https://paracci.github.io/youtube-shorts-blocker/)
-Explore the interactive landing page to see the premium UI and features in action: **[paracci.github.io/youtube-shorts-blocker](https://paracci.github.io/youtube-shorts-blocker/)**
+### 🌐 [Live Demo & Showcase](https://paracci.github.io/youtube-toolkit/)
+Explore the interactive landing page to see the premium UI and features in action: **[paracci.github.io/youtube-toolkit](https://paracci.github.io/youtube-toolkit/)**
 
 ---
 
@@ -82,7 +84,7 @@ The advanced table exposes normalized resolution, FPS, video/audio codec, stream
 
 Setup / Monitor now checks GitHub approximately daily and shows a toolbar `NEW` badge for a verified newer release. Click **Update now** in the **Extension updates** card to install an Ed25519-signed update and reload the extension. Downloads postpone installation; settings, blocked channels, and generated media tools are preserved. Old YouTube tabs should be reopened after updating.
 
-Existing 1.14.x users must copy the full new release over the same installation folder and run the updated `native-host/install_host.bat` **once** to enable the recovery bootstrap. Git development checkouts use Git updates. See [update setup, recovery, and publishing](docs/UPDATES.md).
+Existing 1.14.x and 1.15.0 users must copy the full v1.16.0 release over the same installation folder and run the updated `native-host/install_host.bat` **once**. This installs the current recovery bootstrap and the updater that validates the new repository address. Git development checkouts use Git updates. See [update setup, recovery, and publishing](docs/UPDATES.md).
 
 ### Phase 1: Chrome Extension
 1. Extract this repository to a permanent folder on your computer.
@@ -109,7 +111,7 @@ The extension's in-player buttons may still use the browser's normal download ha
 ## 📁 File Structure
 
 ```text
-youtube-shorts-blocker/
+youtube-toolkit/
 ├── extension/                    # Main unpacked extension folder
 │   ├── icons/                    # Extension logos
 │   ├── _locales/                 # Chrome-native locale files (extension name & description)
@@ -234,4 +236,4 @@ This project is licensed under the MIT License — see the `LICENSE` file for de
 
 Crafted with ❤️ by **Paracci**.
 
-Part of the **Paracci Browser Tools** collection — check out the [Live Demo](https://paracci.github.io/youtube-shorts-blocker/) or visit [X Auto Ad Blocker](https://github.com/paracci/x-auto-ad-blocker).
+Part of the **Paracci Browser Tools** collection — check out the [Live Demo](https://paracci.github.io/youtube-toolkit/) or visit [X Auto Ad Blocker](https://github.com/paracci/x-auto-ad-blocker).

@@ -1,8 +1,8 @@
 {
-  "name": "youtube-shorts-blocker",
-  "version": "1.15.0",
+  "name": "youtube-toolkit",
+  "version": "1.16.0",
   "private": true,
-  "description": "Test harness for the YouTube Shorts Blocker extension and native host",
+  "description": "Test harness and release tooling for Paracci YouTube Toolkit and its native companion",
   "scripts": {
     "test": "node --test test/unit/*.test.js test/integration/*.test.js",
     "test:unit": "node --test test/unit/*.test.js",

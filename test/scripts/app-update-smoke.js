@@ -37,7 +37,7 @@ const fs=require('fs'),{EventEmitter}=require('events');
 require('https').get=(url,options,callback)=>{
  const request=new EventEmitter();request.setTimeout=()=>request;
  setImmediate(()=>{const response=new EventEmitter();response.statusCode=200;response.headers={};callback(response);
- const body=url===${JSON.stringify(updater.API)}?Buffer.from(JSON.stringify({tag_name:'v${data.version}',assets:[{name:'paracci-update.json',browser_download_url:'https://github.com/Paracci/youtube-shorts-blocker/releases/download/v${data.version}/paracci-update.json'}]})):fs.readFileSync(${JSON.stringify(asset)});
+ const body=url===${JSON.stringify(updater.API)}?Buffer.from(JSON.stringify({tag_name:'v${data.version}',assets:[{name:'paracci-update.json',browser_download_url:'https://github.com/Paracci/youtube-toolkit/releases/download/v${data.version}/paracci-update.json'}]})):fs.readFileSync(${JSON.stringify(asset)});
  response.emit('data',body);response.emit('end');});return request;
 };`);
             args.push('--require', preload);

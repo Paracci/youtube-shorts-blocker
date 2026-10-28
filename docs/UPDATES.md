@@ -2,14 +2,18 @@
 
 Version 1.15.0 introduces an updater for unpacked Windows installations. This is a native-companion feature; it is not Chrome Web Store distribution.
 
-## One-time upgrade from 1.14.x
+## One-time upgrade to 1.16.0
 
-1. Download the complete 1.15.0 source ZIP and extract it to a permanent location. To keep the existing unpacked extension ID and browser settings, copy the new files over the existing installation **in the same folder**. Keep your existing `native-host/ffmpeg/` directory and `yt-dlp.exe`.
+The project moved from `Paracci/youtube-shorts-blocker` to `Paracci/youtube-toolkit` in v1.16.0. The v1.15.0 updater pins the previous GitHub asset URL and signed repository identity. GitHub redirects cannot satisfy those checks, and its updater module is deliberately excluded from automatic updates. Therefore **v1.15.0 also requires this manual migration**; a one-click update cannot bootstrap this repository move. The Ed25519 signing key is unchanged.
+
+1. Download the complete **v1.16.0** source ZIP. To keep the existing unpacked extension ID and browser settings, copy the new files over the existing installation **in the same folder**, including `native-host/app-updater.js`, the bootstrap, and the public key. Keep your existing `native-host/ffmpeg/` directory and `yt-dlp.exe`.
 2. Run the updated `native-host/install_host.bat` once with the extension ID from Setup / Monitor. This registers the recovery bootstrap as the native entry point.
 3. Reload the extension in `chrome://extensions/`, approve the new `alarms` permission if Chrome asks, and reopen YouTube tabs.
 4. Open Setup / Monitor. The **Extension updates** card provides **Check for updates** and, when a newer signed release exists, **Update now**.
 
-The current source archive always includes the bootstrap, updater, and public key. Older releases cannot install this feature themselves because they have no application updater. Do not use the small FFmpeg-only or Premium-only hotfix ZIPs to install this feature.
+The current source archive always includes the bootstrap, updater, and public key. Releases before v1.15.0 have no application updater; v1.15.0 has the previous repository pinned. Do not use the small FFmpeg-only or Premium-only hotfix ZIPs for this migration. After migration, newer signed releases from `Paracci/youtube-toolkit` use the normal one-click workflow.
+
+The local installation folder need not be renamed. Keep `com.paracci.youtubedownloader` and the existing `%LOCALAPPDATA%\Paracci\YouTube Shorts Blocker\NativeMessagingHosts` registration directory; these are compatibility identifiers, not current product branding. Developers should run `git remote set-url origin https://github.com/Paracci/youtube-toolkit.git` in existing clones.
 
 ## User behavior
 
@@ -22,7 +26,7 @@ The current source archive always includes the bootstrap, updater, and public ke
 
 ## Package trust and recovery
 
-The only discovery source is `Paracci/youtube-shorts-blocker`'s latest stable GitHub release. It must provide an asset named `paracci-update.json` at the expected tag URL. The envelope carries a base64 JSON payload and an Ed25519 signature. The signature covers the complete payload, including the protocol, repository, version, file paths, bytes, and SHA-256 hashes.
+The only discovery source is `Paracci/youtube-toolkit`'s latest stable GitHub release. It must provide an asset named `paracci-update.json` at the expected tag URL. The envelope carries a base64 JSON payload and an Ed25519 signature. The signature covers the complete payload, including the protocol, repository, version, file paths, bytes, and SHA-256 hashes.
 
 The pinned `native-host/update-public-key.pem` authenticates the publisher independently of GitHub's asset digest. Missing signatures, wrong keys, tampering, duplicate paths, traversal, missing manifest resources, downgraded versions, identity-key changes, and linked destinations are rejected. Updates cannot write outside `extension/`, `native-host/native-host.js`, or `native-host/download-policy.js`.
 

@@ -22,7 +22,7 @@ const files = names.map(name => {
     const bytes = execFileSync('git', ['show', ':' + name], { cwd: root, maxBuffer: 16 * 1024 * 1024 });
     return { path: name, content: bytes.toString('base64'), sha256: crypto.createHash('sha256').update(bytes).digest('hex') };
 });
-const payload = Buffer.from(JSON.stringify({ protocol: 1, repository: 'Paracci/youtube-shorts-blocker', version: manifest.version, files }));
+const payload = Buffer.from(JSON.stringify({ protocol: 1, repository: 'Paracci/youtube-toolkit', version: manifest.version, files }));
 const envelope = Buffer.from(JSON.stringify({ payload: payload.toString('base64'), signature: crypto.sign(null, payload, key).toString('base64') }));
 verify(envelope, publicKey, '0.0.0');
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
