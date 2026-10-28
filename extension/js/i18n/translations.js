@@ -3025,6 +3025,155 @@ Object.keys(TRANSLATIONS).forEach(lang => {
 // i18n engine — exposed as a global `i18n` object
 // =============================================================================
 
+const APP_UPDATE_TRANSLATIONS = {
+    "en": [
+        "Extension updates",
+        "Checks GitHub daily. Updates install only when you choose.",
+        "Check for updates",
+        "Update now",
+        "New version available",
+        "You are up to date",
+        "This release has no signed update package",
+        "Update could not be completed. See details below.",
+        "Update installed. Reloading; reopen YouTube tabs.",
+        "Installing verified update…",
+        "Checking GitHub…"
+    ],
+    "tr": [
+        "Eklenti güncellemeleri",
+        "GitHub günlük kontrol edilir. Güncellemeler yalnızca siz seçince kurulur.",
+        "Güncellemeleri kontrol et",
+        "Şimdi güncelle",
+        "Yeni sürüm mevcut",
+        "Güncelsiniz",
+        "Bu sürümün imzalı güncelleme paketi yok",
+        "Güncelleme tamamlanamadı. Ayrıntılar aşağıda.",
+        "Güncelleme kuruldu. Yeniden yükleniyor; YouTube sekmelerini yeniden açın.",
+        "Doğrulanmış güncelleme kuruluyor…",
+        "GitHub kontrol ediliyor…"
+    ],
+    "de": [
+        "Erweiterungsupdates",
+        "GitHub wird täglich geprüft. Installation nur auf Ihren Wunsch.",
+        "Nach Updates suchen",
+        "Jetzt aktualisieren",
+        "Neue Version verfügbar",
+        "Sie sind auf dem neuesten Stand",
+        "Diese Version hat kein signiertes Updatepaket",
+        "Update fehlgeschlagen. Details unten.",
+        "Installiert. Wird neu geladen; YouTube-Tabs erneut öffnen.",
+        "Geprüftes Update wird installiert…",
+        "GitHub wird geprüft…"
+    ],
+    "fr": [
+        "Mises à jour de l’extension",
+        "Vérification quotidienne de GitHub. Installation à votre demande.",
+        "Rechercher des mises à jour",
+        "Mettre à jour",
+        "Nouvelle version disponible",
+        "Vous êtes à jour",
+        "Cette version n’a pas de paquet signé",
+        "Échec de la mise à jour. Détails ci-dessous.",
+        "Installée. Rechargement ; rouvrez les onglets YouTube.",
+        "Installation de la mise à jour vérifiée…",
+        "Vérification de GitHub…"
+    ],
+    "es": [
+        "Actualizaciones de la extensión",
+        "Se consulta GitHub a diario. Solo se instala cuando lo elijas.",
+        "Buscar actualizaciones",
+        "Actualizar ahora",
+        "Nueva versión disponible",
+        "Estás al día",
+        "Esta versión no tiene un paquete firmado",
+        "No se pudo actualizar. Consulta los detalles.",
+        "Instalada. Recargando; vuelve a abrir las pestañas de YouTube.",
+        "Instalando actualización verificada…",
+        "Consultando GitHub…"
+    ],
+    "pt": [
+        "Atualizações da extensão",
+        "O GitHub é verificado diariamente. A instalação depende da sua escolha.",
+        "Verificar atualizações",
+        "Atualizar agora",
+        "Nova versão disponível",
+        "Está atualizado",
+        "Esta versão não tem um pacote assinado",
+        "Não foi possível atualizar. Veja os detalhes.",
+        "Instalada. Recarregando; reabra as abas do YouTube.",
+        "Instalando atualização verificada…",
+        "Verificando GitHub…"
+    ],
+    "it": [
+        "Aggiornamenti estensione",
+        "GitHub viene controllato ogni giorno. Installazione solo su tua richiesta.",
+        "Controlla aggiornamenti",
+        "Aggiorna ora",
+        "Nuova versione disponibile",
+        "Sei aggiornato",
+        "Questa versione non ha un pacchetto firmato",
+        "Aggiornamento non riuscito. Dettagli sotto.",
+        "Installato. Ricaricamento; riapri le schede YouTube.",
+        "Installazione aggiornamento verificato…",
+        "Controllo GitHub…"
+    ],
+    "ru": [
+        "Обновления расширения",
+        "GitHub проверяется ежедневно. Установка только по вашему выбору.",
+        "Проверить обновления",
+        "Обновить сейчас",
+        "Доступна новая версия",
+        "Установлена последняя версия",
+        "В этом выпуске нет подписанного пакета",
+        "Не удалось обновить. Подробности ниже.",
+        "Установлено. Перезагрузка; откройте вкладки YouTube заново.",
+        "Установка проверенного обновления…",
+        "Проверка GitHub…"
+    ],
+    "ja": [
+        "拡張機能の更新",
+        "GitHubを毎日確認します。選択したときだけ更新を適用します。",
+        "更新を確認",
+        "今すぐ更新",
+        "新しいバージョンがあります",
+        "最新です",
+        "このリリースには署名付き更新パッケージがありません",
+        "更新できませんでした。詳細を確認してください。",
+        "更新しました。再読み込み後、YouTubeタブを開き直してください。",
+        "検証済みの更新をインストール中…",
+        "GitHubを確認中…"
+    ],
+    "ko": [
+        "확장 프로그램 업데이트",
+        "GitHub를 매일 확인합니다. 선택할 때만 업데이트를 설치합니다.",
+        "업데이트 확인",
+        "지금 업데이트",
+        "새 버전이 있습니다",
+        "최신 버전입니다",
+        "이 릴리스에는 서명된 업데이트 패키지가 없습니다",
+        "업데이트하지 못했습니다. 아래 세부 정보를 확인하세요.",
+        "설치했습니다. 다시 로드한 후 YouTube 탭을 다시 여세요.",
+        "검증된 업데이트 설치 중…",
+        "GitHub 확인 중…"
+    ],
+    "zh": [
+        "扩展程序更新",
+        "每天检查 GitHub，仅在您选择时安装更新。",
+        "检查更新",
+        "立即更新",
+        "有新版本可用",
+        "已是最新版本",
+        "此版本没有签名更新包",
+        "更新失败，请查看下方详情。",
+        "更新已安装。重新加载后，请重新打开 YouTube 标签页。",
+        "正在安装已验证的更新…",
+        "正在检查 GitHub…"
+    ]
+};
+for (const [lang, values] of Object.entries(APP_UPDATE_TRANSLATIONS)) {
+    ["appUpdateTitle","appUpdateDescription","appUpdateCheck","appUpdateInstall","appUpdateAvailable","appUpdateCurrent","appUpdateUnavailable","appUpdateError","appUpdateInstalled","appUpdateInstalling","appUpdateChecking"].forEach((key, index) => { TRANSLATIONS[lang][key] = values[index]; });
+}
+
 const i18n = (() => {
     let _lang = DEFAULT_LANG;
     let _ready = false;

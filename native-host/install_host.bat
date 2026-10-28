@@ -254,7 +254,7 @@ if !errorlevel! neq 0 (
 echo   %CYN%  ^> %T10%%R%
 (
     echo @echo off
-    echo node "%%~dp0native-host.js" %%*
+    echo node "%%~dp0update-bootstrap.js" %%*
 ) > "%DIR%\native-host.bat"
 
 reg add "%REG_KEY%" /ve /t REG_SZ /d "%MANIFEST%" /f >nul 2>&1

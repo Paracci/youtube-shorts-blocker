@@ -14,6 +14,12 @@ logs/
 .DS_Store
 Thumbs.db
 node_modules/
+.paracci-updater/
+dist/
+output/
+.playwright-cli/
+*.paracci-tmp
+*private*.pem
 .env*
 
 # IDE settings

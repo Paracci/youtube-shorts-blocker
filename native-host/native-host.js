@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// native-host.js – v1.14.1
+// native-host.js – v1.15.0
 
 const fs = require('fs');
 const path = require('path');
@@ -22,6 +22,7 @@ const YTDLP_JS_RUNTIME = 'node';
 
 let ytdlpInstallPromise = null;
 let ffmpegInstallPromise = null;
+let appUpdater = null;
 
 function requestBuffer(url, headers = {}, redirectCount = 0, maxBytes = 100 * 1024 * 1024) {
     return new Promise((resolve, reject) => {
@@ -946,6 +947,38 @@ async function main() {
         try {
             const request = await getMessage();
 
+            if (['check_app_update', 'install_app_update'].includes(request.action)) {
+                try {
+                    if (process.env.PARACCI_UPDATE_BOOTSTRAP !== '1') {
+                        throw new Error('Run the updated native-host/install_host.bat once to enable update recovery.');
+                    }
+                    if (activeVideoDownloads.size || pageJobReservations.size || ytdlpInstallPromise || ffmpegInstallPromise) {
+                        throw new Error('Downloads or media-tool preparation are active. Please retry when they finish.');
+                    }
+                    if (!appUpdater) appUpdater = require('./app-updater').createUpdater({
+                        root: path.resolve(__dirname, '..'), request: requestBuffer
+                    });
+                    // Ports may have closed since the daily check. Re-discover
+                    // and verify the package on every installation attempt.
+                    const discovered = await appUpdater.check();
+                    let result = discovered;
+                    if (request.action === 'install_app_update') {
+                        if (discovered.status !== 'available' || discovered.version !== request.version) {
+                            throw new Error('The available release changed. Check for updates again.');
+                        }
+                        if (activeVideoDownloads.size || pageJobReservations.size || ytdlpInstallPromise || ffmpegInstallPromise) {
+                            throw new Error('Downloads are active. Please retry when they finish.');
+                        }
+                        result = appUpdater.apply(request.version);
+                    }
+                    sendMessage({ action: 'app_update_result', requestId: String(request.requestId || ''), ...result });
+                } catch (error) {
+                    sendMessage({ action: 'app_update_result', requestId: String(request.requestId || ''),
+                        status: 'error', message: redactDiagnosticText(String(error.message || error)) });
+                }
+                continue;
+            }
+
             if (request.action === 'resolve_formats') {
                 const requestId = String(request.requestId || '');
                 const parsed = parseYouTubeUrl(request.url);
@@ -1601,6 +1634,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+    main,
     FFMPEG_ARCHIVE_NAME,
     FFMPEG_RELEASE_API,
     selectFfmpegAsset,

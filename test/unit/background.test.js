@@ -111,6 +111,15 @@ function callMessage(harness, message) {
     });
 }
 
+test('YouTube content scripts cannot check or install application updates', async () => {
+    const harness = makeBackgroundHarness();
+    for (const action of ['check_app_update', 'install_app_update']) {
+        const result = await callMessage(harness, { action, version: '1.99.0' });
+        assert.equal(result.status, 'error');
+        assert.equal(harness.nativeMessages.length, 0);
+    }
+});
+
 test('background isolates standalone page formats, jobs, progress, results, and cancellation', () => {
     const harness = makeBackgroundHarness();
     const firstPage = harness.connectPage('download-page');

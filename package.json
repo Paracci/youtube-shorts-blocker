@@ -1,6 +1,6 @@
 {
   "name": "youtube-shorts-blocker",
-  "version": "1.14.1",
+  "version": "1.15.0",
   "private": true,
   "description": "Test harness for the YouTube Shorts Blocker extension and native host",
   "scripts": {
@@ -8,6 +8,7 @@
     "test:unit": "node --test test/unit/*.test.js",
     "test:integration": "node --test test/integration/*.test.js",
     "test:syntax": "node test/scripts/syntax-check.js",
-    "test:all": "npm run test:syntax && npm test"
+    "test:all": "npm run test:syntax && npm test",
+    "build:update": "node scripts/build-update.js"
   }
 }

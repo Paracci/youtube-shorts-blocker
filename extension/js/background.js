@@ -13,6 +13,13 @@ try {
 }
 
 let nativePort = null;
+importScripts('app-updates.js');
+const applicationUpdates = AppUpdates.create({
+    chrome,
+    getPort: () => { if (!nativePort) connectToNativeHost(); return nativePort; },
+    isBusy: () => activeDownloads.size > 0 || downloadPageJobs.size > 0 || downloadPageRequests.size > 0
+});
+applicationUpdates.initialize();
 let developerModeEnabled = false;
 const developerConsolePorts = new Set();
 const developerLogStore = typeof DeveloperLogStore !== 'undefined'
@@ -400,6 +407,11 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 function handleDownloadPageMessage(port, message) {
+    if (applicationUpdates.isInstalling() && ['resolve_formats', 'start_download'].includes(message.action)) {
+        sendDownloadPageError(port, message.action === 'resolve_formats' ? 'download_page_formats' : 'download_page_result',
+            message.requestId || message.jobId, 'update_busy', 'An application update is in progress.');
+        return;
+    }
     if (message.action === 'resolve_formats') {
         const requestId = String(message.requestId || '');
         if (!isPageId(requestId)) {
@@ -654,6 +666,22 @@ function handleDownloadPageMessage(port, message) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (applicationUpdates.isInstalling() && ['download_video_native', 'update_downloader_native', 'download_video_browser'].includes(message.action)) {
+        sendResponse({ status: 'update_busy' });
+        return false;
+    }
+    if (message.action === 'check_app_update' || message.action === 'install_app_update') {
+        // YouTube content scripts must never be able to start code updates.
+        if (typeof sender.url !== 'string' || sender.id !== chrome.runtime.id ||
+            String(sender.url || '').split(/[?#]/)[0] !== chrome.runtime.getURL('views/setup.html')) {
+            sendResponse({ status: 'error', message: 'Open Setup / Monitor to manage application updates.' });
+            return false;
+        }
+        const operation = message.action === 'check_app_update'
+            ? applicationUpdates.check() : applicationUpdates.apply(message.version);
+        operation.then(sendResponse, () => sendResponse({ status: 'error', message: 'Update operation failed.' }));
+        return true;
+    }
 
     if (message?.action === 'developer_log') {
         void appendIncomingDeveloperLog(message.entry || message, sender);

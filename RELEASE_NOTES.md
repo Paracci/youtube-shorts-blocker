@@ -1,30 +1,38 @@
-# v1.14.1 — Reliable FFmpeg Setup on Fresh Windows Installations
+# v1.15.0 — Signed GitHub Updates & Premium Detection Fix
 
-This patch fixes native video and audio downloads on Windows computers that do not already have FFmpeg installed.
+Unpacked Windows installations can now discover stable GitHub releases automatically and install a verified update from Setup / Monitor with one click.
 
-## Fixes
+## New
 
-- Replace the expired FFmpeg autobuild URL, which returned HTTP 404, with release discovery for the maintained BtbN FFmpeg 8.1 Windows build. The archive must match the SHA-256 digest published by the official GitHub release API before extraction and installation.
-- Install missing FFmpeg on first use of the YouTube player download buttons, and pass its exact local directory to yt-dlp for video/audio merging and MP3 conversion. The standalone downloader also uses the corrected installer.
-- Copy FFmpeg, ffprobe, and the required DLLs correctly when the installation path contains Turkish or other non-ASCII characters, avoiding a Windows file-copy issue reproduced with Node.js 22.18.0.
-- Report interrupted or stalled tool downloads as errors so they can be retried.
+- Daily update checks through GitHub Releases, plus a startup check when the previous result is at least a day old.
+- A toolbar NEW badge and an Extension updates card with release notes, Check for updates, and Update now.
+- Ed25519 publisher signatures and per-file SHA-256 verification. Unsigned packages, mismatched releases, downgraded versions, unsafe paths, and extension identity changes are rejected.
+- In-place updates for extension/native-host source files, followed by an extension reload. Browser settings, blocked channels, and installed FFmpeg/yt-dlp binaries are preserved.
+- Active-download protection, transactional rollback after write failures, and recovery on the next native-host launch if installation was interrupted.
+- An offline signed-package publisher; GitHub Actions is not required to create releases. Trust-root updates and signing-key rotation require a manual bootstrap upgrade.
 
-## Updating
+## Premium detection fix
 
-1. Extract the new source archive to a permanent folder, or update your existing checkout.
-2. Reload the unpacked extension from `chrome://extensions/` and refresh any open YouTube tabs. If Chrome keeps an older native host process open, exit Chrome completely and reopen it.
-3. If you moved the installation to a different folder, run `native-host/install_host.bat` again with the extension ID shown on the setup page. Replacing files in the same folder does not require re-registering the host.
-4. Keep Node.js 22 or newer installed. On the first native download, allow time for the roughly 90 MB FFmpeg archive to download and install.
+The Premium detector now uses a manifest-declared MAIN world content script instead of loading chrome-extension://…/inject.js from the YouTube page. Nonce/source/origin checks and fail-closed handling of unknown Premium status are retained across SPA navigation.
 
-Generated media-tool binaries are not included in the source archive; the native host downloads and verifies them when needed.
+## One-time upgrade from 1.14.x
 
-## Local validation
+1. Download the **full source ZIP** and copy the new files over your existing installation **in the same folder** to retain its unpacked extension ID and settings. Preserve existing generated media tools.
+2. Run the updated native-host/install_host.bat once with the extension ID shown in Setup / Monitor. This enables the recovery bootstrap needed by the updater.
+3. Reload the extension in chrome://extensions/, approve the new alarms permission if prompted, and reopen YouTube tabs.
+4. Future signed releases can be installed using **Setup / Monitor → Extension updates → Update now**.
 
-- `npm run test:all`: 26 production JavaScript files passed syntax validation; all 80 automated tests passed.
-- Regression tests cover fresh player video/MP3 downloads, complete FFmpeg/DLL installation under a Turkish-character path, digest rejection, retry after failure, and reuse of an existing installation without network access.
-- `node test/scripts/clean-install-smoke.js`: downloaded and installed real yt-dlp and FFmpeg into an isolated temporary Windows directory containing Turkish characters. Both FFmpeg and ffprobe ran successfully; a generated MP4 was verified to contain H.264 video and AAC audio. The registered host and existing media tools were left unchanged.
-- The original failure on the second computer has not yet been retested on that device. The live smoke test validates tool installation and local media processing, not a live YouTube download.
+The signed paracci-update.json asset is consumed by the updater; it is not a ZIP to install manually. Existing 1.14.x releases cannot install the new updater automatically. Development checkouts containing .git use Git instead of automatic file replacement.
+
+## Validation
+
+- npm run test:all: all 93 tests passed; all 30 production JavaScript files passed syntax checks.
+- Tests cover signature tampering, wrong keys, traversal, trust-root protection, downgrade rejection, generated-tool preservation, write-failure rollback, process-exit recovery, concurrent-update locks, caller restrictions, and reload behavior.
+- Real signed-package Native Messaging smoke test passed in an isolated Turkish-character Windows installation: 50 installed files verified, generated media tools preserved, and successful recovery bootstrap/journal handling. Browser settings preservation follows from keeping the existing extension path/ID; a separate file marker was preserved in the smoke test.
+- Browser UI checks with simulated Chrome/native responses confirmed Turkish labels and the check → available → install → completed flow, with no console errors. This is separate from the real native installation smoke test.
 
 ## GitHub Actions availability
 
-The maintainer reports that GitHub Actions usage is currently blocked by the account's usage/budget limits. Hosted verification may therefore appear failed or unavailable without running validation. A check blocked for that reason is not a passing CI result; the validation evidence for this release is the local testing described above. Any actual build or test failure must still be investigated separately.
+The maintainer has reported account usage/budget restrictions that may prevent hosted verification from running. A quota-blocked check does not provide a test verdict. Local validation is listed above; actual build or test failures must be investigated separately.
+
+See [update setup, trust model, recovery, and release publishing](https://github.com/Paracci/youtube-shorts-blocker/blob/v1.15.0/docs/UPDATES.md) for details.

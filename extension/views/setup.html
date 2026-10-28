@@ -542,6 +542,7 @@
             display: none;
             margin-top: 4px;
         }
+        .updater-card [hidden] { display: none !important; }
     </style>
 </head>
 
@@ -663,6 +664,15 @@
 
                 <div class="divider"></div>
 
+                <div class="updater-card">
+                    <div class="updater-card-title" data-i18n="appUpdateTitle">Extension updates</div>
+                    <p class="updater-card-sub" data-i18n="appUpdateDescription">Checks GitHub daily. Updates install only when you choose.</p>
+                    <p id="app-update-status" role="status" aria-live="polite"></p>
+                    <button class="btn-outline-blue" id="app-update-check" data-i18n="appUpdateCheck">Check for updates</button>
+                    <button class="btn-outline-blue" id="app-update-install" data-i18n="appUpdateInstall" hidden>Update now</button>
+                    <pre id="app-update-details" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;font-size:12px"></pre>
+                </div>
+
                 <!-- Updater -->
                 <div class="updater-card">
                     <div class="updater-card-title" data-i18n="setupUpdaterTitle">yt-dlp Engine</div>
@@ -696,6 +706,7 @@
     <script src="../js/i18n/translations.js"></script>
     <script src="../js/developer-logger.js"></script>
     <script src="../js/setup.js"></script>
+    <script src="../js/app-update-page.js"></script>
 </body>
 
 </html>

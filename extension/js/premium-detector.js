@@ -3,7 +3,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 (function () {
-    const SCRIPT_ID = 'yt-premium-detector-injection';
     const MESSAGE_TYPE = 'YT_PREMIUM_STATUS';
     const premiumDeveloperLogger = typeof DeveloperLogger !== 'undefined'
         ? DeveloperLogger.create('content', 'premium-detector')
@@ -28,15 +27,9 @@
         if (typeof beginPremiumCheck === 'function') beginPremiumCheck();
         premiumDeveloperLogger?.debug('premium.bridge_started', 'Starting page-context Premium detection.');
 
-        const existing = document.getElementById(SCRIPT_ID);
-        if (existing) existing.remove();
-
         currentNonce = createNonce();
         try {
-            const script = document.createElement('script');
-            script.id = SCRIPT_ID;
-            script.src = `${chrome.runtime.getURL('js/inject.js')}?nonce=${encodeURIComponent(currentNonce)}`;
-            (document.head || document.documentElement).appendChild(script);
+            window.postMessage({ type: 'YT_PREMIUM_CHECK', nonce: currentNonce }, window.location.origin);
         } catch (_) {
             premiumDeveloperLogger?.error('premium.bridge_injection_failed', 'Could not inject Premium detector script.');
             // An invalidated extension context leaves Premium status unknown;
@@ -45,7 +38,7 @@
     }
 
     window.addEventListener('message', (event) => {
-        if (event.source !== window) return;
+        if (event.source !== window || event.origin !== window.location.origin) return;
         const data = event.data;
         if (!data || data.type !== MESSAGE_TYPE || data.nonce !== currentNonce) return;
         if (typeof data.isPremium !== 'boolean') return;

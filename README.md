@@ -1,4 +1,4 @@
-# YouTube Shorts Blocker & Ultimate Downloader (v1.14.1)
+# YouTube Shorts Blocker & Ultimate Downloader (v1.15.0)
 
 A privacy-focused Chrome extension designed to improve your YouTube experience without sending your data to a cloud service. It blocks unwanted Shorts channels, hides distracting content, handles explicit ad states with Premium-aware safety controls, and provides a private native downloader for public single-video URLs.
 
@@ -78,6 +78,12 @@ The advanced table exposes normalized resolution, FPS, video/audio codec, stream
 
 ## 🚀 Installation Guide
 
+### GitHub updates (v1.15.0+)
+
+Setup / Monitor now checks GitHub approximately daily and shows a toolbar `NEW` badge for a verified newer release. Click **Update now** in the **Extension updates** card to install an Ed25519-signed update and reload the extension. Downloads postpone installation; settings, blocked channels, and generated media tools are preserved. Old YouTube tabs should be reopened after updating.
+
+Existing 1.14.x users must copy the full new release over the same installation folder and run the updated `native-host/install_host.bat` **once** to enable the recovery bootstrap. Git development checkouts use Git updates. See [update setup, recovery, and publishing](docs/UPDATES.md).
+
 ### Phase 1: Chrome Extension
 1. Extract this repository to a permanent folder on your computer.
 2. Open `chrome://extensions/` in any Chromium-based browser (Chrome, Edge, Brave, etc.).
@@ -149,7 +155,7 @@ youtube-shorts-blocker/
 │   │   ├── download.html          # Standalone native downloader page
 │   │   ├── popup.html             # Popup markup — navigation and settings
 │   │   └── setup.html             # Setup page markup — fully translated
-│   └── manifest.json             # Extension configuration (v1.14.1)
+│   └── manifest.json             # Extension configuration (v1.15.0)
 │
 ├── native-host/                  # Companion app for high-quality downloads
 │   ├── install_host.bat          # Windows installer & registry config
@@ -172,7 +178,7 @@ youtube-shorts-blocker/
 ## ⚙️ Technical Notes
 
 - **Centralized Orchestration (v1.11.5):** All DOM-based features (Shorts hiding, blocking buttons, download buttons) are triggered by a single debounced `MutationObserver` in `content.js` for maximum performance and zero resource leaks.
-- **Premium Detection:** Runs in the page context via `inject.js` and accepts only explicit boolean signals: YouTube's premium flags, a logged-in false signal, or a visible Premium badge/header. Unknown results are sent as `null`; the content script never treats unknown or stale cached state as permission to enable ad automation. Messages are source- and nonce-validated, and detection is re-run on every SPA navigation.
+- **Premium Detection:** Runs through a manifest-declared `MAIN` world content script (`inject.js`) and a nonce-bound message bridge, without loading an external extension script URL. It accepts only explicit boolean signals: YouTube's premium flags, a logged-in false signal, or a visible Premium badge/header. Unknown results are sent as `null`; the content script never treats unknown or stale cached state as permission to enable ad automation. Messages are source- and nonce-validated, and detection is re-run on every SPA navigation.
 - **Popup ↔ Content Script Communication:** All popup toggles broadcast via `chrome.tabs.sendMessage` to every open YouTube tab. The content script listens via `chrome.runtime.onMessage` and responds instantly — no page refresh required.
 - **Settings & Data Persistence:** All settings, statistics, language preference, the blocked channel list, and the custom download path are stored locally via `chrome.storage.local`. Local filtering does not transmit channel data; optional YouTube feedback is triggered only through the current YouTube page/session.
 - **Custom Download Path:** The path chosen in the popup is forwarded to the native host as a `savePath` parameter on every native `download_video` call. If the folder does not exist it is created automatically via `fs.mkdirSync(..., { recursive: true })`. Browser-direct downloads use Chrome's normal download location because a content script cannot select an arbitrary filesystem path.
@@ -184,7 +190,7 @@ youtube-shorts-blocker/
 - **Ad Blocker Strategy:** Uses CSS for confirmed feed/banner ad slots and a scoped `MutationObserver` for explicit player/Shorts ad markers. Shorts navigation targets the active renderer and removes only confirmed overlay content; it never hides the entire Shorts player. Media mute/playback-rate changes are restored when the ad state ends or the feature is disabled. For Premium subscribers all ad-related logic is disabled at the state level before this runs.
 - **In-player Download Flow:** Buttons already present on YouTube pages can use the browser-side stream path for formats available directly in the player. The standalone Downloader intentionally uses the native host so merging, conversion, custom paths, and cancellation remain under one controlled flow. Native yt-dlp calls explicitly enable the host's Node.js runtime and use YouTube's `web_embedded` player client to avoid the current `android_vr` stream URLs that can return HTTP 403.
 - **Memory Management:** `IntersectionObserver` entries are unobserved as soon as their target element is detached from the DOM, preventing unbounded growth as YouTube recycles `ytd-reel-video-renderer` nodes during scrolling.
-- **SPA Navigation:** A debounced `MutationObserver` on `document` handles nested renderer additions and relevant attribute changes for homepage visibility, channel controls, ad state, and download buttons. Premium re-detection also fires on every `yt-navigate-finish` event with a fresh nonce-bound page-context script.
+- **SPA Navigation:** A debounced `MutationObserver` on `document` handles nested renderer additions and relevant attribute changes for homepage visibility, channel controls, ad state, and download buttons. Premium re-detection also fires on every `yt-navigate-finish` event with a fresh nonce-bound detection request.
 - **URL Policy:** `download-policy.js` accepts only HTTPS public single-video URLs on `youtube.com`, its supported subdomains, and `youtu.be`. It rejects credentials, playlists, channel/search routes, malformed IDs, excessive URL length, and non-YouTube hosts at three independent boundaries.
 - **Standalone Native Protocol:** `download.html` communicates through a dedicated `runtime.connect({ name: 'download-page' })` port. Requests carry scoped `requestId`/`jobId` values, and background routing never broadcasts one page's format or progress state to another page.
 - **Safe Format Selection:** The page receives normalized metadata only (`id`, type, extension, dimensions, FPS, codecs, size, and audio/video flags). Signed `googlevideo.com` stream URLs and raw yt-dlp arguments never cross into the page.
